@@ -6,14 +6,17 @@
 // runs the native desktop build, packaging and packaged-entry verification on a native runner,
 // proving the exported whitelist keeps every desktop input (Objective-C bridge files, embedded
 // images, DMG resources, packaging entry points); upgrade creates the application with the OLD
-// release's own generator from its own freshly generated framework-template, customizes and
-// releases it with the old bundled tooling, verifies the old syncer refuses to advance the
-// branch, applies the documented one-time tooling migration and then upgrades through the
-// project's own framework:sync commands — proving business sources, theme, module, migrations,
-// data, version and the author policy survive a real upgrade with a verifiable common ancestor
-// and a pre-sync backup branch.
+// release's own generator from its own freshly generated framework-template (POSIX from the git
+// source with the generator's own ancestry graft; Windows from an exported archive, the real
+// missing-ancestor scenario, because the old generator's input check overflows the Windows
+// command line), customizes and releases it with the old bundled tooling, verifies the old
+// syncer refuses to advance the branch, applies the documented one-time tooling migration and
+// then recovers, grafts (when the ancestry is missing) and upgrades through the project's own
+// framework:sync commands — proving business sources, theme, module, migrations, data, version
+// and the author policy survive a real upgrade with a verifiable common ancestor and a pre-sync
+// backup branch.
 import {execFileSync} from 'node:child_process';
-import {existsSync,mkdirSync,mkdtempSync,readFileSync,rmSync,writeFileSync} from 'node:fs';
+import {cpSync,existsSync,mkdirSync,mkdtempSync,readFileSync,rmSync,writeFileSync} from 'node:fs';
 import {dirname,join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {snapshotFramework,verificationGitEnv} from '../tests/tooling/framework-source.mjs';
@@ -151,31 +154,25 @@ try{
     // Creation uses the OLD release's own generator, exactly like the original
     // project was born: its CLI accepts no author or release parameters, so the
     // application carries the framework author and the template VERSION until
-    // its own release process runs. The old generator verifies its selected
-    // template inputs with ~950 pathspecs in one git invocation, which exceeds
-    // the Windows command-line limit at any checkout location, so on Windows
-    // the clone is reached through a drive mapping: git resolves the mapping
-    // for its own toplevel check, the old generator skips its overflowing
-    // input check there, and the graft below re-applies exactly the ancestry
-    // step the old generator performs on POSIX.
-    let substDrive=null;
+    // its own release process runs. On Windows the old generator's selected-
+    // inputs check puts ~950 pathspecs on one git command line, which overflows
+    // at any CI checkout location — the real-world path there is creating from
+    // an exported archive, so the drill creates from a .git-free copy: the old
+    // generator runs verbatim and the application starts without template
+    // ancestry (the missing-ancestor scenario, grafted later through the
+    // project's own migrated tooling). POSIX keeps the git-source creation with
+    // the generator's own ancestry graft (the normal scenario). The application
+    // repository deliberately differs from the product slug.
+    const applicationRepository='https://github.com/example/harbor-desk-app';
+    let createCwd=oldSource;
     if(process.platform==='win32'){
-      substDrive='X:';
-      try{execFileSync('subst',[substDrive,'/d'],{stdio:'ignore'});}catch{/* not mapped */}
-      execFileSync('subst',[substDrive,oldSource]);
+      createCwd=join(output,'old-archive');
+      cpSync(oldSource,createCwd,{recursive:true,filter:p=>!/[\\/]\.git([\\/]|$)/.test(p)&&p.split(/[\\/]/).at(-1)!=='build'});
     }
-    try{
-      const oldRoot=substDrive?`${substDrive}\\`:oldSource;
-      execFileSync('node',[join(oldRoot,'scripts','create-project.mjs'),'--directory',app,'--name','Harbor Desk','--slug','harbor-desk',
-        '--module',goModule,'--bundle','test.example.harbordesk','--repository','https://github.com/example/harbor-desk'],
-        {cwd:oldSource,stdio:['ignore','pipe','inherit']});
-    }finally{ if(substDrive) execFileSync('subst',[substDrive,'/d'],{stdio:'ignore'}); }
-    if(git(app,'rev-list','--parents','-n','1','HEAD').trim().split(' ').length===1){
-      git(app,'fetch',oldSource,'framework-template');
-      git(app,'reset','--soft','FETCH_HEAD');
-      git(app,'commit','-qm',`Initial baseline from Unicore ${oldFrameworkVersion}`);
-    }
-    if(git(app,'rev-parse','HEAD^')!==oldTemplate) throw Error(`the created application does not descend from the old template commit ${oldTemplate.slice(0,12)}`);
+    execFileSync('node',['scripts/create-project.mjs','--directory',app,'--name','Harbor Desk','--slug','harbor-desk',
+      '--module',goModule,'--bundle','test.example.harbordesk','--repository',applicationRepository],
+      {cwd:createCwd,stdio:['ignore','pipe','inherit']});
+    if(process.platform!=='win32'&&git(app,'rev-parse','HEAD^')!==oldTemplate) throw Error(`the created application does not descend from the old template commit ${oldTemplate.slice(0,12)}`);
     console.log(`Verifying upgrade from ${oldRef} (template ${oldTemplate.slice(0,12)}): ${app}`);
   }else{
     fixture=snapshotFramework(repository);
@@ -229,29 +226,17 @@ try{
     const newTemplate=updateTemplateBranch(fixture.source).commit;
     git(app,'remote','set-url','framework',fixture.source);
     // The upgrade entry a real project runs is its OWN bundled tooling. The old
-    // syncer (created before the migration below) must see the pending update
-    // and refuse to advance the application branch: VERSION always conflicts
-    // (the application released 2.3.4, the template moved on) and the old tool
-    // auto-resolves nothing. Provenance integration records and version
-    // projection regeneration are also beyond the old tool.
-    run('pnpm',['framework:check']);
+    // syncer must refuse to advance the application branch: on POSIX it hits
+    // the VERSION conflict (the application released 2.3.4, the template moved
+    // on) and auto-resolves nothing; on the archive-created Windows path it
+    // refuses earlier with the missing template ancestor. Both refusals keep
+    // HEAD untouched, and neither records the provenance integration nor
+    // regenerates the version projections.
+    const oldCheck=tryRun('pnpm',['framework:check']);
     const oldSync=tryRun('pnpm',['framework:sync']);
     if(oldSync.ok) throw Error('the old bundled syncer completed the upgrade; the drill requires the refusal-then-migration path');
     if(git(app,'rev-parse','HEAD')!==customizationHead) throw Error('the old bundled syncer advanced the application branch');
-    console.log(`Old bundled syncer refused as expected; migrating the tooling before the first real sync.`);
-    const aborted=tryRun('pnpm',['framework:sync','--abort']);
-    if(!aborted.ok){
-      // The old tooling's scene cleanup can fail on Windows path handling; a
-      // real downstream removes the refused scene mechanically then.
-      const pending=JSON.parse(readFileSync(join(app,'build/framework-sync-state.json'),'utf8'));
-      git(app,'worktree','remove','--force',pending.worktree);
-      rmSync(pending.tempRoot,{recursive:true,force:true});
-      rmSync(join(app,'build/framework-sync-state.json'),{force:true});
-    }
-    if(git(app,'status','--porcelain')) throw Error('the refused old sync left the application worktree dirty');
-    // The refused scene's backup branch belongs to that scene; the migration
-    // discards it so the real upgrade's backup is the only one.
-    for(const branch of git(app,'for-each-ref','--format=%(refname:short)','refs/heads/backup/pre-sync-*').split('\n').filter(Boolean)) git(app,'branch','-D',branch);
+    console.log(`Old bundled syncer refused as expected (${oldCheck.ok ? 'pending update' : 'missing ancestor'}); migrating the tooling before the first real sync.`);
     // The documented one-time migration for projects created before 0.1.7
     // (docs/product/framework-upgrade.md): refresh the sync toolchain from the
     // pending template BEFORE the first sync — the syncer plus the helpers it
@@ -264,6 +249,21 @@ try{
       git(app,'add',`scripts/${script}`);
     }
     git(app,'commit','-qm','Refresh framework sync tooling from the pending template');
+    // A scene the old tool left behind is cleaned up by the REFRESHED tool
+    // through the same user entry — its abort no longer depends on the path
+    // handling that could fail on Windows.
+    if(existsSync(join(app,'build/framework-sync-state.json'))) run('pnpm',['framework:sync','--abort']);
+    if(git(app,'status','--porcelain')) throw Error('the refused old sync left the application worktree dirty');
+    // The refused scene's backup branch belongs to that scene; the migration
+    // discards it so the real upgrade's backup is the only one.
+    for(const branch of git(app,'for-each-ref','--format=%(refname:short)','refs/heads/backup/pre-sync-*').split('\n').filter(Boolean)) git(app,'branch','-D',branch);
+    // A project created from an archive has no template ancestor: the
+    // refreshed tool grafts the pending template lineage under the existing
+    // history through the same user entry (identical trees, messages, authors
+    // and dates; only the ancestry is added).
+    let hasAncestor=true;
+    try{git(app,'merge-base','HEAD','FETCH_HEAD');}catch{hasAncestor=false;}
+    if(!hasAncestor) run(process.execPath,['scripts/framework-sync.mjs','graft']);
     const preSyncHead=git(app,'rev-parse','HEAD');
     // The upgrade itself runs through the project's own (now current) command.
     const check=checkTemplate(app);
@@ -325,7 +325,7 @@ try{
     // The image reference follows the application's release repository and the
     // upstream feedback flow arrived with the template.
     const appFaq=readFileSync(join(app,'docs/product/faq.md'),'utf8');
-    if(!appFaq.includes('ghcr.io/example/harbor-desk')||appFaq.includes('ghcr.io/yunnuo88520/unicore')) throw Error('FAQ image reference does not follow the application release repository');
+    if(!appFaq.includes('ghcr.io/example/harbor-desk-app')||appFaq.includes('ghcr.io/yunnuo88520/')) throw Error('FAQ image reference does not follow the application release repository');
     if(!readFileSync(join(app,'AGENTS.md'),'utf8').includes('遇到疑似框架缺陷时')) throw Error('the upstream feedback flow did not arrive with the template');
     console.log('[acceptance] version 2.3.4 kept, provenance dual-tracked, changelog/OTA/image/feedback verified');
   }else if(mode==='full'){
@@ -349,7 +349,7 @@ try{
     if(mode==='full'){
       writeFileSync(join(output,'result.txt'),'PASS renamed application: docs, full tests, Web/CLI/ops builds and renamed CLI entry point on a customized application\n');
     }else{
-      writeFileSync(join(output,'result.txt'),`PASS upgraded application: old bundled syncer refused safely, one-time tooling migration applied, own framework:sync kept business sources, theme, migrations, data, version and authorship; docs, full tests and builds pass with ancestor ${oldTemplate.slice(0,12)} and backup branch\n`);
+      writeFileSync(join(output,'result.txt'),`PASS upgraded application: old bundled syncer refused safely, one-time tooling migration applied${process.platform==='win32'?' with template-ancestry graft':''}, own framework:sync kept business sources, theme, migrations, data, version and authorship; docs, full tests and builds pass with ancestor ${oldTemplate.slice(0,12)} and backup branch\n`);
     }
   }else{
     run('make',['build-desktop']);

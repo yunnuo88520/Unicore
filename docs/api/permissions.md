@@ -5,7 +5,7 @@
 
 | 权限 | API（均在 /api/v1 下） |
 | --- | --- |
-| roles:write | POST /admin/roles；PUT/DELETE /admin/roles/{id}（仅 super_admin；角色可组合两个工作台的权限与授权）；PUT /admin/menus/{id}/roles 同时要求 menus:write、roles:write 与 super_admin |
+| roles:write | POST /admin/roles；PUT/DELETE /admin/roles/{id}（仅 super_admin；角色可组合两个工作台的权限与授权；创建与更新角色拒绝 super_admin 保留权限点进入存储角色行，保留点仅由 super_admin 隐式持有）；PUT /admin/menus/{id}/roles 同时要求 menus:write、roles:write 与 super_admin |
 | menus:write | GET/PUT /admin/menus（单棵共享导航树 navigation.{sections,nodes,version}，PUT 版本号 CAS 冲突返回 409，空数组持久化为空树；`reset` 恢复共享默认树，仅 super_admin） |
 | posts:read/write | GET /admin/posts；POST /admin/posts；PUT/DELETE /admin/posts/{id}（岗位目录，assignable；删除仍有用户关联的岗位返回冲突。用户创建/更新携带 post_ids 多岗位，用户列表支持 post_id 过滤） |
 | dictionaries:read/write | GET/POST /admin/dictionaries；GET/PUT/DELETE /admin/dictionaries/{id}；PUT /admin/dictionaries/{id}/items（可授权给管理员域角色）；用户域 GET /dictionaries/{code} 读取 active 条目 |

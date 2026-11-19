@@ -270,10 +270,16 @@ func (r *Repository) RoleOptions(ctx context.Context, actorID string) (contracts
 	return result, nil
 }
 
-// Role grants must exist in the catalogue. Reserved operations still require super_admin.
+// Role grants must exist in the catalogue, and super_admin reserved points
+// never enter a stored role row. The policy middleware and the transaction
+// actor check enforce reserved operations per request; granting the point
+// itself would mint accounts that management tooling (HasManagementAccess,
+// credential delegation) treats as privileged without any request ever
+// succeeding. The builtin super_admin role is unaffected: its grant set is
+// never persisted through this path.
 func validateGrants(realm string, permissions []string) error {
 	for _, permission := range permissions {
-		if !platform.CatalogPermission(permission) {
+		if !platform.CatalogPermission(permission) || platform.SuperOnlyPermission(permission) {
 			return platform.ErrForbidden
 		}
 	}

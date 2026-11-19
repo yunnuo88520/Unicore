@@ -57,6 +57,48 @@ func (p policyRouter) Head(pattern string, h http.HandlerFunc) {
 	p.Router.With(policyHandler(p.config)).Head(pattern, h)
 }
 
+// The remaining registration surfaces are wrapped as well: Method and
+// MethodFunc used to bypass the policy middleware entirely (the branding and
+// storage mounts registered through them), and Route/Group/Mount would hand
+// callers an unwrapped subrouter. NotFound/MethodNotAllowed stay unwrapped on
+// purpose: unmatched requests have no operation policy and the root router
+// already answers them with JSON errors.
+func (p policyRouter) Connect(pattern string, h http.HandlerFunc) {
+	p.Router.With(policyHandler(p.config)).Connect(pattern, h)
+}
+
+func (p policyRouter) Options(pattern string, h http.HandlerFunc) {
+	p.Router.With(policyHandler(p.config)).Options(pattern, h)
+}
+
+func (p policyRouter) Trace(pattern string, h http.HandlerFunc) {
+	p.Router.With(policyHandler(p.config)).Trace(pattern, h)
+}
+
+func (p policyRouter) Method(method, pattern string, h http.Handler) {
+	p.Router.With(policyHandler(p.config)).Method(method, pattern, h)
+}
+
+func (p policyRouter) MethodFunc(method, pattern string, h http.HandlerFunc) {
+	p.Router.With(policyHandler(p.config)).MethodFunc(method, pattern, h)
+}
+
+func (p policyRouter) Route(pattern string, fn func(chi.Router)) chi.Router {
+	return p.Router.Route(pattern, func(r chi.Router) {
+		fn(policyRouter{Router: r, config: p.config})
+	})
+}
+
+func (p policyRouter) Group(fn func(chi.Router)) chi.Router {
+	return p.Router.Group(func(r chi.Router) {
+		fn(policyRouter{Router: r, config: p.config})
+	})
+}
+
+func (p policyRouter) Mount(pattern string, h http.Handler) {
+	p.Router.With(policyHandler(p.config)).Mount(pattern, h)
+}
+
 // mountAPI registers every versioned API route behind the contract policy middleware.
 func mountAPI(api chi.Router, config Config) {
 	guarded := policyRouter{Router: api, config: config}
@@ -181,6 +223,7 @@ func policyHandler(config Config) func(http.Handler) http.Handler {
 						return
 					}
 					if b, ok := bearerFrom(r); ok && !b.Allows(operation.ID, r.URL.Path) {
+						recordDenial(config.Install, r, &session, "authz.denied", "operation="+operation.ID+"; reason=bearer_scope")
 						webError(w, platform.ErrForbidden)
 						return
 					}
@@ -217,6 +260,7 @@ func policyHandler(config Config) func(http.Handler) http.Handler {
 				return
 			}
 			if bearer, present := bearerFrom(r); present && !bearer.Allows(operation.ID, r.URL.Path) {
+				recordDenial(config.Install, r, &session, "authz.denied", "operation="+operation.ID+"; reason=bearer_scope")
 				webError(w, platform.ErrForbidden)
 				return
 			}
@@ -228,17 +272,20 @@ func policyHandler(config Config) func(http.Handler) http.Handler {
 				// Grants are session data resolved from role_permissions; the
 				// declared mode decides all/any, unknown modes fail closed.
 				if !platform.PermissionsAllow(session.User.Permissions, operation.Policy.Permissions, operation.Policy.PermissionMode) {
+					recordDenial(config.Install, r, &session, "authz.denied", "operation="+operation.ID+"; reason=permission")
 					webError(w, platform.ErrForbidden)
 					return
 				}
 				// Operation grants are the explicit refinement layer: new
 				// delegable operations default to denied, super_admin bypasses.
 				if !platform.OperationAllowed(session.User, operation.ID) {
+					recordDenial(config.Install, r, &session, "authz.denied", "operation="+operation.ID+"; reason=operation_grant")
 					webError(w, platform.ErrForbidden)
 					return
 				}
 			}
 			if webPlatform && operation.Policy.SuperAdmin && !platform.IsSuper(session.User) {
+				recordDenial(config.Install, r, &session, "authz.denied", "operation="+operation.ID+"; reason=super_admin")
 				webError(w, platform.ErrForbidden)
 				return
 			}
@@ -284,6 +331,7 @@ func resolveSession(manager *install.Manager, w http.ResponseWriter, r *http.Req
 		return session, false
 	}
 	if r.Method != "GET" && r.Method != "HEAD" && !platform.Equal(r.Header.Get("X-CSRF-Token"), session.CsrfToken) {
+		recordDenial(manager, r, &session, "auth.csrf.invalid", "")
 		failure(w, 403, "CSRF_INVALID", "请求校验已失效，请刷新页面")
 		return session, false
 	}

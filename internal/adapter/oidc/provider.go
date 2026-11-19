@@ -61,6 +61,7 @@ func oidcHTTPClient(issuer *url.URL) *http.Client {
 type resolved struct {
 	verifier    tokenVerifier
 	issuerURL   *url.URL
+	client      *http.Client
 	config      oauth2.Config
 	userinfoURL string
 	endpoints   map[string]string
@@ -162,13 +163,13 @@ func resolve(ctx context.Context, c platform.OIDCConfig) (resolved, error) {
 	if discoveryErr == nil {
 		// Keep the discovered auth style; manual token URL swaps keep the negotiated method.
 		endpoint.AuthStyle = p.Endpoint().AuthStyle
-		if err := negotiateAuthStyle(&endpoint, c.ClientSecret, methods); discoveryErr != nil {
+		if err := negotiateAuthStyle(&endpoint, c.ClientSecret, methods); err != nil {
 			return resolved{}, err
 		}
 	} else if err := negotiateAuthStyle(&endpoint, c.ClientSecret, nil); err != nil {
 		return resolved{}, err
 	}
-	return resolved{verifier: verifier, issuerURL: u, config: oauth2.Config{ClientID: c.ClientID, ClientSecret: c.ClientSecret, RedirectURL: c.Callback, Endpoint: endpoint, Scopes: strings.Fields(c.Scopes)}, userinfoURL: endpoints["userinfo"], endpoints: endpoints}, nil
+	return resolved{verifier: verifier, issuerURL: u, client: client, config: oauth2.Config{ClientID: c.ClientID, ClientSecret: c.ClientSecret, RedirectURL: c.Callback, Endpoint: endpoint, Scopes: strings.Fields(c.Scopes)}, userinfoURL: endpoints["userinfo"], endpoints: endpoints}, nil
 }
 
 func (Provider) Check(ctx context.Context, c platform.OIDCConfig) (map[string]string, error) {
@@ -212,7 +213,7 @@ func (Provider) Verify(ctx context.Context, c platform.OIDCConfig, code, nonce, 
 	if err != nil {
 		return platform.OIDCClaims{}, err
 	}
-	token, err := r.config.Exchange(ctx, code, oauth2.VerifierOption(verifier))
+	token, err := r.config.Exchange(oidc.ClientContext(ctx, r.client), code, oauth2.VerifierOption(verifier))
 	if err != nil {
 		return platform.OIDCClaims{}, err
 	}
@@ -264,14 +265,22 @@ func (Provider) Verify(ctx context.Context, c platform.OIDCConfig, code, nonce, 
 		if err = json.NewDecoder(response.Body).Decode(&payload); err != nil {
 			return platform.OIDCClaims{}, platform.ErrOIDC
 		}
+		// The userinfo response describes exactly one subject: it must be the
+		// identity the verified ID token proved. Anything else is refused
+		// instead of stitched across identities.
+		if sub, ok := payload["sub"].(string); !ok || sub == "" || sub != id.Subject {
+			return platform.OIDCClaims{}, platform.ErrOIDC
+		}
+		// Email and its verified flag travel as one pair from one source: the
+		// payload may complete a missing email, but it never re-verifies (or
+		// un-verifies) an email the verified ID token already stated.
 		if result.Email == "" {
 			if email, ok := claimPath(payload, c.UserinfoEmailPath); ok {
 				result.Email = strings.ToLower(strings.TrimSpace(email))
-			}
-		}
-		if !result.EmailVerified {
-			if verified, ok := payload["email_verified"].(bool); ok {
-				result.EmailVerified = verified
+				result.EmailVerified = false
+				if verified, ok := payload["email_verified"].(bool); ok {
+					result.EmailVerified = verified
+				}
 			}
 		}
 		if username, ok := claimPath(payload, c.UserinfoUsernamePath); ok {

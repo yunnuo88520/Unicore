@@ -157,3 +157,97 @@ func TestManualEndpointsWithoutDiscovery(t *testing.T) {
 		t.Fatal("manual endpoints failed", claims, err)
 	}
 }
+
+// The userinfo response must describe the same subject the verified ID token
+// proved; a mismatched sub refuses the whole enrichment.
+func TestUserinfoSubjectBinding(t *testing.T) {
+	p := oidcfixture.New()
+	server := httptest.NewServer(p)
+	defer server.Close()
+	p.URL = server.URL
+	p.SetUserinfoSubject("someone-else")
+	c := platform.OIDCConfig{Issuer: p.URL, ClientID: oidcfixture.ClientID, ClientSecret: oidcfixture.ClientSecret, Scopes: "openid email", Callback: "http://127.0.0.1:12345/callback", Userinfo: true, UserinfoEmailPath: "email", UserinfoUsernamePath: "preferred_username"}
+	if _, err := verifyFixture(t, c, ""); err == nil {
+		t.Fatal("userinfo subject mismatch accepted")
+	}
+}
+
+// The verified flag never crosses sources: an unverified ID-token email stays
+// unverified even when the userinfo payload asserts verification.
+func TestUserinfoEmailStaysWithItsSource(t *testing.T) {
+	p := oidcfixture.New()
+	server := httptest.NewServer(p)
+	defer server.Close()
+	p.URL = server.URL
+	c := platform.OIDCConfig{Issuer: p.URL, ClientID: oidcfixture.ClientID, ClientSecret: oidcfixture.ClientSecret, Scopes: "openid email", Callback: "http://127.0.0.1:12345/callback", Userinfo: true, UserinfoEmailPath: "email", UserinfoUsernamePath: "preferred_username"}
+	claims, err := verifyFixture(t, c, "unverified")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if claims.Email != "employee@example.test" || claims.EmailVerified {
+		t.Fatal("cross-source email verification stitched", claims)
+	}
+}
+
+// The token exchange must ride the bounded HTTP client: a token endpoint that
+// answers with a redirect is refused instead of followed.
+func TestTokenExchangeRefusesRedirects(t *testing.T) {
+	p := oidcfixture.New()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/token-redirect", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, p.URL+"/token", http.StatusTemporaryRedirect)
+	})
+	mux.Handle("/", p)
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	p.URL = server.URL
+	c := platform.OIDCConfig{Issuer: p.URL, ClientID: oidcfixture.ClientID, ClientSecret: oidcfixture.ClientSecret, Scopes: "openid", Callback: "http://127.0.0.1:12345/callback", Manual: map[string]string{"token": p.URL + "/token-redirect"}}
+	if _, err := (Provider{}).Check(context.Background(), c); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := verifyFixture(t, c, ""); err == nil {
+		t.Fatal("token exchange followed a redirect")
+	}
+}
+
+// An unsupported negotiated auth method list must fail resolution instead of
+// silently falling back to the default style.
+func TestNegotiatedAuthMethodError(t *testing.T) {
+	p := oidcfixture.New()
+	server := httptest.NewServer(p)
+	defer server.Close()
+	p.URL = server.URL
+	p.SetAuthMethods([]string{"none"})
+	c := platform.OIDCConfig{Issuer: p.URL, ClientID: oidcfixture.ClientID, ClientSecret: oidcfixture.ClientSecret, Scopes: "openid", Callback: "http://127.0.0.1:12345/callback"}
+	if _, err := (Provider{}).Check(context.Background(), c); err == nil {
+		t.Fatal("unsupported auth methods accepted")
+	}
+}
+
+// verifyFixture drives the authorize/approve/redirect round trip and calls
+// adapter.Verify once with the returned code.
+func verifyFixture(t *testing.T, c platform.OIDCConfig, scenario string) (platform.OIDCClaims, error) {
+	t.Helper()
+	adapter := Provider{}
+	ctx := context.Background()
+	verifier, nonce := platform.Token(), platform.Token()
+	auth, err := adapter.Authorize(ctx, c, platform.Token(), nonce, verifier, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, _ := url.Parse(auth)
+	q := u.Query()
+	q.Set("approve", "yes")
+	if scenario != "" {
+		q.Set("scenario", scenario)
+	}
+	u.RawQuery = q.Encode()
+	client := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	resp, err := client.Get(u.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	redirect, _ := url.Parse(resp.Header.Get("Location"))
+	return adapter.Verify(ctx, c, redirect.Query().Get("code"), nonce, verifier, false)
+}

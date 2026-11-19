@@ -3,12 +3,12 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {existsSync,symlinkSync,mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync} from 'node:fs';
+import {existsSync,symlinkSync,mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync,cpSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
 import {updateTemplateBranch} from './framework-template.mjs';
 import {createProject} from './create-project.mjs';
-import {checkTemplate,syncTemplate,continueTemplateSync,abortTemplateSync} from './framework-sync.mjs';
+import {checkTemplate,syncTemplate,continueTemplateSync,abortTemplateSync,graftTemplateAncestry} from './framework-sync.mjs';
 import {applyIdentity,loadIdentity} from './product-identity.mjs';
 
 process.env.GIT_AUTHOR_NAME='Fixture';process.env.GIT_AUTHOR_EMAIL='fixture@example.test';
@@ -253,6 +253,117 @@ test('version-only projection conflicts resolve automatically at the application
   assert.equal(readFileSync(join(derived,'VERSION'),'utf8').trim(),'0.1.5');
   assert.equal(existsSync(join(derived,'build/framework-sync-state.json')),false);
   assert.equal(sh(derived,'status','--porcelain'),'');
+ }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
+});
+
+test('a same-named version field in business content stays a manual conflict',()=>{
+ const {source,fixtureRoot}=makeSource();
+ try{
+  updateTemplateBranch(source);const derived=derive(source);
+  // package.json: a business config block carrying its own version key; both
+  // sides append it at the same position, so the regions collide.
+  const pkg=JSON.parse(readFileSync(join(derived,'package.json'),'utf8'));
+  pkg.version='0.1.5';pkg.config={version:'app-v2'};
+  writeFileSync(join(derived,'package.json'),JSON.stringify(pkg,null,2)+'\n');
+  writeFileSync(join(derived,'VERSION'),'0.1.5\n');
+  sh(derived,'add','-A');sh(derived,'commit','-qm','Business config with its own version key');
+  const head=sh(derived,'rev-parse','HEAD');
+  upstreamStep(source,'0.2.0',()=>{
+   writeFileSync(join(source,'VERSION'),'0.2.0\n');
+   const up=JSON.parse(readFileSync(join(source,'package.json'),'utf8'));
+   up.version='0.2.0';up.config={version:'template-v9'};
+   writeFileSync(join(source,'package.json'),JSON.stringify(up,null,2)+'\n');
+  });
+  assert.throws(()=>syncTemplate(derived),/Upstream merge conflicts/);
+  assert.equal(sh(derived,'rev-parse','HEAD'),head);
+  // The nested version key is not the projection path: the file stays conflicted.
+  const pending=JSON.parse(readFileSync(join(derived,'build/framework-sync-state.json')));
+  const conflicted=sh(pending.worktree,'diff','--name-only','--diff-filter=U').split('\n');
+  assert.ok(conflicted.includes('package.json'),`package.json should stay conflicted: ${conflicted}`);
+  // Manual resolution: upstream's additions plus every application side kept.
+  const union={name:'unicore',version:'0.1.5',scripts:{dev:'vite'},dependencies:{'framework-sdk':'^0.1.0'},config:{version:'app-v2',channel:'stable'}};
+  writeFileSync(join(pending.worktree,'package.json'),JSON.stringify(union,null,2)+'\n');
+  sh(pending.worktree,'add','package.json');
+  continueTemplateSync(derived);
+  const final=JSON.parse(readFileSync(join(derived,'package.json'),'utf8'));
+  assert.equal(final.version,'0.1.5');
+  assert.equal(final.config.version,'app-v2');
+  assert.equal(final.config.channel,'stable');
+  assert.equal(sh(derived,'status','--porcelain'),'');
+ }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
+});
+
+test('an OpenAPI business schema named version stays a manual conflict',()=>{
+ const {source,fixtureRoot}=makeSource();
+ try{
+  updateTemplateBranch(source);const derived=derive(source);
+  const api=JSON.parse(readFileSync(join(derived,'packages/contracts/openapi.json'),'utf8'));
+  api.components.schemas.License={type:'object',required:['version'],properties:{version:{type:'string'},plan:{type:'string'}}};
+  api.components.schemas.License.properties.version.examples=['9.9.9'];
+  writeFileSync(join(derived,'packages/contracts/openapi.json'),JSON.stringify(api,null,2)+'\n');
+  sh(derived,'add','-A');sh(derived,'commit','-qm','Business schema carries its own version property');
+  const head=sh(derived,'rev-parse','HEAD');
+  upstreamStep(source,'0.2.0',()=>{
+   writeFileSync(join(source,'VERSION'),'0.2.0\n');
+   const up=JSON.parse(readFileSync(join(source,'packages/contracts/openapi.json'),'utf8'));
+   up.components.schemas.License={type:'object',required:['version'],properties:{version:{type:'string'},plan:{type:'string'}}};
+   up.components.schemas.License.properties.version.examples=['8.8.8'];
+   writeFileSync(join(source,'packages/contracts/openapi.json'),JSON.stringify(up,null,2)+'\n');
+  });
+  assert.throws(()=>syncTemplate(derived),/Upstream merge conflicts/);
+  assert.equal(sh(derived,'rev-parse','HEAD'),head);
+  const pending=JSON.parse(readFileSync(join(derived,'build/framework-sync-state.json')));
+  const conflicted=sh(pending.worktree,'diff','--name-only','--diff-filter=U').split('\n');
+  assert.ok(conflicted.includes('packages/contracts/openapi.json'),`openapi.json should stay conflicted: ${conflicted}`);
+  // Manual resolution: upstream's structure plus the application's own value.
+  const union={info:{title:'Unicore platform foundation API'},paths:{},components:{schemas:{License:{type:'object',required:['version'],properties:{version:{type:'string',examples:['9.9.9']},plan:{type:'string'}}}}}};
+  writeFileSync(join(pending.worktree,'packages/contracts/openapi.json'),JSON.stringify(union,null,2)+'\n');
+  sh(pending.worktree,'add','packages/contracts/openapi.json');
+  continueTemplateSync(derived);
+  const final=JSON.parse(readFileSync(join(derived,'packages/contracts/openapi.json'),'utf8'));
+  assert.deepEqual(final.components.schemas.License.properties.version.examples,['9.9.9']);
+  assert.equal(sh(derived,'status','--porcelain'),'');
+ }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
+});
+
+test('graft attaches the creation template commit to an archive-created project',()=>{
+ const {source,fixtureRoot}=makeSource();
+ try{
+  const t1=updateTemplateBranch(source);
+  // An archive-created project: the generator runs against a .git-free copy,
+  // so the application has no template ancestry and records only its version.
+  const plain=join(fixtureRoot,'archive');mkdirSync(plain);
+  cpSync(source,plain,{recursive:true,filter:p=>!/([\\/])\.git([\\/]|$)/.test(p)});
+  const options={source:plain,directory:join(fixtureRoot,'app-archive'),name:'My Product',slug:'my-product',module:'example.test/team/product',bundle:'test.example.product'};
+  const derived=createProject(options);
+  sh(derived,'remote','set-url','framework',source);
+  assert.equal(JSON.parse(readFileSync(join(derived,'project.provenance.json'))).template_revision,null);
+  mkdirSync(join(derived,'internal/business'),{recursive:true});
+  writeFileSync(join(derived,'internal/business/business.go'),'package business\n');
+  sh(derived,'add','-A');sh(derived,'commit','-qm','product work');
+  // The old bundled syncer refuses: no common ancestor, branch untouched.
+  const head=sh(derived,'rev-parse','HEAD');
+  assert.throws(()=>syncTemplate(derived),/No common ancestor/);
+  assert.equal(sh(derived,'rev-parse','HEAD'),head);
+  // Graft locates the creation framework version inside the fetched lineage.
+  const grafted=graftTemplateAncestry(derived);
+  assert.equal(grafted.grafted,t1.commit);
+  assert.equal(sh(derived,'merge-base',sh(derived,'rev-parse','HEAD'),t1.commit),t1.commit);
+  // The trees are identical; only the ancestry was added.
+  assert.equal(sh(derived,'status','--porcelain'),'');
+  // A normal sync now works and keeps the grafted ancestor.
+  const preSync=sh(derived,'rev-parse','HEAD');
+  const t2=upstreamStep(source,'0.2.0',()=>{
+   writeFileSync(join(source,'VERSION'),'0.2.0\n');
+   writeFileSync(join(source,'deploy/tar/unicore.service'),SERVICE+'\n# upstream improvement\n');
+  });
+  const result=syncTemplate(derived);
+  assert.ok(result.merged_commit);
+  assert.equal(sh(derived,'merge-base',preSync,t2.commit),t1.commit);
+  assert.match(readFileSync(join(derived,'deploy/tar/my-product.service'),'utf8'),/upstream improvement/);
+  assert.equal(sh(derived,'status','--porcelain'),'');
+  // Grafting twice is refused: ancestry already exists.
+  assert.throws(()=>graftTemplateAncestry(derived),/already shares template ancestry/);
  }finally{rmSync(fixtureRoot,{recursive:true,force:true});}
 });
 

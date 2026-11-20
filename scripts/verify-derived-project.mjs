@@ -172,6 +172,19 @@ try{
     execFileSync('node',['scripts/create-project.mjs','--directory',app,'--name','Harbor Desk','--slug','harbor-desk',
       '--module',goModule,'--bundle','test.example.harbordesk','--repository',applicationRepository],
       {cwd:createCwd,stdio:['ignore','pipe','inherit']});
+    // Same-version template roll, exactly like real republications: a whitelist
+    // file is added AFTER the application was created, without a version bump,
+    // so the lineage now carries two commits at the same framework version.
+    // The graft must attach the FIRST one — located through the creation
+    // evidence, never the newest same-version commit — and the subsequent sync
+    // then delivers the rolled file.
+    writeFileSync(join(oldSource,'docs/product/extra-roll.md'),'# Same-version roll evidence\n');
+    const rollManifest=JSON.parse(readFileSync(join(oldSource,'distribution/manifest.json')));
+    rollManifest.template_files.push('docs/product/extra-roll.md');
+    writeFileSync(join(oldSource,'distribution/manifest.json'),JSON.stringify(rollManifest,null,2)+'\n');
+    git(oldSource,'add','-A');git(oldSource,'commit','-qm','same-version template roll: whitelist evidence file');
+    const rolledTemplate=updateTemplateBranch(oldSource).commit;
+    if(rolledTemplate===oldTemplate) throw Error('the same-version template roll did not produce a second commit');
     if(process.platform!=='win32'&&git(app,'rev-parse','HEAD^')!==oldTemplate) throw Error(`the created application does not descend from the old template commit ${oldTemplate.slice(0,12)}`);
     console.log(`Verifying upgrade from ${oldRef} (template ${oldTemplate.slice(0,12)}): ${app}`);
   }else{
@@ -327,6 +340,11 @@ try{
     const appFaq=readFileSync(join(app,'docs/product/faq.md'),'utf8');
     if(!appFaq.includes('ghcr.io/example/harbor-desk-app')||appFaq.includes('ghcr.io/yunnuo88520/')) throw Error('FAQ image reference does not follow the application release repository');
     if(!readFileSync(join(app,'AGENTS.md'),'utf8').includes('遇到疑似框架缺陷时')) throw Error('the upstream feedback flow did not arrive with the template');
+    // The same-version roll lives only in the old lineage; the 0.1.7 template
+    // legitimately drops that file. The verifiable baseline check is the
+    // merge-base assertion above — a graft that had picked the rolled
+    // same-version commit would shift the ancestor and fail there.
+    if(existsSync(join(app,'docs/product/extra-roll.md'))) throw Error('the rolled pre-baseline file must not survive the 0.1.7 sync');
     console.log('[acceptance] version 2.3.4 kept, provenance dual-tracked, changelog/OTA/image/feedback verified');
   }else if(mode==='full'){
     // Desktop mode packages the untouched template export: adding the workorders

@@ -102,3 +102,100 @@ func TestActionRebindingDerivesPointsButKeepsStoredDataScope(t *testing.T) {
 	}
 	assertProjection([]string{"users:read", "users:update"}, true)
 }
+
+func TestMenusWriterCannotRebindAuthorizedAction(t *testing.T) {
+	ctx := t.Context()
+	_, repo, super := navigationFixture(t, ctx)
+	listed, err := repo.ListMenuConfig(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var page contracts.NavigationNode
+	for _, node := range listed.Nodes {
+		if node.Type == "page" && node.RouteID != nil && *node.RouteID == "users" {
+			page = node
+			break
+		}
+	}
+	if page.ID == "" {
+		t.Fatal("missing users page")
+	}
+	const actionID = "test:rebind-guard-branch"
+	listed.Nodes = append(listed.Nodes, contracts.NavigationNode{
+		ID: actionID, SectionID: page.SectionID, ParentID: &page.ID,
+		Surfaces: []string{"administrator"}, Type: "action", Label: "Rebind guard",
+		Visible: true, OpenMode: "same_tab", Permission: strPtr("users:read"),
+		OperationIds: []string{"roleOptions"},
+	})
+	listed, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: listed.Version, Sections: listed.Sections, Nodes: listed.Nodes}, super.ID)
+	if err != nil {
+		t.Fatal("save initial action", err)
+	}
+
+	// A role holds a grant row for the action: it is an authorized action.
+	_, err = repo.CreateRole(ctx, contracts.RoleSaveInput{
+		Name: "Guarded action holder", Permissions: []string{"users:read"},
+		MenuIds: &[]string{}, ActionIds: &[]string{actionID},
+		OperationIds: &[]string{"roleOptions"}, DataScope: strPtr(platform.ScopeAll),
+	}, super.ID)
+	if err != nil {
+		t.Fatal("create role", err)
+	}
+	// The menu editor: only menus:write, no roles:write, not a super admin.
+	editorRole, err := repo.CreateRole(ctx, contracts.RoleSaveInput{
+		Name: "Menu editor only", Permissions: []string{"menus:write"},
+		MenuIds: &[]string{}, ActionIds: &[]string{}, OperationIds: &[]string{}, DataScope: strPtr(platform.ScopeAll),
+	}, super.ID)
+	if err != nil {
+		t.Fatal("create editor role", err)
+	}
+	editor, err := repo.CreateUser(ctx, contracts.UserCreate{
+		Username: "menu-editor-only", Email: "menu-editor@example.test",
+		RoleIds: &[]string{editorRole.ID},
+	}, "hash", super.ID)
+	if err != nil {
+		t.Fatal("create editor", err)
+	}
+	// Rebinding the authorized action's permission is an authorization change:
+	// refused without roles:write, and nothing is stored. The read result is
+	// cached by version, so clone before mutating instead of editing shared state.
+	rebound := slices.Clone(listed.Nodes)
+	for i, node := range rebound {
+		if node.ID == actionID {
+			rebound[i].Permission = strPtr("users:update")
+		}
+	}
+	_, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: listed.Version, Sections: listed.Sections, Nodes: rebound}, editor.ID)
+	if err != platform.ErrForbidden {
+		t.Fatalf("rebind without roles:write must be forbidden, got %v", err)
+	}
+	after, err := repo.ListMenuConfig(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, node := range after.Nodes {
+		if node.ID == actionID && (node.Permission == nil || *node.Permission != "users:read") {
+			t.Fatalf("the stored binding must stay users:read, got %v", func() any {
+				if node.Permission == nil {
+					return nil
+				}
+				return *node.Permission
+			}())
+		}
+	}
+	// Pure layout on the same tree stays on menus:write.
+	relabeled := slices.Clone(listed.Nodes)
+	for i, node := range relabeled {
+		if node.ID == actionID {
+			relabeled[i].Label = "Rebind guard (relabeled)"
+		}
+	}
+	if after, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: after.Version, Sections: after.Sections, Nodes: relabeled}, editor.ID); err != nil {
+		t.Fatalf("pure layout edits must stay allowed for menus:write, got %v", err)
+	}
+	// The super admin can perform the rebind: the authorization change is
+	// validated by their full grant set, never auto-widened for the editor.
+	if _, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: after.Version, Sections: after.Sections, Nodes: rebound}, super.ID); err != nil {
+		t.Fatal("super admin rebind", err)
+	}
+}

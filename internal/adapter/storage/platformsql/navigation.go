@@ -391,6 +391,7 @@ const monitorSeedMarker = "_navigation_monitor_seeded"
 // nodes a tree seeded before the MCP capability lacks, mirroring the monitor
 // seed contract.
 var aiSeedOrder = []string{"ai-management", "ai-access", "ai-tools", "ai-calls"}
+
 const aiSeedMarker = "_navigation_ai_seeded"
 
 // ensureMonitorNavigation introduces the runtime monitor entries on instances
@@ -1513,6 +1514,21 @@ func (r *Repository) SaveNavigation(ctx context.Context, input contracts.MenuSav
 	if input.RoleAssignments != nil && (!platform.IsSuper(admin) || !platform.Has(admin, "roles:write")) {
 		return contracts.MenuList{}, platform.ErrForbidden
 	}
+	// Rebinding the permission or operations of an action that already carries
+	// grant rows changes the effective permissions of every role holding them:
+	// that is an authorization change and requires roles:write, exactly like
+	// the role editor (pending decision D25, C). Pure layout work, new actions
+	// and orphan pruning stay on menus:write, and no grant is ever widened to
+	// satisfy the editor.
+	if !platform.IsSuper(admin) {
+		changed, err := r.authorizedActionRebinds(ctx, tx, n)
+		if err != nil {
+			return contracts.MenuList{}, err
+		}
+		if changed && !platform.Has(admin, "roles:write") {
+			return contracts.MenuList{}, platform.ErrForbidden
+		}
+	}
 	result, err := r.Store.Exec(ctx, tx, "UPDATE unicore_navigation_state SET version=version+1 WHERE id=1 AND version=?", input.Version)
 	if err != nil {
 		return contracts.MenuList{}, err
@@ -1621,4 +1637,74 @@ func (r *Repository) pruneOrphanedGrants(ctx context.Context, tx *sql.Tx, n cont
 		}
 	}
 	return nil
+}
+
+// authorizedActionRebinds reports whether the incoming tree changes the
+// permission or operation bindings of an action that already carries role
+// grant rows. Grant rows authorize by action id and derive their effective
+// points from the action's current binding, so rebinding one is an
+// authorization change (pending decision D25, C) and needs roles:write.
+func (r *Repository) authorizedActionRebinds(ctx context.Context, tx *sql.Tx, n contracts.Navigation) (bool, error) {
+	granted := map[string]bool{}
+	rows, err := r.Store.Rows(ctx, tx, "SELECT DISTINCT action_id FROM unicore_role_actions")
+	if err != nil {
+		return false, err
+	}
+	for rows.Next() {
+		var id string
+		if err = rows.Scan(&id); err != nil {
+			rows.Close()
+			return false, err
+		}
+		granted[id] = true
+	}
+	rows.Close()
+	if len(granted) == 0 {
+		return false, nil
+	}
+	stored := map[string]contracts.NavigationNode{}
+	srows, err := r.Store.Rows(ctx, tx, "SELECT payload FROM unicore_navigation_nodes WHERE node_type='action'")
+	if err != nil {
+		return false, err
+	}
+	for srows.Next() {
+		var payload string
+		var node contracts.NavigationNode
+		if err = srows.Scan(&payload); err != nil {
+			srows.Close()
+			return false, err
+		}
+		if err = json.Unmarshal([]byte(payload), &node); err != nil {
+			srows.Close()
+			return false, err
+		}
+		stored[node.ID] = node
+	}
+	srows.Close()
+	for _, node := range n.Nodes {
+		if node.Type != "action" || !granted[node.ID] {
+			continue
+		}
+		prev, ok := stored[node.ID]
+		if !ok {
+			continue // a fresh action id holds no stored binding to compare
+		}
+		if !sameActionBinding(prev, node) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// sameActionBinding compares the authorization-relevant fields of two action
+// nodes: the granted permission and the operation set. Labels, placement and
+// visibility are layout and stay on menus:write.
+func sameActionBinding(a, b contracts.NavigationNode) bool {
+	if (a.Permission == nil) != (b.Permission == nil) {
+		return false
+	}
+	if a.Permission != nil && *a.Permission != *b.Permission {
+		return false
+	}
+	return slices.Equal(a.OperationIds, b.OperationIds)
 }

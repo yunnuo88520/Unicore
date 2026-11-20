@@ -3130,6 +3130,230 @@ export const constraints = {
       }
     }
   },
+  "ManagedNoteEditInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "title",
+      "body",
+      "version"
+    ],
+    "properties": {
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120
+      },
+      "body": {
+        "type": "string",
+        "maxLength": 5000
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      }
+    }
+  },
+  "ManagedNoteDetail": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "title",
+      "body",
+      "status",
+      "version"
+    ],
+    "properties": {
+      "title": {
+        "type": "string"
+      },
+      "body": {
+        "type": "string"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "open",
+          "done"
+        ]
+      },
+      "version": {
+        "type": "integer"
+      }
+    }
+  },
+  "ManagedNoteDetailResponse": {
+    "type": "object",
+    "required": [
+      "code",
+      "message",
+      "request_id",
+      "data"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "request_id": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/ManagedNoteDetail"
+      }
+    }
+  },
+  "NoteManagementStatusInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "status",
+      "version"
+    ],
+    "properties": {
+      "status": {
+        "type": "string",
+        "enum": [
+          "open",
+          "done"
+        ]
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 2147483647
+      }
+    }
+  },
+  "NoteManagementEntry": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "owner_id",
+      "owner_name",
+      "owner_username",
+      "title",
+      "version",
+      "can_preview",
+      "can_edit",
+      "can_update",
+      "can_delete",
+      "status",
+      "updated_at"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "owner_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "owner_name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "owner_username": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "title": {
+        "type": "string",
+        "maxLength": 120
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 2147483647
+      },
+      "can_preview": {
+        "type": "boolean"
+      },
+      "can_edit": {
+        "type": "boolean"
+      },
+      "can_update": {
+        "type": "boolean"
+      },
+      "can_delete": {
+        "type": "boolean"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "open",
+          "done"
+        ]
+      },
+      "updated_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      }
+    }
+  },
+  "NoteManagementList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "total",
+      "page",
+      "page_size"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NoteManagementEntry"
+        }
+      },
+      "total": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "page": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "page_size": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 50
+      }
+    }
+  },
+  "NoteManagementListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/NoteManagementList"
+      },
+      "request_id": {
+        "type": "string"
+      }
+    }
+  },
   "NoteResponse": {
     "type": "object",
     "additionalProperties": false,

@@ -89,7 +89,8 @@
 | 文本分析 Execute | 已实现（会话内） | 已实现（本地开放）¹² | 已实现（`unicore execute`） | 无 | `internal/usecase/execute.go`、`internal/adapter/cli/command.go` |
 | Bootstrap 元数据 | 已实现 | 已实现¹² | 不适用（无 HTTP/桥） | 无 | `internal/runtime/profile.go`、`internal/adapter/desktop/bridge.go` |
 | 健康检查 | 已实现 | 已实现¹ | 不适用 | 无 | `internal/adapter/http/policy.go` |
-| Notes 业务模块 | 已实现（用户+管理端，按账号隔离）；FEATURE_NOTES 可裁剪 | 已实现（local scope）；两载体同开关¹² | 不装配（模块特性关闭） | unicore_example_notes | `internal/modules/notes/`、[业务样板](../03-runbooks/business-example.md) |
+| Notes 业务模块 | 「我的笔记」只列本人；「笔记管理」按标题、作者及状态即时筛选，列显隐使用设备偏好，列表不返回正文或附件；按权限和数据范围预览正文、编辑标题和正文、修改状态、软删除；写入留审计；FEATURE_NOTES 可裁剪 | 已实现（local scope）；两载体同开关¹²，不提供管理页 | 不装配（模块特性关闭） | unicore_example_notes（复用，无迁移） | `internal/modules/notes/`、[业务样板](../03-runbooks/business-example.md) |
+| 可注册业务控制台 | Platform 派生应用可注册独立入口、布局、导航和页面准入；复用统一会话与既有 API 权限 | 不装配 | 不装配 | 代码注册，无新持久化 | `packages/web-ui/src/console-registry.tsx` |
 
 ### 共享设计系统（UI 基础能力，非新增业务）
 

@@ -31,7 +31,7 @@ export function NotesPage({ client, metadata }: PageProps) {
   const [removing, setRemoving] = useState<NoteEntry | null>(null);
   // keepPreviousData: page and filter switches keep the previous cards
   // visible under a busy marker instead of flashing the loading state.
-  const list = useQuery({ queryKey: ['notes', query], queryFn: () => api.listNotes(query), placeholderData: keepPreviousData });
+  const list = useQuery({ queryKey: ['notes', query], queryFn: () => api.listNotes(query, 'mine'), placeholderData: keepPreviousData });
   const refresh = () => void cache.invalidateQueries({ queryKey: ['notes'] });
   const remove = useMutation({
     mutationFn: (note: NoteEntry) => api.deleteNote(note.id, note.version),

@@ -113,7 +113,7 @@ export function defaultNavigation(_surface: NavigationSection['surfaces'], profi
     const group = 'group' in route ? String(route.group) : '';
     // Standalone and desktop collapse the monitor group into the single
     // tabbed console page; every other platform-only group stays hidden.
-    if (!platform && (group === 'administration' || (group === 'monitor' && id !== 'monitor') || (group === 'system' && id !== 'edition'))) continue;
+    if (!platform && (id === 'note-management' || group === 'administration' || (group === 'monitor' && id !== 'monitor') || (group === 'system' && id !== 'edition'))) continue;
     // API 文档 is a top-level page at the tail of the system region on the
     // platform profile, after the settings and administration directories.
     const systemTopLevel = platform && id === 'api-docs';

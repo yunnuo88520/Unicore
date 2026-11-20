@@ -32,7 +32,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 | 发行包 | release 产物（web-platform / web-standalone / cli 归档、桌面安装包）；Web 包以 ldflags 注入默认 profile，部署期可覆盖属有意设计（[D15 已裁决](pending-decisions.md)） |
 | 实例 | 一次安装形成的数据目录 + 数据库 + 配置整体；安装后 profile 固化（`installation.json`） |
 | 实例运维面 | Web 发行包内 `unicore` 子命令与 `unicore-ops` 工具的总称；操作实例但不属于任何产品形态 |
-| 工作台（surface / realm） | Platform 的两个前端工作台与 API 面：user（工作区）与 administrator（管理后台），由路径选择，共用统一账号和会话；角色 realm 仅作分类 |
+| 工作台 | Platform 内置 `user`（工作区）和 `administrator`（管理后台），另允许应用在用户 Web 入口注册 `/workspaces/<id>` 业务控制台。控制台不新增 API realm 或身份域；共用统一账号、会话和权限，角色 realm 仍仅作分类。 |
 | 本地作用域（local scope） | 非平台形态无账号主体时的数据归属方式（`scope="local"`、`actor="local"`） |
 
 ## 2. 能力状态语义
@@ -61,7 +61,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 | 权限控制 | 已实现：权限点 + 菜单/动作 + operation 三层授权，super_admin 保留集，部门数据范围 | 不装配角色模型；服务端仍 fail-closed，本地可达即边界 | 不适用 |
 | 数据持久化 | 已实现：SQLite/PostgreSQL/MySQL，core+platform+module.notes 命名空间 | 已实现：web 三方言、desktop 仅 SQLite；当前 core+platform+module.notes，共享 schema 不开放身份治理 | 不装配：无数据库 |
 | 配置 | 已实现：全局设置（仅管理端）+ 设备偏好 | 设备偏好；无实例级设置页面或可写设置项 | 不适用（仅进程日志环境变量） |
-| UI / 菜单 / 页面 | 已实现：用户工作区 + 管理后台双 SPA，服务端投影导航 | 已实现：单工作区，客户端默认导航，两载体同一套页面 | 不适用 |
+| UI / 菜单 / 页面 | 用户工作区 + 管理后台双 SPA，服务端投影导航；业务控制台可用独立外壳和导航 | 已实现：单工作区，客户端默认导航，两载体同一套页面 | 不适用 |
 | API 适配 | 已实现：HTTP `/api/v1` 全量 + admin 镜像 | 受限：HTTP 仅本地面（bootstrap/settings/updates/notes/core 与本地业务附件），admin API 一律 404；desktop 走 Wails 桥 | 已实现：进程内 Cobra 命令 |
 | 生命周期 | 已实现：lifecycle.Stack + 优雅排水 + 可选 loopback 指标 | 已实现：web 同左；desktop 用 Wails 回调，无指标面 | 不适用：无组件栈 |
 | 后台任务与调度 | 已实现：平台调度器 + 任务管理 API | 受限：两载体均有文件清理与本地告警；web 另有日志保留定时器，无平台任务管理 | 不装配 |

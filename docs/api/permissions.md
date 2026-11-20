@@ -73,6 +73,14 @@ XLSX：`GET /admin/users/export.xlsx` 要求 users:read；`GET /admin/users/impo
 
 ## 独立授权与数据范围
 
+`GET /api/v1/admin/notes/management` 要求 `notes:manage:read` 和 `listNoteManagement` operation 授权，按该权限的数据范围过滤。支持按标题、作者昵称、用户名和状态筛选，保留精确的 `owner_id` 筛选；任何筛选都不能扩大范围。列表返回标题、作者显示信息、状态、更新时间、版本、记录标识及逐行操作许可，不返回正文、附件或账号邮箱。
+
+`GET /api/v1/admin/notes/management/{owner}/{id}` 预览正文，要求 `notes:manage:read`、`notes:manage:preview` 和 `previewManagedNote` operation。响应不包含附件且禁用浏览器缓存。`PUT` 编辑标题、正文，另要求 `notes:manage:edit` 和 `editManagedNote` operation，保持归属、状态和附件不变。预览与编辑均取相关权限数据范围的交集；编辑事务内重新校验，使用版本防止覆盖他人修改。不为既有自定义角色自动增加内容访问。
+
+`PATCH` 和 `DELETE /api/v1/admin/notes/management/{owner}/{id}` 分别修改状态与软删除，要求 `notes:manage:read`、对应的 `notes:manage:update` 或 `notes:manage:delete` 以及 `updateNoteManagementStatus` 或 `deleteManagedNote` operation。写入时重新校验授权，目标作者必须同时落在读、写权限的数据范围内；记录版本不一致返回 409。成功操作记录实际操作者。
+
+`GET /api/v1/notes?view=mine` 是个人页面使用的本人过滤；未传 `view` 的既有客户端继续沿用 `notes:access` 数据范围。已有 `/admin/notes` 契约不因新增管理页而改变或自动授权。
+
 完整规则见 [ADR-0038](../adr/ADR-0038-rbac-enforcement.md)。菜单 ID 全局唯一且无工作台前缀，surfaces 描述适用工作台（ADR-0039）；OpenAPI x-unicore.uiPage 注册默认动作。菜单只决定页面入口（含 URL 直达），按钮同时要求权限点、action_ids 与 operation_ids；禁止直接调用 API 需要撤销对应 operation grant。
 
 PUT 角色必须携带读取到的正整数 version；缺失/非法拒绝输入，过期返回 409，成功在事务中 CAS 并递增。创建不要求 version，Role.version 从 1 起。省略 menu_ids/action_ids/operation_ids/data_scope/department_ids 表示保留，权限收紧时仅裁剪失效引用。增加权限点不会自动重授已撤销 API 或动作。创建时省略授权数组派生初始授权，显式空数组保持空。所有改变角色可编辑聚合的旁路入口（菜单补丁、兼容整树分配、导航裁剪/初始化、部门范围清理等）同样维护角色版本；仅成员数变化不使角色编辑过期。冲突须显式重读和复核，不自动替换 version 重试。见 [ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md)。

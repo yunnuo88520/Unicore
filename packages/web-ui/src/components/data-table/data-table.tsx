@@ -59,11 +59,14 @@ export type DataTableProps<TFeatures extends TableFeatures, TData extends RowDat
   className?: string;
   /** Passed to the bordered scroll wrapper. */
   wrapperClassName?: string;
+  /** Columns omitted below sm when their content is included in a compact cell. */
+  compactHiddenColumns?: readonly string[];
 };
 
 export function DataTable<TFeatures extends TableFeatures, TData extends RowData>({
-  table, pending = false, busy = false, error, onRetry, empty, afterRow, pendingRows = 5, className, wrapperClassName,
+  table, pending = false, busy = false, error, onRetry, empty, afterRow, pendingRows = 5, className, wrapperClassName, compactHiddenColumns,
 }: DataTableProps<TFeatures, TData>) {
+  const columnClass = (id: string) => compactHiddenColumns?.includes(id) ? 'max-sm:hidden' : undefined;
   const columnCount = table.getHeaderGroups()[0]?.headers.length ?? 0;
   const rows = pending ? [] : table.getRowModel().rows;
   const emptyState = !pending && !error && !rows.length;
@@ -81,7 +84,7 @@ export function DataTable<TFeatures extends TableFeatures, TData extends RowData
     {emptyBlock ?? <Table className={className}>
       <TableHeader>
         {table.getHeaderGroups().map(group => <TableRow key={group.id} className="hover:bg-transparent">
-          {group.headers.map(header => <TableHead key={header.id} aria-sort={ariaSortOf(header.column)}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}
+          {group.headers.map(header => <TableHead key={header.id} className={columnClass(header.column.id)} aria-sort={ariaSortOf(header.column)}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}
         </TableRow>)}
       </TableHeader>
       <TableBody>
@@ -91,7 +94,7 @@ export function DataTable<TFeatures extends TableFeatures, TData extends RowData
             </TableRow>)
           : rows.map(row => <Fragment key={row.id}>
                   <TableRow>
-                    {cellsOf(row).map(cell => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
+                    {cellsOf(row).map(cell => <TableCell key={cell.id} className={columnClass(cell.column.id)}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
                   </TableRow>
                   {afterRow?.(row)}
                 </Fragment>)}

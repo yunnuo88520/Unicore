@@ -7,16 +7,18 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"slices"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/contracts"
 	coredomain "github.com/yunnuo/unicore/internal/domain"
 	"github.com/yunnuo/unicore/internal/modules/notes/domain"
 	"github.com/yunnuo/unicore/internal/modules/notes/usecase"
-	"sort"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // Repository persists notes under scope keys. ManageAll — set per request for
@@ -27,6 +29,168 @@ type Repository struct {
 	Store     *sqlstore.Store
 	ManageAll bool
 }
+
+// Management lists operational metadata only. The exact owner filter is
+// intersected with the already resolved server-side visibility.
+func (r *Repository) Management(ctx context.Context, scope, ownerID, search, status string, page int, visibility usecase.NoteVisibility) (contracts.NoteManagementList, error) {
+	const size = 20
+	result := contracts.NoteManagementList{Items: []contracts.NoteManagementEntry{}, Page: page, PageSize: size}
+	if !coredomain.ValidPage(page, size) || len(ownerID) > 64 || (status != "" && status != "open" && status != "done") {
+		return result, domain.ErrNoteInvalid
+	}
+	if ownerID != "" {
+		target := "user/" + ownerID
+		if !visibility.All && scope != target && !slices.Contains(visibility.Scopes, target) {
+			return result, nil
+		}
+		scope, visibility = target, usecase.NoteVisibility{}
+	}
+	var options *sql.TxOptions
+	if r.Store.Dialect != "sqlite" {
+		options = &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true}
+	}
+	tx, err := r.Store.DB.BeginTx(ctx, options)
+	if err != nil {
+		return result, err
+	}
+	defer tx.Rollback()
+	batches := scopeBatches(scope, visibility)
+	if batches == nil {
+		batches = [][]string{nil}
+	}
+	offset := coredomain.PageOffset(page, size)
+	limit := offset + size
+	search = strings.TrimSpace(search)
+	pattern := "%" + strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(search) + "%"
+	const source = " FROM unicore_example_notes n LEFT JOIN unicore_users u ON u.id=SUBSTR(n.scope_key,6) LEFT JOIN unicore_personal_accounts p ON p.user_id=u.id WHERE "
+	for _, batch := range batches {
+		where := "n.deleted_at=0 AND n.scope_key LIKE 'user/%'"
+		args := []any{}
+		if batch != nil {
+			where += " AND scope_key IN (" + strings.Repeat("?,", len(batch)-1) + "?)"
+			for _, key := range batch {
+				args = append(args, key)
+			}
+		}
+		if status != "" {
+			where += " AND n.status=?"
+			args = append(args, status)
+		}
+		if search != "" {
+			where += " AND (LOWER(n.title) LIKE LOWER(?) ESCAPE '!' OR LOWER(u.username) LIKE LOWER(?) ESCAPE '!' OR LOWER(p.display_name) LIKE LOWER(?) ESCAPE '!')"
+			args = append(args, pattern, pattern, pattern)
+		}
+		var count int
+		if err := r.Store.Row(ctx, tx, "SELECT COUNT(*)"+source+where, args...).Scan(&count); err != nil {
+			return result, err
+		}
+		result.Total += count
+		rows, err := r.Store.Rows(ctx, tx, "SELECT n.id,n.scope_key,n.title,n.status,n.updated_at,n.version,COALESCE(NULLIF(p.display_name,''),u.username,''),COALESCE(u.username,'')"+source+where+" ORDER BY n.updated_at DESC,n.id DESC,n.scope_key DESC LIMIT ?", append(args, limit)...)
+		if err != nil {
+			return result, err
+		}
+		for rows.Next() {
+			var item contracts.NoteManagementEntry
+			var key string
+			if err := rows.Scan(&item.ID, &key, &item.Title, &item.Status, &item.UpdatedAt, &item.Version, &item.OwnerName, &item.OwnerUsername); err != nil {
+				rows.Close()
+				return result, err
+			}
+			item.OwnerID = strings.TrimPrefix(key, "user/")
+			result.Items = append(result.Items, item)
+		}
+		err = rows.Err()
+		rows.Close()
+		if err != nil {
+			return result, err
+		}
+		sort.Slice(result.Items, func(i, j int) bool {
+			a, b := result.Items[i], result.Items[j]
+			if a.UpdatedAt != b.UpdatedAt {
+				return a.UpdatedAt > b.UpdatedAt
+			}
+			if a.ID != b.ID {
+				return a.ID > b.ID
+			}
+			return a.OwnerID > b.OwnerID
+		})
+		result.Items = result.Items[:min(len(result.Items), limit)]
+	}
+	result.Items = result.Items[min(offset, len(result.Items)):]
+	return result, tx.Commit()
+}
+
+func (r *Repository) ReadManaged(ctx context.Context, owner, id string) (contracts.ManagedNoteDetail, error) {
+	var note contracts.ManagedNoteDetail
+	if !validManagedKey(owner, id) {
+		return note, domain.ErrNoteInvalid
+	}
+	err := r.Store.Row(ctx, r.Store.DB, "SELECT title,body,status,version FROM unicore_example_notes WHERE scope_key=? AND id=? AND deleted_at=0", "user/"+owner, id).Scan(&note.Title, &note.Body, &note.Status, &note.Version)
+	if errors.Is(err, sql.ErrNoRows) {
+		err = usecase.ErrNoteNotFound
+	}
+	return note, err
+}
+
+func (r *Repository) EditManaged(ctx context.Context, actor, owner, id string, in contracts.ManagedNoteEditInput, authorize func(*sql.Tx) error) error {
+	in.Title = strings.TrimSpace(in.Title)
+	if err := domain.ValidateNote(in.Title, in.Body, "open", nil); err != nil {
+		return err
+	}
+	return r.mutateManaged(ctx, actor, owner, id, in.Version, "notes.management.edited", "fields=title,body", authorize, func(tx *sql.Tx, scope string) error {
+		res, err := r.Store.Exec(ctx, tx, "UPDATE unicore_example_notes SET title=?,body=?,updated_at=?,version=version+1 WHERE scope_key=? AND id=? AND version=? AND deleted_at=0", in.Title, in.Body, time.Now().Unix(), scope, id, in.Version)
+		return r.checkMutation(ctx, tx, scope, id, res, err)
+	})
+}
+
+func (r *Repository) UpdateManagedStatus(ctx context.Context, actor, owner, id string, in contracts.NoteManagementStatusInput, authorize func(*sql.Tx) error) error {
+	if in.Status != "open" && in.Status != "done" {
+		return domain.ErrNoteInvalid
+	}
+	return r.mutateManaged(ctx, actor, owner, id, in.Version, "notes.management.status_changed", "status="+in.Status, authorize, func(tx *sql.Tx, scope string) error {
+		res, err := r.Store.Exec(ctx, tx, "UPDATE unicore_example_notes SET status=?,updated_at=?,version=version+1 WHERE scope_key=? AND id=? AND version=? AND deleted_at=0", in.Status, time.Now().Unix(), scope, id, in.Version)
+		return r.checkMutation(ctx, tx, scope, id, res, err)
+	})
+}
+
+func (r *Repository) DeleteManaged(ctx context.Context, actor, owner, id string, version int, authorize func(*sql.Tx) error) error {
+	return r.mutateManaged(ctx, actor, owner, id, version, "notes.management.deleted", "soft_deleted", authorize, func(tx *sql.Tx, scope string) error {
+		return r.softDelete(ctx, tx, scope, id, version)
+	})
+}
+
+func (r *Repository) mutateManaged(ctx context.Context, actor, owner, id string, version int, action, detail string, authorize func(*sql.Tx) error, write func(*sql.Tx, string) error) error {
+	if !validManagedKey(owner, id) || version < 1 {
+		return domain.ErrNoteInvalid
+	}
+	tx, err := r.Store.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err = r.Store.LockInstallation(ctx, tx); err != nil {
+		return err
+	}
+	if err = authorize(tx); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return usecase.ErrNoteNotFound
+		}
+		return err
+	}
+	scope := "user/" + owner
+	if err := write(tx, scope); err != nil {
+		return err
+	}
+	if err := r.Store.Audit(noteAudit(ctx, scope, id, detail+"; version="+strconv.Itoa(version)), tx, actor, action); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func validManagedKey(owner, id string) bool {
+	return owner != "" && len(owner) <= 64 && id != "" && len(id) <= 64
+}
+
 type scanner interface{ Scan(...any) error }
 
 func scan(row scanner) (n contracts.NoteEntry, err error) {
@@ -228,6 +392,7 @@ func (r *Repository) Create(ctx context.Context, scope string, in contracts.Note
 	}
 	return n, tx.Commit()
 }
+
 // manageTarget resolves the scope key a mutation applies to: the session's own
 // key, or — for ManageAll sessions — the owner key of any user-realm note.
 func (r *Repository) manageTarget(ctx context.Context, tx *sql.Tx, scope, id string) (string, error) {
@@ -306,22 +471,32 @@ func (r *Repository) Delete(ctx context.Context, scope, id string, version int) 
 	if e != nil {
 		return e
 	}
-	result, e := r.Store.Exec(ctx, tx, "UPDATE unicore_example_notes SET deleted_at=?,updated_at=?,version=version+1 WHERE scope_key=? AND id=? AND version=? AND deleted_at=0", time.Now().Unix(), time.Now().Unix(), target, id, version)
-	if e != nil {
+	if e := r.softDelete(ctx, tx, target, id, version); e != nil {
 		return e
-	}
-	count, e := result.RowsAffected()
-	if e != nil {
-		return e
-	}
-	if count == 0 {
-		return r.missing(ctx, tx, target, id)
 	}
 	if e = r.Store.Audit(noteAudit(ctx, target, id, "soft_deleted; version="+strconv.Itoa(version)+"->"+strconv.Itoa(version+1)), tx, target, "notes.deleted"); e != nil {
 		return e
 	}
 	return tx.Commit()
 }
+
+func (r *Repository) softDelete(ctx context.Context, tx *sql.Tx, scope, id string, version int) error {
+	now := time.Now().Unix()
+	res, err := r.Store.Exec(ctx, tx, "UPDATE unicore_example_notes SET deleted_at=?,updated_at=?,version=version+1 WHERE scope_key=? AND id=? AND version=? AND deleted_at=0", now, now, scope, id, version)
+	return r.checkMutation(ctx, tx, scope, id, res, err)
+}
+
+func (r *Repository) checkMutation(ctx context.Context, tx *sql.Tx, scope, id string, result sql.Result, err error) error {
+	if err != nil {
+		return err
+	}
+	count, err := result.RowsAffected()
+	if err == nil && count == 0 {
+		return r.missing(ctx, tx, scope, id)
+	}
+	return err
+}
+
 func (r *Repository) missing(ctx context.Context, tx *sql.Tx, scope, id string) error {
 	var version int
 	e := r.Store.Row(ctx, tx, "SELECT version FROM unicore_example_notes WHERE scope_key=? AND id=? AND deleted_at=0", scope, id).Scan(&version)

@@ -6,11 +6,11 @@ import {
   ArrowDown, ArrowUp, ChevronsDown, ChevronsUp, ChevronDown, ChevronRight, Copy, FolderTree, Link2, ListTree,
   MoreHorizontal, MousePointerClick, Pencil, Plus, RotateCcw, Save, SquarePen, Trash2, type LucideIcon,
 } from 'lucide-react';
-import { SearchField } from '@unicore/ui/controls';
+import { Accordion, SearchField } from '@unicore/ui/controls';
 import { Alert, Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Modal, PageHeader, SimpleSelect, Switch, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
 import { AppError, type AppClient, type Bootstrap, type MenuList, type MenuSaveInput, type NavigationNode, type NavigationSection, type RoleList, type WebClient } from '@unicore/sdk';
 import {
-  buildMenuTree, copyMenuNode, defaultNavigation, filterMenuTree, isRegisteredPage, menuNodeLabel, menuNodeTarget,
+  buildMenuTree, buildNavigation, copyMenuNode, defaultNavigation, filterMenuTree, flattenNavigation, isRegisteredPage, menuNodeLabel, menuNodeTarget,
   newNavigationNode, routeSurfaces, sectionTitle, validNavigationUrl, type MenuTreeNode,
 } from '../../navigation';
 import { NavigationIconPicker, resolveNavigationIcon } from '../../navigation-icons';
@@ -26,6 +26,13 @@ const TYPE_ICONS: Record<NavigationNode['type'], LucideIcon> = { directory: List
 const BADGE_COLORS = defineMessages({ primary: '主色', success: '成功', warning: '警告', danger: '危险', muted: '中性' });
 // Actions attach to pages server-side, so the editor never creates them from scratch.
 const CREATABLE_TYPES: NavigationNode['type'][] = ['directory', 'page', 'link'];
+const SURFACE_LABELS = defineMessages({ all: '全部工作台', user: '用户工作台', administrator: '管理工作台' });
+type SurfaceFilter = keyof typeof SURFACE_LABELS;
+function restrictTree(items: MenuTreeNode[], surface: Exclude<SurfaceFilter, 'all'>): MenuTreeNode[] {
+  return items.filter(({ node }) => node.surfaces.includes(surface) &&
+    (node.type !== 'page' || routeSurfaces(node.route_id ?? '').includes(surface)))
+    .map(item => ({ ...item, children: restrictTree(item.children, surface) }));
+}
 const typeDefaultIcon = (type: NavigationNode['type']): string =>
   type === 'directory' ? 'Folder' : type === 'link' ? 'Link' : type === 'action' ? 'MousePointerClick' : 'Circle';
 
@@ -235,6 +242,7 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
   const [deleteSection, setDeleteSection] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [search, setSearch] = useState('');
+  const [surface, setSurface] = useState<SurfaceFilter>('administrator');
   const [assigning, setAssigning] = useState<{ node: NavigationNode; version: number } | null>(null);
   const canAssign = !!metadata.current_user?.roles.includes('super_admin');
   const roleList = useQuery({ queryKey: ['roles'], queryFn: () => web.roles(), enabled: canAssign });
@@ -274,6 +282,8 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
   });
 
   const tree = useMemo(() => (draft ? buildMenuTree(draft) : []), [draft]);
+  const sidebarNodes = useMemo(() => metadata.navigation ? new Set(buildNavigation(metadata).sections.flatMap(section =>
+    flattenNavigation(section.entries).map(({ node }) => node.id))) : undefined, [metadata]);
   const defaultCollapsed = useMemo(() => draft
     ? new Set(draft.nodes.filter(node => node.type === 'directory' && draft.nodes.some(child => child.parent_id === node.id)).map(node => node.id))
     : new Set<string>(), [draft]);
@@ -295,7 +305,11 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
   // Action nodes are authorization units managed in the role editor; the
   // layout tree only arranges directories, pages and links. They stay in the
   // draft and ride along in the saved payload.
-  const layoutTree = useMemo(() => tree.map(({ section, children }) => ({ section, children: stripActionNodes(children) })), [tree]);
+  const layoutTree = useMemo(() => {
+    return tree.filter(({ section }) => surface === 'all' || section.surfaces.includes(surface)).map(({ section, children }) => ({
+      section, children: surface === 'all' ? stripActionNodes(children) : restrictTree(stripActionNodes(children), surface),
+    }));
+  }, [surface, tree]);
   const visibleTree = useMemo(() => searching
     ? filterMenuTree(layoutTree,
         node => menuNodeLabel(node).toLowerCase().includes(query) || menuNodeTarget(node).toLowerCase().includes(query),
@@ -368,6 +382,7 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
     id: randomId([...current.sections.map(section => section.id), ...current.nodes.map(node => node.id)], 'section'),
     surfaces: ['user', 'administrator'], name: '', sort: (current.sections.length + 1) * 10, visible: true, show_title: true }] });
   const addChild = (sectionId: string, parentId?: string) => setNodeDialog({ mode: 'create', type: 'directory', sectionId, parentId });
+  const pageSection = layoutTree.find(({ section }) => section.id === 'business')?.section ?? layoutTree[0]?.section;
   const submitNode = (node: NavigationNode, isNew: boolean) => {
     setDraft(current => {
       if (!current) return current;
@@ -407,6 +422,7 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
 
   const handlers: RowHandlers = {
     draft,
+    sidebarNodes: surface === 'administrator' ? sidebarNodes : undefined,
     assignedRoles: roleList.data,
     pages: config.data?.pages ?? [],
     rolesState: roleList.isError ? 'error' : roleList.isPending ? 'loading' : 'success',
@@ -425,11 +441,12 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
 
   return <Card><CardContent className="flex min-w-0 flex-col gap-4">
     {config.isFetching && <p role="status" className="text-2xs text-subtle">{t('正在刷新菜单配置…')}</p>}
-    <p className="text-xs text-muted">{t('显式分配角色不等于最终可访问；适用工作台由路由决定，区域或祖先菜单隐藏、禁用时仍不可见。超级管理员默认访问，但不绕过隐藏与禁用约束。')}</p>
     {canAssign && roleList.isError && <LoadError error={roleList.error} onRetry={() => void roleList.refetch()} />}
     {canAssign && roleList.isSuccess && !roleList.data.items.some(role => !role.builtin) && <p className="text-sm text-muted">{t('还没有自定义角色')}{' '}<a href="roles" className="underline" onClick={event => { if (dirty) { event.preventDefault(); message.error(t('请先保存菜单配置再前往角色管理')); } }}>{t('前往角色管理')}</a></p>}
     <div className="flex flex-wrap items-center gap-2">
       <SearchField label={t('搜索名称、路由或链接')} value={search} onValueChange={setSearch} autoComplete="off" className="min-w-52 flex-1 sm:max-w-80" />
+      <SimpleSelect label={t('按工作台筛选')} value={surface} onChange={value => setSurface(value as SurfaceFilter)} options={(['all', 'user', 'administrator'] as const).map(id => ({ value: id, label: t(SURFACE_LABELS[id]) }))} />
+      <Button variant="secondary" size="sm" disabled={!pageSection} onClick={() => { if (pageSection) setNodeDialog({ mode: 'create', type: 'page', sectionId: pageSection.id }); }}><SquarePen size={14} />{t('添加页面')}</Button>
       <Button variant="secondary" size="sm" disabled={pending} onClick={expandAll}><ChevronsDown size={14} />{t('展开全部')}</Button>
       <Button variant="secondary" size="sm" disabled={pending} onClick={collapseAll}><ChevronsUp size={14} />{t('收起全部')}</Button>
       <Button variant="secondary" size="sm" disabled={pending} onClick={addSection}><Plus size={14} />{t('添加区域')}</Button>
@@ -484,6 +501,7 @@ type TreeRow =
 
 type RowHandlers = {
   draft: Draft;
+  sidebarNodes?: ReadonlySet<string>;
   assignedRoles?: RoleList;
   pages: MenuList['pages'];
   rolesState: 'loading' | 'error' | 'success';
@@ -596,7 +614,7 @@ function NodeRow({ row, handlers, drag }: { row: Extract<TreeRow, { kind: 'node'
   const reserved = !!point && !!handlers.assignedRoles?.permissions.some(permission => permission.id === point && permission.super_admin);
   const assigned = handlers.assignedRoles?.items.filter(role => role.id !== 'super_admin' && role.menu_ids.includes(node.id)).map(roleDisplayLabel).join(' · ');
   const roleSummary = handlers.assignedRoles
-    ? reserved ? t('仅超级管理员') : assigned ? t('显式分配：{{roles}}', { roles: assigned }) : t('超级管理员默认访问；未分配其他角色')
+    ? reserved ? t('仅超级管理员') : assigned ? t('显式分配：{{roles}}', { roles: assigned }) : t('未显式分配角色')
     : handlers.rolesState === 'error' ? t('角色加载失败') : t('正在加载角色…');
   const dropHint = drag.dragId && drag.dragId !== node.id && drag.dropHint?.id === node.id ? drag.dropHint.mode : null;
   return <TableRow data-node={node.id} data-node-type={node.type} data-section={node.section_id}
@@ -615,6 +633,8 @@ function NodeRow({ row, handlers, drag }: { row: Extract<TreeRow, { kind: 'node'
         <span className="min-w-0">
           <span className="break-all font-medium">{menuNodeLabel(node)}</span>
           <span className="block text-2xs text-muted">{t('适用工作台：{{surfaces}}', { surfaces: node.surfaces.map(surface => surface === 'user' ? t('用户工作台') : t('管理工作台')).join(' · ') })}</span>
+          {handlers.sidebarNodes && <span className="block text-2xs text-muted">{handlers.sidebarNodes.has(node.id)
+            ? t('当前账号侧栏：已显示') : t('当前账号侧栏：未显示')}</span>}
           {handlers.onAssign && <span className="block text-2xs text-muted">{roleSummary}</span>}
         </span>
         {node.badge_dot && <span className="size-2 rounded-full bg-accent" aria-label={t('圆点标记')} />}
@@ -665,6 +685,10 @@ type NodeForm = {
   badgeText: string; badgeColor: string; badgeDot: boolean;
 };
 
+// These fields already have stacked labels; remove the combobox's extra top inset
+// and center its clear button in the same row as the input.
+const nodeField = 'flex min-w-0 flex-col gap-1.5 text-sm font-medium text-ink [&>div]:pt-0 [&>div>button]:top-1/2 [&>div>button]:-translate-y-1/2';
+
 // The dialog is the only editor for one layout node: directory, page or link.
 // Action nodes are authorization units managed in the role editor, so they
 // never open here; their persisted permission and operation grants ride along
@@ -709,6 +733,11 @@ function NodeDialog({ state, draft, pages, onClose, onSubmit }: {
     badgeDot: editing?.badge_dot ?? false,
   });
   const [errors, setErrors] = useState<{ name?: string; url?: string; route?: string }>({});
+  const [parentKind, ...parentKey] = form.parentId.split(':');
+  const parentID = parentKey.join(':');
+  const targetSection = draft.sections.find(section => section.id === (parentKind === 'top' ? parentID : nodeIndex(draft.nodes).get(parentID)?.section_id));
+  const fitsSection = (id: string) => !targetSection || routeSurfaces(id).some(surface => targetSection.surfaces.includes(surface));
+  const targetOptions = routeOptions.filter(id => id === form.routeId || fitsSection(id)).map(id => ({ value: id, label: t(routes[id].label) }));
   const patch = (value: Partial<NodeForm>) => setForm(current => ({ ...current, ...value }));
   // Parent options: a section top ("作为顶级菜单") or any non-action node,
   // depth-filtered so the moved subtree stays inside MAX_DEPTH.
@@ -728,6 +757,7 @@ function NodeDialog({ state, draft, pages, onClose, onSubmit }: {
     const next: typeof errors = {};
     if (!form.name.trim() && type !== 'page') next.name = t('请输入名称');
     if (type === 'page' && !form.routeId) next.route = t('请选择已注册页面');
+    else if (type === 'page' && !fitsSection(form.routeId)) next.route = t('页面不适用于所选区域的工作台');
     if (type === 'link' && !validNavigationUrl(form.url)) next.url = t('链接地址需为站内已注册路径或 http(s) 地址');
     setErrors(next);
     if (Object.keys(next).length) return;
@@ -756,64 +786,64 @@ function NodeDialog({ state, draft, pages, onClose, onSubmit }: {
     onClose();
   };
   return <Modal title={editing ? t('编辑节点') : t('添加{{type}}', { type: t(TYPE_LABELS[type]) })} onClose={onClose} contentClassName="sm:max-w-2xl" className="flex min-h-0 flex-col gap-4">
-    {/* Two columns: layout facts on the left, presentation on the right; the
-        body scrolls while the action row stays pinned. */}
-    <div className="grid min-h-0 gap-x-6 gap-y-3 overflow-y-auto pe-1 md:grid-cols-2">
-      <div className="flex min-w-0 flex-col gap-3">
-        {!editing && <label className="flex flex-col gap-1 text-xs text-muted">{t('菜单类型')}
+    <div className="min-h-0 space-y-4 overflow-y-auto overscroll-contain p-1">
+      <div className="grid gap-4 sm:grid-cols-2">
+        {!editing && <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-ink">{t('菜单类型')}
           <SimpleSelect label={t('菜单类型')} value={type} onChange={value => { setType(value as NavigationNode['type']); setErrors({}); }}
             options={CREATABLE_TYPES.map(candidate => ({ value: candidate, label: t(TYPE_LABELS[candidate]) }))} />
         </label>}
-        <div className="flex flex-col gap-1 text-xs text-muted">
-          <Input label={t('显示名称')} value={form.name} maxLength={64} autoComplete="off" aria-label={t('显示名称')} placeholder={type === 'page' ? t('留空使用页面默认名称') : t('请输入名称')}
-            aria-invalid={!!errors.name || undefined} onChange={event => patch({ name: event.target.value })} />
-          {errors.name && <small role="alert" className="text-danger">{errors.name}</small>}
-        </div>
-        <label className="flex flex-col gap-1 text-xs text-muted">{t('上级菜单')}
+        <label className={`${nodeField}${editing ? ' sm:col-span-2' : ''}`}>{t('上级菜单')}
           <SimpleSelect label={t('上级菜单')} value={form.parentId} onChange={value => patch({ parentId: value })} options={parentOptions} />
         </label>
-        <div className="flex flex-col gap-1 text-xs text-muted">
-          <Input label={t('排序')} type="number" aria-label={t('排序')} value={form.sort} onChange={event => patch({ sort: event.target.value })} />
-        </div>
-        <label className="flex items-center gap-2 text-xs text-muted">{t('在导航中显示')}
-          <Switch checked={form.visible} onChange={value => patch({ visible: value })} />
+        {type === 'page' && <label className={`${nodeField} sm:col-span-2`}>{t('目标页面（仅已注册路由）')}
+          <SimpleSelect label={t('目标页面（仅已注册路由）')} value={form.routeId} placeholder={targetOptions.length ? t('选择页面') : t('没有可添加的页面')}
+            aria-invalid={!!errors.route || undefined}
+            onChange={value => patch({ routeId: value })}
+            disabled={!targetOptions.length} className="disabled:opacity-100 data-[placeholder]:text-muted" options={targetOptions} />
+          {form.routeId && <small className="text-xs font-normal text-muted">{t('适用工作台：{{surfaces}}', { surfaces: routeSurfaces(form.routeId).map(surface => t(SURFACE_LABELS[surface])).join(' · ') })}</small>}
+          {errors.route && <small role="alert" className="text-xs font-normal text-danger">{errors.route}</small>}
+        </label>}
+        {type === 'link' && <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-ink sm:col-span-2">{t('链接地址')}
+          <Input value={form.url} maxLength={2048} inputMode="url" aria-label={t('链接地址')} placeholder="https://example.com/help"
+            aria-invalid={!!errors.url || undefined} onChange={event => patch({ url: event.target.value })} />
+          {errors.url && <small role="alert" className="text-xs font-normal text-danger">{errors.url}</small>}
+          <small className="text-xs font-normal text-muted">{t('站内地址需指向已注册页面，不能指向任意文件路径。')}</small>
+        </label>}
+        <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-ink">{t('显示名称')}
+          <Input aria-label={t('显示名称')} value={form.name} maxLength={64} autoComplete="off" placeholder={type === 'page' ? t('留空使用页面默认名称') : t('请输入名称')}
+            aria-invalid={!!errors.name || undefined} onChange={event => patch({ name: event.target.value })} />
+          {errors.name && <small role="alert" className="text-xs font-normal text-danger">{errors.name}</small>}
         </label>
-        {type !== 'directory' && <label className="flex flex-col gap-1 text-xs text-muted">{t('打开方式')}
+        <NavigationIconPicker value={form.icon} onChange={icon => patch({ icon })} />
+        <label className="flex items-center justify-between gap-3 text-sm font-medium text-ink sm:col-span-2">
+          {t('在导航中显示')}
+          <Switch aria-label={t('在导航中显示')} className="shrink-0 whitespace-nowrap" checked={form.visible} onChange={value => patch({ visible: value })} />
+        </label>
+      </div>
+      <Accordion items={[{ id: 'display', title: t('排序与显示选项'), content: <div className="grid gap-4 sm:grid-cols-2">
+        <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-ink">{t('排序')}
+          <Input type="number" value={form.sort} onChange={event => patch({ sort: event.target.value })} />
+        </label>
+        {type !== 'directory' && <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-ink">{t('打开方式')}
           <SimpleSelect label={t('打开方式')} value={form.openMode} onChange={value => patch({ openMode: value as NavigationNode['open_mode'] })}
             options={[{ value: 'same_tab', label: t('当前页') }, { value: 'new_tab', label: t('新标签') }]} />
         </label>}
-      </div>
-      <div className="flex min-w-0 flex-col gap-3">
-        <NavigationIconPicker value={form.icon} onChange={icon => patch({ icon })} />
-        {type === 'page' && <label className="flex flex-col gap-1 text-xs text-muted">{t('目标页面（仅已注册路由）')}
-          <SimpleSelect label={t('目标页面（仅已注册路由）')} value={form.routeId} placeholder={t('选择页面')}
-            onChange={value => patch({ routeId: value })}
-            options={routeOptions.map(id => ({ value: id, label: t(routes[id].label) }))} />
-          {errors.route && <small role="alert" className="text-danger">{errors.route}</small>}
-        </label>}
-        {type === 'link' && <div className="flex flex-col gap-1 text-xs text-muted">
-          <Input label={t('链接地址')} value={form.url} maxLength={2048} inputMode="url" aria-label={t('链接地址')} placeholder="https://example.com/help"
-            aria-invalid={!!errors.url || undefined} onChange={event => patch({ url: event.target.value })} />
-          {errors.url && <small role="alert" className="text-danger">{errors.url}</small>}
-          <small>{t('站内地址需指向已注册页面，不能指向任意文件路径。')}</small>
-        </div>}
-      </div>
-    </div>
-    <div className="grid shrink-0 gap-x-6 gap-y-3 border-t border-line pt-3 md:grid-cols-2">
-      <div className="flex flex-col gap-1 text-xs text-muted">
-        <Input label={t('角标文字')} value={form.badgeText} maxLength={12} aria-label={t('角标文字')} onChange={event => patch({ badgeText: event.target.value })} />
-      </div>
-      <label className="flex flex-col gap-1 text-xs text-muted">{t('角标样式')}
-        <div className="flex items-center gap-2">
+        <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-ink">{t('角标文字')}
+          <Input value={form.badgeText} maxLength={12} onChange={event => patch({ badgeText: event.target.value })} />
+        </label>
+        <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-ink">{t('角标样式')}
           <SimpleSelect label={t('角标样式')} value={form.badgeColor} onChange={value => patch({ badgeColor: value })}
             options={Object.entries(BADGE_COLORS).map(([value, label]) => ({ value, label: t(label) }))} />
-          <label className="flex items-center gap-1 text-xs text-muted"><Switch checked={form.badgeDot} onChange={value => patch({ badgeDot: value })} />{t('圆点角标')}</label>
-        </div>
-      </label>
-      {type !== 'action' && <label className="flex flex-col gap-1 text-xs text-muted">{t('高亮菜单（active_menu）')}
-        <SimpleSelect label={t('高亮菜单（active_menu）')} value={form.activeMenu} placeholder={t('默认按目标高亮')} onChange={value => patch({ activeMenu: value })}
-          options={routeOptions.map(id => ({ value: id, label: t(routes[id].label) }))} />
-      </label>}
+        </label>
+        <label className="flex items-center justify-between gap-3 text-sm font-medium text-ink sm:col-span-2">
+          {t('圆点角标')}
+          <Switch aria-label={t('圆点角标')} className="shrink-0 whitespace-nowrap" checked={form.badgeDot} onChange={value => patch({ badgeDot: value })} />
+        </label>
+        {type !== 'action' && <label className={`${nodeField} sm:col-span-2`}>{t('高亮菜单（active_menu）')}
+          <SimpleSelect label={t('高亮菜单（active_menu）')} value={form.activeMenu} placeholder={t('默认按目标高亮')} onChange={value => patch({ activeMenu: value })}
+            options={routeOptions.map(id => ({ value: id, label: t(routes[id].label) }))} />
+        </label>}
+      </div> }]} />
     </div>
     <div className="flex shrink-0 justify-end gap-2 border-t border-line pt-3">
       <Button variant="secondary" onClick={onClose}>{t('取消')}</Button>

@@ -796,6 +796,60 @@ type NoteList struct {
 	PageSize int         `json:"page_size"`
 }
 
+type ManagedNoteEditInput struct {
+	Title   string `json:"title"`
+	Body    string `json:"body"`
+	Version int    `json:"version"`
+}
+
+type ManagedNoteDetail struct {
+	Title   string `json:"title"`
+	Body    string `json:"body"`
+	Status  string `json:"status"`
+	Version int    `json:"version"`
+}
+
+type ManagedNoteDetailResponse struct {
+	Code      string            `json:"code"`
+	Message   string            `json:"message"`
+	RequestID string            `json:"request_id"`
+	Data      ManagedNoteDetail `json:"data"`
+}
+
+type NoteManagementStatusInput struct {
+	Status  string `json:"status"`
+	Version int    `json:"version"`
+}
+
+type NoteManagementEntry struct {
+	ID            string `json:"id"`
+	OwnerID       string `json:"owner_id"`
+	OwnerName     string `json:"owner_name"`
+	OwnerUsername string `json:"owner_username"`
+	Title         string `json:"title"`
+	Version       int    `json:"version"`
+	CanPreview    bool   `json:"can_preview"`
+	CanEdit       bool   `json:"can_edit"`
+	CanUpdate     bool   `json:"can_update"`
+	CanDelete     bool   `json:"can_delete"`
+	Status        string `json:"status"`
+	UpdatedAt     int    `json:"updated_at"`
+}
+
+type NoteManagementList struct {
+	Items    []NoteManagementEntry `json:"items"`
+	Total    int                   `json:"total"`
+	Page     int                   `json:"page"`
+	PageSize int                   `json:"page_size"`
+}
+
+type NoteManagementListResponse struct {
+	Code      string             `json:"code"`
+	Message   string             `json:"message"`
+	Data      NoteManagementList `json:"data"`
+	RequestID string             `json:"request_id"`
+}
+
 type NoteResponse struct {
 	Code      string    `json:"code"`
 	Message   string    `json:"message"`

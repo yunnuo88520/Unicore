@@ -794,6 +794,60 @@ export interface NoteList {
   page_size: number;
 }
 
+export interface ManagedNoteEditInput {
+  title: string;
+  body: string;
+  version: number;
+}
+
+export interface ManagedNoteDetail {
+  title: string;
+  body: string;
+  status: "open" | "done";
+  version: number;
+}
+
+export interface ManagedNoteDetailResponse {
+  code: string;
+  message: string;
+  request_id: string;
+  data: ManagedNoteDetail;
+}
+
+export interface NoteManagementStatusInput {
+  status: "open" | "done";
+  version: number;
+}
+
+export interface NoteManagementEntry {
+  id: string;
+  owner_id: string;
+  owner_name: string;
+  owner_username: string;
+  title: string;
+  version: number;
+  can_preview: boolean;
+  can_edit: boolean;
+  can_update: boolean;
+  can_delete: boolean;
+  status: "open" | "done";
+  updated_at: number;
+}
+
+export interface NoteManagementList {
+  items: Array<NoteManagementEntry>;
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface NoteManagementListResponse {
+  code: string;
+  message: string;
+  data: NoteManagementList;
+  request_id: string;
+}
+
 export interface NoteResponse {
   code: string;
   message: string;

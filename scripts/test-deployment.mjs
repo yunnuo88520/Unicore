@@ -203,7 +203,14 @@ async function exercise(mode,profile) {
     }
     const session=await json(bootstrapPath);
     const executed=await context.request.post(`${url}/api/v1${admin?'/admin':''}/core/execute`,{headers:{...realm,Origin:url,...(admin?{'X-CSRF-Token':session.csrf_token}:{})},data:{text:'hello world'}});
-    expect(executed.status()).toBe(200);expect((await executed.json()).data.sha256).toBe('b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9');
+    if(admin) {
+      expect(executed.status()).toBe(200);expect((await executed.json()).data.sha256).toBe('b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9');
+    } else {
+      // Decision D3: standalone core execution answers only to loopback peers,
+      // and this deployment is reached over the container network, so the
+      // boundary must deny it here.
+      expect(executed.status()).toBe(403);expect((await executed.json()).code).toBe('PERMISSION_DENIED');
+    }
     if(admin) {
       expect((await context.request.post(`${url}/api/v1/admin/users`,{headers:{...realm,Origin:url,'X-CSRF-Token':session.csrf_token},data:{username:'member',email:'member@example.test',password:'test-password-strong',role:'user'}})).status()).toBe(200);
       const member=await browser.newContext({baseURL:url,viewport:{width:375,height:812}});

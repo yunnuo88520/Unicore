@@ -79,6 +79,9 @@ test('builtin user scope is read-only while its copy can select a custom scope',
   expect(roles.items.find(item => item.id === 'user')?.data_scope).toBe('self');
   expect(roles.items.find(item => item.name === 'Custom user copy')).toMatchObject({ builtin: false, data_scope: 'all' });
   await page.goto(`${instance.url}/admin/menus`);
+  // The menus console defaults to the administrator surface; the personal
+  // notes node is a user-surface entry and appears under that filter.
+  await chooseOption(page, '按工作台筛选', '用户工作台');
   await page.getByRole('button', { name: '展开全部', exact: true }).click();
   await page.getByRole('button', { name: '分配角色：我的笔记', exact: true }).click();
   const assignment = page.getByRole('dialog', { name: '分配角色：我的笔记', exact: true });

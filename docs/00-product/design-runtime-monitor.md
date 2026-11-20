@@ -174,7 +174,7 @@ internal/monitor（新包：快照模型 + 聚合服务，进程内、无状态 
   platform  GET /api/v1/admin/monitor/*（契约：session + permissions[monitor:read]
             + superAdmin:true + profiles[web-platform]；handler 自查 profile）
   standalone GET /api/v1/monitor（契约：access local + profiles[web-standalone]；
-            暴露强度 loopback vs sameOrigin = D19；只读 + 脱敏）
+            暴露强度 loopback（D19 随 D3 修订）；只读 + 脱敏）
   desktop   Bridge.MonitorSnapshot()（既有桥模式，错误码沿用 NOT_AVAILABLE 风格）
   external  /metrics（现状不变，loopback 可选监听）
 
@@ -221,7 +221,7 @@ internal/monitor（新包：快照模型 + 聚合服务，进程内、无状态 
 - Standalone 适用性：新增（P0）；两载体等效（快照模型/页面结构一致），底层采集不同（HTTP local vs Wails 桥）
 - CLI 适用性：本期不适用；不新增命令、采集器或持久化；不引入 HTTP/Wails/SQL 依赖
 - Platform 访问主体与权限：super_admin 专属；新权限点 monitor:read 登记为 SuperOnly 保留集（D18）；三层防护（契约/中间件/handler 自查）
-- Standalone 访问规则：本地使用者免登录只读；暴露强度 loopback vs sameOrigin = D19；快照脱敏
+- Standalone 访问规则：本地使用者免登录只读；暴露强度 loopback = D19 随 D3 修订（2026-11-20）；快照脱敏
 - 持久化需求：P0/P1 无新表（事件为进程内缓冲）；P2 告警历史如需持久化为 platform 命名空间新表（D22）
 - 契约影响：新增 GET /api/v1/admin/monitor/*（profiles[web-platform]，superAdmin+monitor:read）、
   GET /api/v1/monitor（profiles[web-standalone]，access local）、DesktopBridge.MonitorSnapshot（桥，非 OpenAPI）；
@@ -240,7 +240,7 @@ internal/monitor（新包：快照模型 + 聚合服务，进程内、无状态 
 | 项 | 裁决 |
 | --- | --- |
 | D18 | `monitor:read` 登记 superAdmin 保留集（SuperOnlyPermission + 契约 `superAdmin:true`）；「运行监控」为独立目录，置于系统区域「系统设置」「超级管理员」目录之后（末位） |
-| D19 | Standalone 本地监控 API 采用 sameOrigin 只读 + 脱敏（同 settings 先例；远程只读可用，updates 的 loopback 强度不适用） |
+| D19 | Standalone 本地监控 API 只读 + 脱敏；暴露强度 2026-11-20 随 D3 修订统一为 loopback（Host 与对端本机回环，同 settings/updates；远程只读不再可用） |
 | D20 | 宿主机只读硬件视图纳入 P0（2026-11-11 维护者上提）；P1 已补 cgroup 限额视图与 hwmon 温度；容器内标注内核视角 |
 | D21 | 历史趋势用进程内环形缓冲，不建表；长期趋势交外部 Prometheus（/metrics 已备） |
 | D22 | P2 告警：平台复用 notifycontent 新增监控事件；standalone 不推送、仅事件页记录；告警历史存储方式在 T4 立项时定 |

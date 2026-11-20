@@ -305,6 +305,13 @@ func coreAccess(manager *install.Manager, w http.ResponseWriter, r *http.Request
 		_, ok := require(manager, w, r, permission)
 		return ok
 	}
+	// Revised decision D3: every standalone local surface, session or not,
+	// demands a loopback Host and TCP peer, so LAN deployment cannot reach
+	// core execution, inbox or events.
+	if !localLoopback(r) {
+		failure(w, 403, "PERMISSION_DENIED", "本机能力仅允许在本机访问")
+		return false
+	}
 	return true
 }
 func metadata(config Config, r *http.Request) contracts.Bootstrap {
@@ -428,6 +435,21 @@ func ip(r *http.Request) string {
 		return r.RemoteAddr
 	}
 	return host
+}
+
+// localLoopback is the shared standalone local-surface boundary: the request
+// Host and the TCP peer must both be loopback (literal address or localhost),
+// mirroring the /updates transport rule for settings, monitor, core execution,
+// inbox and events.
+func localLoopback(r *http.Request) bool {
+	host, _, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		host = r.Host
+	}
+	remote, _, _ := net.SplitHostPort(r.RemoteAddr)
+	ip := net.ParseIP(host)
+	peer := net.ParseIP(remote)
+	return (host == "localhost" || (ip != nil && ip.IsLoopback())) && peer != nil && peer.IsLoopback()
 }
 func super(user contracts.User) bool {
 	return platform.IsSuper(user)
@@ -629,6 +651,10 @@ func mountWeb(api chi.Router, config Config) {
 			}
 			if profile == runtime.WebPlatform {
 				failure(w, 404, "NOT_FOUND", "请使用受保护的平台设置接口")
+				return nil, "", false
+			}
+			if !localLoopback(r) {
+				failure(w, 403, "PERMISSION_DENIED", "本机能力仅允许在本机访问")
 				return nil, "", false
 			}
 			return service, "local", true

@@ -24,7 +24,8 @@
 - 候选：A. 统一收紧为 loopback；B. 维持现状并在文档强调外层访问控制；C. 设置写操作加独立确认（如维护开关）。
 - 推荐：B 为当前基线（与 README/support 口径一致），若出现真实远程部署需求再评估 A。
 - 裁决（2026-11-19）：**选 B**——维持 sameOrigin 基线，不扩大 loopback 收紧；`/updates*` 维持 loopback、`PATCH /settings` 与 `platform-session` 本地面维持 sameOrigin，三档强度与「远程使用须外层访问控制」约束已写入 [产品形态规范第 5 节](product-forms.md)。
-- 状态：**已裁决（B），去向：形态规范第 5 节清单。**
+- 修订（2026-11-20）：**改选 A**——授权加固评审重提该面，维护者拍板统一收紧为 loopback：`/settings`（读/写）、`/monitor*` 与 `platform-session` 本地面（`core/execute`、`inbox`、`events`）同 `/updates*` 一律要求 Host 与 TCP 对端为本机回环（`httpadapter.localLoopback`），远程直连返回 403；本机浏览器用法不受影响，远程访问本地面由应用层直接拒绝，不再依赖外层访问控制。连带修订 D19（监控暴露强度）与形态规范第 5 节、support 口径。
+- 状态：**已裁决（A，2026-11-20 修订），去向：形态规范第 5 节清单。**
 
 ## D4. 桌面装配无 Secrets
 
@@ -143,7 +144,8 @@
 - 可选方案：A. loopback-only（同 updates，最保守，远程不可用）；B. sameOrigin 只读 + 脱敏（同 settings，远程只读可用）。
 - 推荐方向及理由：B——监控是只读低敏数据且已脱敏，与 settings 同级；若维护者认为实例运行信息（版本/内存等）不宜跨机暴露则选 A。设计详见 [design-runtime-monitor.md](design-runtime-monitor.md) §8。
 - 裁决（2026-11-11）：**B**——sameOrigin 只读 + 脱敏（同 settings 先例）。
-- 状态：**已裁决（B），去向：design-runtime-monitor.md T2 实施依据。**
+- 修订（2026-11-20）：随 D3 改选 A，本地监控 API 一并收紧为 loopback（Host 与 TCP 对端本机回环），远程只读不再可用；只读 + 脱敏语义不变。
+- 状态：**已裁决（B→随 D3 修订为 loopback，2026-11-20），去向：design-runtime-monitor.md T2 实施依据。**
 
 ## D20. 宿主机与容器资源指标的口径与纳入阶段（Runtime Monitor 设计）
 

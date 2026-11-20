@@ -8,7 +8,7 @@ Unicore 当前为 0.x 开发预览。选择安装包时，请以对应 [Release]
 | 形态 | 载体 / profile | 数据库 | 访问方式 |
 | --- | --- | --- | --- |
 | Platform | Web / `web-platform` | SQLite、PostgreSQL、MySQL | 统一账号、多角色；用户与管理工作台共用会话 |
-| Standalone | Web / `web-standalone` | SQLite、PostgreSQL、MySQL | 无平台账号；远程使用需外层访问控制 |
+| Standalone | Web / `web-standalone` | SQLite、PostgreSQL、MySQL | 无平台账号；本地面仅限本机回环访问（loopback），远程访问不受支持 |
 | Standalone | Wails 桌面 / `desktop` | 本地 SQLite | 本地原生应用，无平台管理后台 |
 | CLI | 命令行 / `cli` | 无 | 直接调用 Core，无自身持久化 |
 

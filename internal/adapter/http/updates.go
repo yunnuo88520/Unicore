@@ -10,7 +10,6 @@ import (
 	"github.com/yunnuo/unicore/internal/runtime"
 	"github.com/yunnuo/unicore/internal/updateport"
 	"mime"
-	"net"
 	"net/http"
 	"strings"
 )
@@ -42,14 +41,7 @@ func mountUpdates(api chi.Router, config Config) {
 				failure(w, 404, "NOT_FOUND", "接口不存在")
 				return contracts.Session{}, false
 			}
-			host, _, e := net.SplitHostPort(r.Host)
-			if e != nil {
-				host = r.Host
-			}
-			remote, _, _ := net.SplitHostPort(r.RemoteAddr)
-			ip := net.ParseIP(host)
-			peer := net.ParseIP(remote)
-			if (host != "localhost" && (ip == nil || !ip.IsLoopback())) || peer == nil || !peer.IsLoopback() {
+			if !localLoopback(r) {
 				failure(w, 403, "PERMISSION_DENIED", "单机系统更新仅允许在本机访问")
 				return contracts.Session{}, false
 			}

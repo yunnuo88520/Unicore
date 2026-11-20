@@ -9,7 +9,7 @@
 | --- | --- | --- | --- |
 | Platform 用户域 | Platform | 统一账号（`unicore_users`），业务 + 可叠加管理权限，多角色 | `unicore_session` Cookie，user realm |
 | Platform 管理员域 | Platform | 管理后台运营者（super_admin 或受限管理员角色） | 共享 `unicore_session` Cookie，administrator 工作台（由 `/api/v1/admin/` 路径前缀选择，不改变账号） |
-| Standalone 本地使用者 | Standalone | 无账号主体：本机可达即可用的隐式使用者（`scope="local"`、`actor="local"`） | 无会话；web 受 sameOrigin 等中间件保护，desktop 无 HTTP 面 |
+| Standalone 本地使用者 | Standalone | 无账号主体：本机可达即可用的隐式使用者（`scope="local"`、`actor="local"`） | 无会话；web 受 loopback 边界（Host 与对端本机回环）约束，desktop 无 HTTP 面 |
 | CLI 调用者 | CLI | 命令行调用共享 Core 的进程内执行者 | 无 |
 
 规则：
@@ -97,7 +97,7 @@ Platform 用户域、管理员域与 Standalone 两载体共享 `@unicore/ui` �
 | Platform 匿名访问受保护 API | 401；已登录无权限 403 | `internal/platform/security.go`、`policy.go` |
 | 非 Platform 形态访问平台/管理 API（含全部 /admin/*、/auth/*） | 404「此运行形态不提供平台接口」 | `policy.go` resolveSession、`router.go` admin 前缀 |
 | Standalone 访问业务文件/存储管理 API | `/notes/files*` 本地业务可用；`/files` 通用管理与 `/admin/storage*` 404 | `internal/adapter/http/storage.go` |
-| Standalone 本地设置/更新 | settings：sameOrigin 内放行（actor=local）；updates：仅 loopback（见 [决策 D3](pending-decisions.md)） | `internal/adapter/http/web.go`、`updates.go` |
+| Standalone 本地设置/更新 | settings 与 updates 均仅 loopback（Host 与对端本机回环，见 [决策 D3](pending-decisions.md)） | `internal/adapter/http/web.go`、`updates.go` |
 | 维护模式（非管理员域） | 503 维护页/维护响应 | `internal/adapter/http/router.go`、前端 App.tsx |
 | 前端页面无权/不适用 | 独立 403 页或 404，不泄露存在性 | `packages/web-ui/src/App.tsx`、`routes.ts` |
 

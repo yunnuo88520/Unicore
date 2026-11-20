@@ -109,7 +109,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 | 管理后台资产 | 包内含 admin 资产但对 standalone 请求 404 | 不含 admin 入口 |
 | API 文档页 | 条件支持（`api_docs` 配置开启时可见） | 不适用（无契约 HTTP 端点；见 [决策 D2](pending-decisions.md)） |
 | 进程监控 | 可选 loopback `/metrics` | 无 |
-| 本地面暴露强度 | 分档边界（2026-11 决策 D3）：`/updates*` 仅 loopback（Host 与来源均须本机回环）；`PATCH /api/v1/settings` 与 `platform-session` 本地面（`core/execute`、`inbox`、`events`）为 sameOrigin 保护，无浏览器证据的直连请求不拒绝；远程暴露必须由外层访问控制承担认证与防护 | 不适用（无 HTTP 面） |
+| 本地面暴露强度 | 统一 loopback（2026-11 决策 D3，2026-11-20 修订）：`/updates*`、`/settings`、`/monitor*` 与 `platform-session` 本地面（`core/execute`、`inbox`、`events`）均要求 Host 与 TCP 对端为本机回环（`httpadapter.localLoopback`），远程直连一律 403，不再依赖外层访问控制 | 不适用（无 HTTP 面） |
 | 窗口关闭行为 | 不适用（浏览器标签关闭只断开会话，服务进程不受影响） | 关闭即隐藏到后台运行：macOS 应用级隐藏（点 Dock 图标或菜单栏托盘「打开」恢复，Cmd+Q / 托盘「退出」真正退出；内容全尺寸自绘标题条）；Windows/Linux 隐藏窗口（托盘图标恢复，「退出」菜单真正退出）。见 [ADR-0048](../adr/ADR-0048-desktop-close-background-tray.md) |
 
 除上述清单外，同一功能在两个载体上呈现或行为不一致的，按实现缺失处理：或修复对齐，或作为 [待决策](pending-decisions.md) 提交维护者裁决。

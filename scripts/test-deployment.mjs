@@ -155,7 +155,9 @@ async function exercise(mode,profile) {
       expect((await context.request.patch(`${url}${base}/settings`,{headers,data:{changes}})).status()).toBe(200);
     } else {
       // Appearance belongs to this browser; it is never an instance setting.
-      expect((await context.request.patch(`${url}${base}/settings`,{headers,data:{changes:[{key:'appearance.theme',value:'dark'}]}})).status()).toBe(400);
+      // The contract policy middleware denies the settings operation first
+      // (403 fail-closed) before settings validation could see the key.
+      expect((await context.request.patch(`${url}${base}/settings`,{headers,data:{changes:[{key:'appearance.theme',value:'dark'}]}})).status()).toBe(403);
       await page.getByRole('button',{name:'主题设置',exact:true}).click();
       const drawer=page.getByRole('dialog',{name:'主题设置',exact:true});
       await drawer.locator('.preference-theme').getByRole('button',{name:'深色',exact:true}).click();
@@ -201,7 +203,14 @@ async function exercise(mode,profile) {
     }
     const session=await json(bootstrapPath);
     const executed=await context.request.post(`${url}/api/v1${admin?'/admin':''}/core/execute`,{headers:{...realm,Origin:url,...(admin?{'X-CSRF-Token':session.csrf_token}:{})},data:{text:'hello world'}});
-    expect(executed.status()).toBe(200);expect((await executed.json()).data.sha256).toBe('b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9');
+    if(admin) {
+      expect(executed.status()).toBe(200);expect((await executed.json()).data.sha256).toBe('b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9');
+    } else {
+      // Decision D3: standalone core execution answers only to loopback peers,
+      // and this deployment is reached over the container network, so the
+      // boundary must deny it here.
+      expect(executed.status()).toBe(403);expect((await executed.json()).code).toBe('PERMISSION_DENIED');
+    }
     if(admin) {
       expect((await context.request.post(`${url}/api/v1/admin/users`,{headers:{...realm,Origin:url,'X-CSRF-Token':session.csrf_token},data:{username:'member',email:'member@example.test',password:'test-password-strong',role:'user'}})).status()).toBe(200);
       const member=await browser.newContext({baseURL:url,viewport:{width:375,height:812}});

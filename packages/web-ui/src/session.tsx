@@ -2,7 +2,7 @@
 // Description: Own query caches and component state for exactly one browser session generation.
 import { t, useLocale } from './i18n';
 import { useEffect, useState, type ReactNode } from 'react';
-import { MutationCache, QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
+import { MutationCache, QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppError, type AppClient, type SessionEvent } from '@unicore/sdk';
 import { useMessage } from './message';
 
@@ -22,15 +22,13 @@ export function SessionBoundary({ client, children }: { client: AppClient; child
     }
     const unsubscribe = client.subscribeSession?.(changed);
     const external = (event: StorageEvent) => { if (event.key === `${sessionKey}.${client.sessionScope ?? 'local'}`) client.resetSession?.(); };
-    const revalidate = () => { if (document.visibilityState === 'visible' && client.subscribeSession) void client.bootstrap().catch(() => {}); };
     window.addEventListener('storage', external);
-    document.addEventListener('visibilitychange', revalidate);
-    return () => { unsubscribe?.(); window.removeEventListener('storage', external); document.removeEventListener('visibilitychange', revalidate); };
+    return () => { unsubscribe?.(); window.removeEventListener('storage', external); };
   }, [client]);
-  return <QueryScope key={generation}>{children(notice)}</QueryScope>;
+  return <QueryScope key={generation} client={client}>{children(notice)}</QueryScope>;
 }
 
-function QueryScope({ children }: { children: ReactNode }) {
+function QueryScope({ client, children }: { client: AppClient; children: ReactNode }) {
   useLocale();
   const message = useMessage();
   const [queries] = useState(() => new QueryClient({ mutationCache: new MutationCache({
@@ -47,7 +45,26 @@ function QueryScope({ children }: { children: ReactNode }) {
     },
   }), defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false }, mutations: { retry: false } } }));
   useEffect(() => () => { void queries.cancelQueries(); queries.clear(); }, [queries]);
-  return <QueryClientProvider client={queries}>{children}</QueryClientProvider>;
+  return <QueryClientProvider client={queries}><BootstrapRevalidator client={client} />{children}</QueryClientProvider>;
+}
+
+// Revisiting the tab must land fresh metadata in the query cache: a bare
+// client.bootstrap() call warms nothing, so the administrator realm — which
+// polls no more than the workspace — kept rendering stale navigation and
+// permissions. Invalidating the bootstrap family refetches every mounted
+// consumer and writes the result back for both realms.
+function BootstrapRevalidator({ client }: { client: AppClient }) {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const revalidate = () => {
+      if (document.visibilityState === 'visible' && client.subscribeSession) {
+        void queryClient.invalidateQueries({ queryKey: ['bootstrap'] });
+      }
+    };
+    document.addEventListener('visibilitychange', revalidate);
+    return () => document.removeEventListener('visibilitychange', revalidate);
+  }, [client, queryClient]);
+  return null;
 }
 
 export function useSession(client: AppClient) {

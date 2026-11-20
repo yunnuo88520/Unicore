@@ -68,7 +68,9 @@ export function isAdministrator(metadata?: Bootstrap): boolean {
   return isAdminRealm(metadata) && !!metadata?.current_user?.roles.includes('super_admin');
 }
 export function canAccess(page: Page, metadata?: Bootstrap): boolean {
-  if (page === 'notes' && (!__FEATURE_NOTES__ || !metadata?.capabilities.features?.notes)) return false;
+  if ((page === 'notes' || page === 'note-management') && (!__FEATURE_NOTES__ || !metadata?.capabilities.features?.notes)) return false;
+  if (page === 'notes' && isAdminRealm(metadata)) return false;
+  if (page === 'note-management' && !isAdminRealm(metadata)) return false;
   if (page === 'access-tokens') return isAdministrator(metadata);
   // Management-flavoured pages never render on the user surface — even when a
   // persisted menu tree or a custom role still carries them (existing installs).

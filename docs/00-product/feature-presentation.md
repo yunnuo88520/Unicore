@@ -9,7 +9,7 @@
 | --- | --- | --- | --- |
 | Platform 用户域 | Platform | 统一账号（`unicore_users`），业务 + 可叠加管理权限，多角色 | `unicore_session` Cookie，user realm |
 | Platform 管理员域 | Platform | 管理后台运营者（super_admin 或受限管理员角色） | 共享 `unicore_session` Cookie，administrator 工作台（由 `/api/v1/admin/` 路径前缀选择，不改变账号） |
-| Standalone 本地使用者 | Standalone | 无账号主体：本机可达即可用的隐式使用者（`scope="local"`、`actor="local"`） | 无会话；web 受 sameOrigin 等中间件保护，desktop 无 HTTP 面 |
+| Standalone 本地使用者 | Standalone | 无账号主体：本机可达即可用的隐式使用者（`scope="local"`、`actor="local"`） | 无会话；web 受 loopback 边界（Host 与对端本机回环）约束，desktop 无 HTTP 面 |
 | CLI 调用者 | CLI | 命令行调用共享 Core 的进程内执行者 | 无 |
 
 规则：
@@ -40,7 +40,8 @@
 
 | 页面组 | Platform 用户域 | Platform 管理员域 | Standalone（两载体） | CLI |
 | --- | --- | --- | --- | --- |
-| 工作台概览 / 笔记 | 已实现（按权限） | 已实现 | 已实现（本地作用域） | 不适用（业务等价物为 CLI 命令） |
+| 工作台概览 / 笔记 | 概览；「我的笔记」只列本人 | 概览；「笔记管理」与用户列表共用工具栏及分页，关键词、状态即时组合筛选，列设置控制作者（昵称优先）、状态及更新时间的显隐；按授权预览正文、编辑标题和正文、修改状态或软删除，不开放附件 | 概览与本地笔记，无管理页 | 不装配笔记 |
+| 业务控制台 | 已获权限时从账号菜单进入 `/workspaces/<id>`，拥有独立页面和导航 | 系统治理保留原后台，角色管理分配业务权限 | 不装配 | 不装配 |
 | 平台公告 | 不呈现（管理面拆分） | 已实现（按权限点） | 不装配（导航剔除：canAccess 对带权限点页面在非平台形态返回 false） | 不适用 |
 | 系统设置组（用户/角色/部门/岗位/字典/任务/菜单/日志/邮件/通知/存储/账户安全） | 不呈现 | 已实现（按权限点 + super 保留集；通知页消费后端中英文事件目录，渠道测试仅显示当前保存渠道，邮件测试位于邮件设置 / 模板） | 不呈现 | 不适用 |
 | 顶部通知收件箱 | 已实现（公告与账号通知） | 已实现（仅账号通知） | 已实现（Web / 原生桥、本地通知；无公告） | 不装配 |
@@ -97,7 +98,7 @@ Platform 用户域、管理员域与 Standalone 两载体共享 `@unicore/ui` �
 | Platform 匿名访问受保护 API | 401；已登录无权限 403 | `internal/platform/security.go`、`policy.go` |
 | 非 Platform 形态访问平台/管理 API（含全部 /admin/*、/auth/*） | 404「此运行形态不提供平台接口」 | `policy.go` resolveSession、`router.go` admin 前缀 |
 | Standalone 访问业务文件/存储管理 API | `/notes/files*` 本地业务可用；`/files` 通用管理与 `/admin/storage*` 404 | `internal/adapter/http/storage.go` |
-| Standalone 本地设置/更新 | settings：sameOrigin 内放行（actor=local）；updates：仅 loopback（见 [决策 D3](pending-decisions.md)） | `internal/adapter/http/web.go`、`updates.go` |
+| Standalone 本地设置/更新 | settings 与 updates 均仅 loopback（Host 与对端本机回环，见 [决策 D3](pending-decisions.md)） | `internal/adapter/http/web.go`、`updates.go` |
 | 维护模式（非管理员域） | 503 维护页/维护响应 | `internal/adapter/http/router.go`、前端 App.tsx |
 | 前端页面无权/不适用 | 独立 403 页或 404，不泄露存在性 | `packages/web-ui/src/App.tsx`、`routes.ts` |
 

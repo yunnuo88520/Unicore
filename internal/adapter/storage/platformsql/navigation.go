@@ -1476,7 +1476,9 @@ func validateNavigation(n contracts.Navigation) error {
 // SaveNavigation replaces the tree under optimistic version control. The
 // cascade of guards: menu editing needs menus:write; restoring defaults or
 // touching role assignments needs super_admin (assignments additionally
-// roles:write), so a pure menus:write operator can never widen authorizations.
+// roles:write). Tree edits can rebind an existing action ID without replacing
+// role grant rows; projections derive points from its current binding, while
+// DataScope still uses stored role permissions (pending decision D25, C).
 func (r *Repository) SaveNavigation(ctx context.Context, input contracts.MenuSaveInput, actor string) (contracts.MenuList, error) {
 	if err := r.initializeNavigation(ctx); err != nil {
 		return contracts.MenuList{}, err
@@ -1521,8 +1523,16 @@ func (r *Repository) SaveNavigation(ctx context.Context, input contracts.MenuSav
 	if err = r.writeNavigation(ctx, tx, n); err != nil {
 		return contracts.MenuList{}, err
 	}
-	// Only assignment-bearing saves change authorizations; a pure tree edit or
-	// reset re-presents the same grants, so live sessions stay valid.
+	// Tree edits can remove nodes or re-type them. Grant rows pointing at IDs
+	// that are no longer menu or action nodes are orphans: they would silently
+	// resurrect a grant if an operator ever re-adds a node with the same ID,
+	// and they stale every role editor without a version bump. Remove them
+	// before the snapshot diff so advanceChangedRoleVersions bumps exactly the
+	// roles whose stored authorization actually changed; a tree edit that
+	// orphans nothing keeps bumping nothing.
+	if err = r.pruneOrphanedGrants(ctx, tx, n); err != nil {
+		return contracts.MenuList{}, err
+	}
 	if input.RoleAssignments != nil {
 		for _, assignment := range *input.RoleAssignments {
 			role, err := r.role(ctx, tx, assignment.RoleID)
@@ -1560,4 +1570,55 @@ func derefAssignments(assignments *[]contracts.NavigationRoleAssignment) []contr
 		return nil
 	}
 	return *assignments
+}
+
+// pruneOrphanedGrants drops role grant rows that reference node IDs the new
+// tree no longer contains with the expected type. Re-pointed action nodes keep
+// their rows when the ID and action type remain. Those rows are not necessarily
+// inert: deriveGrantedPermissions reads the current action binding and can add
+// points absent from stored role permissions; DataScope still uses the latter.
+// This pruning only checks node existence/type, not role permission bounds.
+func (r *Repository) pruneOrphanedGrants(ctx context.Context, tx *sql.Tx, n contracts.Navigation) error {
+	menus, actions := map[string]bool{}, map[string]bool{}
+	for _, node := range n.Nodes {
+		if node.Type == "action" {
+			actions[node.ID] = true
+		} else {
+			menus[node.ID] = true
+		}
+	}
+	for _, set := range []struct {
+		table, column string
+		valid         map[string]bool
+	}{
+		{"unicore_role_menus", "menu_id", menus},
+		{"unicore_role_actions", "action_id", actions},
+	} {
+		rows, err := r.Store.Rows(ctx, tx, "SELECT DISTINCT "+set.column+" FROM "+set.table)
+		if err != nil {
+			return err
+		}
+		var orphaned []string
+		for rows.Next() {
+			var id string
+			if err := rows.Scan(&id); err != nil {
+				rows.Close()
+				return err
+			}
+			if !set.valid[id] {
+				orphaned = append(orphaned, id)
+			}
+		}
+		if err := rows.Err(); err != nil {
+			rows.Close()
+			return err
+		}
+		rows.Close()
+		for _, id := range orphaned {
+			if _, err := r.Store.Exec(ctx, tx, "DELETE FROM "+set.table+" WHERE "+set.column+"=?", id); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

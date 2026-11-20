@@ -1,9 +1,59 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Unified navigation acceptance: administrator/member drawers and menu/role editors on both viewports.
 import { mkdir } from 'node:fs/promises';
-import { test, expect, adminLogin, workspaceLogin, pageBoot, openPersonalCenter } from './fixtures';
+import { test, expect, adminLogin, installPlatform, workspaceLogin, pageBoot, openPersonalCenter } from './fixtures';
 
 const password = 'test-password-strong';
+
+test('page dialog keeps the route, badge controls and actions usable on narrow screens', async ({ page, instance }, info) => {
+  await installPlatform(instance);
+  await adminLogin(page, instance.url, 'admin', 'administrator-password-strong');
+  await page.goto(`${instance.url}/admin/menus`);
+  const add = page.getByRole('button', { name: '添加页面', exact: true });
+  await add.click();
+  const dialog = page.getByRole('dialog', { name: '添加页面', exact: true });
+  const target = dialog.getByRole('combobox', { name: '目标页面（仅已注册路由）' });
+  const icons = dialog.getByRole('button', { name: '选择图标' });
+  await expect(target).toBeInViewport({ ratio: 1 });
+  expect((await target.boundingBox())!.y).toBeLessThan((await icons.boundingBox())!.y);
+  await expect(page.getByRole('group', { name: '图标选择器' })).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: '确定', exact: true })).toBeInViewport({ ratio: 1 });
+  const directory = `build/acceptance/admin-page-alignment/${info.project.name}`;
+  await mkdir(directory, { recursive: true });
+  await page.screenshot({ path: `${directory}/add-page.png`, animations: 'disabled' });
+  await icons.click();
+  const picker = page.getByRole('dialog', { name: '图标选择器' });
+  const search = picker.getByRole('textbox', { name: '搜索图标名称或用途' });
+  await expect(search).toBeFocused();
+  await search.fill('火箭');
+  await picker.getByRole('button', { name: 'Rocket', exact: true }).click();
+  await expect(icons).toContainText('Rocket');
+  await expect(icons).toBeFocused();
+  await dialog.getByRole('button', { name: '排序与显示选项' }).click();
+  const dot = dialog.getByRole('switch', { name: '圆点角标' });
+  await dot.click();
+  await expect(dot).toBeChecked();
+  await expect(dialog.getByRole('button', { name: '确定', exact: true })).toBeInViewport({ ratio: 1 });
+  await page.keyboard.press('Escape');
+  await expect(add).toBeFocused();
+  await page.getByRole('button', { name: '切换语言', exact: true }).click();
+  await page.getByRole('menuitemradio', { name: 'English', exact: true }).click();
+  await page.getByRole('button', { name: 'Toggle theme', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  if (info.project.name === 'chromium') await page.setViewportSize({ width: 760, height: 720 });
+  await page.getByRole('button', { name: 'Add page', exact: true }).click();
+  const english = page.getByRole('dialog', { name: /Add [Pp]age/ });
+  await english.getByRole('button', { name: 'Order and display options' }).click();
+  const state = english.getByRole('switch', { name: 'Dot badge' }).locator('..').getByText('Off', { exact: true });
+  await state.scrollIntoViewIfNeeded();
+  await expect(state).toHaveCSS('white-space', 'nowrap');
+  expect(await state.evaluate(element => {
+    const label = element.closest('label')!.getBoundingClientRect();
+    const bounds = element.getBoundingClientRect();
+    return bounds.right <= label.right + 1;
+  })).toBe(true);
+  await page.screenshot({ path: `${directory}/add-page-en-dark.png`, animations: 'disabled' });
+});
 
 test('admin navigation tree with the three directories, both viewports', async ({ page, instance }, info) => {
   test.setTimeout(120000);

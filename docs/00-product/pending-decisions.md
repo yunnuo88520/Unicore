@@ -22,7 +22,10 @@
 - 现状：web-standalone 的 `PATCH /api/v1/settings`（actor=local）受 sameOrigin 等中间件保护但**不限 loopback**；`/api/v1/updates*` 强制 Host 与 RemoteAddr 均为 loopback（`internal/adapter/http/updates.go`）。[支持范围](../support.md) 要求远程使用需外层访问控制。
 - 影响：同一「本地面」两类接口的暴露强度不同；局域网部署时设置可被同源页面改动而更新不可用。
 - 候选：A. 统一收紧为 loopback；B. 维持现状并在文档强调外层访问控制；C. 设置写操作加独立确认（如维护开关）。
-- 推荐：B 为当前基线（与 README/support 口径一致），若出现真实远程部署需求再评估 A。**待决策。**
+- 推荐：B 为当前基线（与 README/support 口径一致），若出现真实远程部署需求再评估 A。
+- 裁决（2026-11-19）：**选 B**——维持 sameOrigin 基线，不扩大 loopback 收紧；`/updates*` 维持 loopback、`PATCH /settings` 与 `platform-session` 本地面维持 sameOrigin，三档强度与「远程使用须外层访问控制」约束已写入 [产品形态规范第 5 节](product-forms.md)。
+- 修订（2026-11-20）：**改选 A**——授权加固评审重提该面，维护者拍板统一收紧为 loopback：`/settings`（读/写）、`/monitor*` 与 `platform-session` 本地面（`core/execute`、`inbox`、`events`）同 `/updates*` 一律要求 Host 与 TCP 对端为本机回环（`httpadapter.localLoopback`），远程直连返回 403；本机浏览器用法不受影响，远程访问本地面由应用层直接拒绝，不再依赖外层访问控制。连带修订 D19（监控暴露强度）与形态规范第 5 节、support 口径。
+- 状态：**已裁决（A，2026-11-20 修订），去向：形态规范第 5 节清单。**
 
 ## D4. 桌面装配无 Secrets
 
@@ -141,7 +144,8 @@
 - 可选方案：A. loopback-only（同 updates，最保守，远程不可用）；B. sameOrigin 只读 + 脱敏（同 settings，远程只读可用）。
 - 推荐方向及理由：B——监控是只读低敏数据且已脱敏，与 settings 同级；若维护者认为实例运行信息（版本/内存等）不宜跨机暴露则选 A。设计详见 [design-runtime-monitor.md](design-runtime-monitor.md) §8。
 - 裁决（2026-11-11）：**B**——sameOrigin 只读 + 脱敏（同 settings 先例）。
-- 状态：**已裁决（B），去向：design-runtime-monitor.md T2 实施依据。**
+- 修订（2026-11-20）：随 D3 改选 A，本地监控 API 一并收紧为 loopback（Host 与 TCP 对端本机回环），远程只读不再可用；只读 + 脱敏语义不变。
+- 状态：**已裁决（B→随 D3 修订为 loopback，2026-11-20），去向：design-runtime-monitor.md T2 实施依据。**
 
 ## D20. 宿主机与容器资源指标的口径与纳入阶段（Runtime Monitor 设计）
 
@@ -188,3 +192,12 @@
 - 影响：滚动模式让派生项目始终拿到最新已验证源码，但同一 VERSION（如 0.1.5）下模板内容会随 main 前进，只能靠 `Source:` 尾行区分；随版本模式则模板内容与 Release 一一对应，但派生项目在两次发版之间拿不到已修复的模板。
 - 候选：A. 维持滚动（现状），以 `Source:` 尾行与发布完成核对保证可追溯；B. 模板只随正式版本发布，Release 后从该 tag 导出。
 - 推荐方向及理由：A——追溯缺口已由门禁与尾行补齐，滚动模式的时效收益对派生项目真实存在；B 可在派生项目出现"模板与 Release 必须逐字节对应"的真实需求时再切换。**待决策；确认前保留现有滚动行为。**
+
+## D25. 角色派生权限点与存储权限点的数据范围口径
+
+- 现状：ADR-0040 之前的旧编辑器角色行可能有显式 action/operation 授权而缺 `unicore_role_permissions` 权限点行，但派生并不限于遗留角色。每次账号/会话投影都会执行 `platformsql.repository.deriveGrantedPermissions`：显式 action ID 按当前导航绑定补充其 `Permission`，并从绑定的可委派非 any operation 补充策略权限点；显式 operation grant 也仅从可委派非 any operation 补点。any operation 本身不派生兄弟权限点，但其 action 的显式 `Permission` 仍可派生。菜单不派生权限点，也不从 operation 反推 action/menu ID；显式空授权集合不会被恢复。数据范围解析（`platformsql.DataScope`）只联合存储表中持有请求权限点的角色，不把运行时派生点写回或计入该角色的范围贡献。
+- 触发范围：新角色保存时的权限上界校验不保证后续导航重绑定仍满足该上界。相同 action ID 保持 action 类型而修改绑定时，原有角色 action 行不会被孤儿裁剪移除，运行时会读取新绑定，并非保持 inert。例如正常新建仅持有 `users:read`、显式授权 `roleOptions`（any）及其 action 的角色，action 的 `Permission` 从 `users:read` 改为 `users:update` 后，投影可新增 `users:update`，但该角色存储的权限点仍只有 `users:read`。
+- 影响：派生点与持久点的差异既可能来自遗留行，也可能来自上述重绑定。例中 `users:read` 的 DataScope 仍使用该角色配置的范围，`users:update` 不采用该角色的范围贡献；若没有其他存储该点的角色，范围保留本人，有其他角色时仅按它们的存储权限与范围取并集。API 能否调用仍取决于对应 operation 授权及其他既有校验，不能据此概括为“恒为收窄”或“不构成越权”，也不保证一次重存即可自愈。
+- 候选：A. 启动物化 heal（把派生点写入存储、递增角色版本并撤销受影响会话）；B. 数据范围运行时考虑派生集（每请求按角色重算，成本高）；C. 维持现状并登记口径说明。
+- 裁决（2026-11-19）：**选 C**——维持现有派生与存储范围解析逻辑，不做启动期物化改写，也不新增重绑定授权策略；本条为口径说明，不扩展安全保证。
+- 状态：**已裁决（C），授权逻辑不变。** 2026-11-20 纠正适用范围与派生规则说明，并补充相同 action ID 重绑定的回归测试。

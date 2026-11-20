@@ -75,6 +75,12 @@ Git 来源中选中的文件有未提交修改时，创建器默认拒绝导出�
 
 菜单父级和排序只决定入口的组织方式。进入页面和调用 API 仍须遵循应用的页面权限、服务端契约和数据归属规则。
 
+### 注册独立业务控制台
+
+需要独立首页、导航或外壳的 Platform 应用，可以在用户 Web 入口从 `@unicore/web-ui` 导入 `defineConsoles`，将 `defineConsoles({ id, title, permission, shell, pages })` 的返回值传入 `<Workspace consoles={consoles} />`。例如以 `partner` 注册 `/workspaces/partner`，页面 `orders` 和 `reconciliation` 分别声明自己的权限点。根入口打开当前账号可达的第一个页面；有权限的账号也能从账号菜单进入。外壳通过 `navigation` 与 `children` 渲染独立导航和页面；需要侧栏几何时复用 `WorkspaceLayout`，不自行算偏移。控制台和页面标题和其他 UI 一样提供双语消息。
+
+在后端模块登记进入与页面使用的权限点，在角色管理给代理业务员、财务等角色分别授予所需权限；实际请求仍走独立契约 operation 和资源校验。控制台定义不是授权策略，也不改变账号的多角色并集。系统治理仍放内置管理后台；自定义控制台没有新的登录 Cookie、API realm 或产品 profile，导航由代码注册，内置菜单编辑器不会改它。`/workspaces` 是业务控制台保留前缀；已在该地址部署管理后台的实例需要先将后台迁到另一前缀。
+
 ## 应用发版与框架版本
 
 应用拥有独立的产品版本：根目录 `VERSION` 是唯一手工来源，`package.json`、OpenAPI、桌面信息与 Go buildinfo 都由 `pnpm version:sync` 从它生成。创建时默认 `0.1.0`，可用 `--version` 指定；`pnpm framework:sync` 只更新框架代码，不会提高或覆盖应用版本。发版流程：在 `## Unreleased` 写好中英文条目，执行 `pnpm release --release X.Y.Z`（`version.mjs --release` 校验递增并归档条目），再走自己的发布渠道。`project.provenance.json` 同时记录创建时的框架来源与当前已成功集成的框架版本、源码提交和模板提交。

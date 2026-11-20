@@ -24,7 +24,7 @@ const nodes: NavigationNode[] = [
   node({ id: 'administration', section_id: 'system', type: 'directory', label: '管理工具', icon: 'Users', surfaces: ['administrator'], sort: 10 }),
   node({ id: 'users', section_id: 'system', parent_id: 'administration', route_id: 'users', label: '', icon: 'UserRound', surfaces: ['administrator'], sort: 10 }),
   node({ id: 'overview', section_id: 'business', route_id: 'overview', label: '', icon: 'LayoutDashboard', sort: 10 }),
-  node({ id: 'notes', section_id: 'business', route_id: 'notes', label: '', icon: 'NotebookPen', sort: 20 }),
+  node({ id: 'announcements', section_id: 'business', route_id: 'announcements', label: '', icon: 'Megaphone', sort: 20 }),
   node({ id: 'link:help', section_id: 'business', type: 'link', label: '帮助中心', icon: 'Link', sort: 30, url: 'https://example.com/help' }),
   node({ id: 'action:demo', section_id: 'business', type: 'action', label: '邀请用户', icon: 'MousePointerClick', surfaces: ['administrator'], sort: 40, permission: 'users:create', operation_ids: ['createUsers'] }),
 ];
@@ -216,6 +216,29 @@ it('expands and collapses the whole tree from the toolbar', async () => {
   expect(within(rowOf('administration')!).getByRole('button', { name: '展开或收起 管理工具' })).toHaveAttribute('aria-expanded', 'true');
 });
 
+it('defaults to the admin workspace and checks route surfaces even with an older saved placement', async () => {
+  const { saveMenuConfig } = harness({ ...menuList(), nodes: [...nodes, node({ id: 'notes', route_id: 'notes' })] });
+  await screen.findByRole('row', { name: '业务' });
+  expect(rowOf('notes')).toBeNull();
+  expect(rowOf('announcements')).not.toBeNull();
+  await userEvent.click(screen.getByRole('combobox', { name: '按工作台筛选' }));
+  await userEvent.click(screen.getByRole('option', { name: '用户工作台' }));
+  expect(regionRow('system')).toBeNull();
+  expect(rowOf('overview')).not.toBeNull();
+  expect(rowOf('notes')).not.toBeNull();
+  expect(rowOf('announcements')).toBeNull();
+  await userEvent.click(screen.getByRole('button', { name: '保存菜单配置' }));
+  expect(saveMenuConfig.mock.calls[0]?.[0].sections).toEqual(expect.arrayContaining([expect.objectContaining({ id: 'system' })]));
+});
+
+it('opens the registered page picker from the toolbar', async () => {
+  harness();
+  await userEvent.click(await screen.findByRole('button', { name: '添加页面' }));
+  const dialog = screen.getByRole('dialog');
+  await userEvent.click(within(dialog).getByRole('combobox', { name: '目标页面（仅已注册路由）' }));
+  expect(screen.getByRole('option', { name: '笔记管理' })).toBeVisible();
+});
+
 it('creates a page from the region row: the type is picked in the dialog and the parent presets to the region', async () => {
   const { saveMenuConfig } = harness();
   await screen.findByRole('row', { name: '业务' });
@@ -232,12 +255,13 @@ it('creates a page from the region row: the type is picked in the dialog and the
   await userEvent.click(screen.getByRole('option', { name: '页面' }));
   await userEvent.click(within(dialog).getByRole('combobox', { name: '目标页面（仅已注册路由）' }));
   // Registered pages are offered; pages already placed anywhere in the tree are filtered out.
-  expect(screen.getByRole('option', { name: '平台公告' })).toBeVisible();
+  expect(screen.getByRole('option', { name: '笔记管理' })).toBeVisible();
+  expect(screen.queryByRole('option', { name: '平台公告' })).toBeNull();
   expect(screen.queryByRole('option', { name: '工作台概览' })).toBeNull();
-  await userEvent.click(screen.getByRole('option', { name: '平台公告' }));
+  await userEvent.click(screen.getByRole('option', { name: '笔记管理' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '确定' }));
   // New nodes take a random id; the row is located by its display name.
-  const labRow = screen.getByText('平台公告').closest('tr') as HTMLElement;
+  const labRow = screen.getByText('笔记管理').closest('tr') as HTMLElement;
   expect(labRow.getAttribute('data-node-type')).toBe('page');
   expect(labRow.getAttribute('data-section')).toBe('business');
   await userEvent.click(screen.getByRole('button', { name: '保存菜单配置' }));
@@ -245,10 +269,10 @@ it('creates a page from the region row: the type is picked in the dialog and the
   const payload = saveMenuConfig.mock.calls[0][0] as MenuSaveInput;
   expect(payload.version).toBe(7);
   expect(payload.reset).toBeUndefined();
-  const created = payload.nodes.find(item => item.route_id === 'announcements');
+  const created = payload.nodes.find(item => item.route_id === 'note-management');
   expect(created?.section_id).toBe('business');
   expect(created?.parent_id).toBeUndefined();
-  // Surfaces derive from the registered route: 平台公告 stays administrator-only.
+  // Surfaces derive from the registered route: note management stays administrator-only.
   expect(created?.surfaces).toEqual(['administrator']);
   expect(payload.role_assignments).toBeUndefined();
 });
@@ -305,14 +329,14 @@ it('adds a child page from a page row with the parent preset to that row', async
   await userEvent.click(screen.getByRole('combobox', { name: '菜单类型' }));
   await userEvent.click(screen.getByRole('option', { name: '页面' }));
   await userEvent.click(within(dialog).getByRole('combobox', { name: '目标页面（仅已注册路由）' }));
-  await userEvent.click(screen.getByRole('option', { name: '平台公告' }));
+  await userEvent.click(screen.getByRole('option', { name: '笔记管理' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '确定' }));
-  const labRow = screen.getByText('平台公告').closest('tr') as HTMLElement;
+  const labRow = screen.getByText('笔记管理').closest('tr') as HTMLElement;
   expect(labRow.getAttribute('data-node-type')).toBe('page');
   await userEvent.click(screen.getByRole('button', { name: '保存菜单配置' }));
   await vi.waitFor(() => expect(saveMenuConfig).toHaveBeenCalledTimes(1));
   const payload = saveMenuConfig.mock.calls[0][0] as MenuSaveInput;
-  const created = payload.nodes.find(item => item.route_id === 'announcements');
+  const created = payload.nodes.find(item => item.route_id === 'note-management');
   expect(created?.parent_id).toBe('overview');
   expect(created?.section_id).toBe('business');
 });
@@ -327,12 +351,12 @@ it('adds a child page from a link row with the parent preset to that link', asyn
   await userEvent.click(screen.getByRole('combobox', { name: '菜单类型' }));
   await userEvent.click(screen.getByRole('option', { name: '页面' }));
   await userEvent.click(within(dialog).getByRole('combobox', { name: '目标页面（仅已注册路由）' }));
-  await userEvent.click(screen.getByRole('option', { name: '平台公告' }));
+  await userEvent.click(screen.getByRole('option', { name: '笔记管理' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '确定' }));
   await userEvent.click(screen.getByRole('button', { name: '保存菜单配置' }));
   await vi.waitFor(() => expect(saveMenuConfig).toHaveBeenCalledTimes(1));
   const payload = saveMenuConfig.mock.calls[0][0] as MenuSaveInput;
-  const created = payload.nodes.find(item => item.route_id === 'announcements');
+  const created = payload.nodes.find(item => item.route_id === 'note-management');
   expect(created?.parent_id).toBe('link:help');
   expect(created?.section_id).toBe('business');
 });
@@ -348,7 +372,7 @@ it('copies a node with its subtree: unique -copy ids, hidden root and re-sorted 
   expect(within(copy!).getByRole('switch', { name: '显示或隐藏 工作台概览' })).toHaveAttribute('data-state', 'unchecked');
   // It sorts directly after its source and the siblings renumber around it;
   // action rows never join the layout.
-  expect(nodeOrder()).toEqual(['overview', 'overview-copy', 'notes', 'link:help', 'administration']);
+  expect(nodeOrder()).toEqual(['overview', 'overview-copy', 'announcements', 'link:help', 'administration']);
   // Deep copy: directories duplicate with their children under unique ids.
   await userEvent.click(within(rowOf('administration')!).getByRole('button', { name: '展开或收起 管理工具' }));
   const administrationMenu = await openRowMenu(rowOf('administration')!, '管理工具');
@@ -378,6 +402,7 @@ it('edits a node through the dialog: badge text lands on the same row', async ()
   const overviewMenu = await openRowMenu(rowOf('overview')!, '工作台概览');
   await userEvent.click(within(overviewMenu).getByRole('menuitem', { name: '编辑' }));
   const dialog = screen.getByRole('dialog', { name: '编辑节点' });
+  await userEvent.click(within(dialog).getByRole('button', { name: '排序与显示选项' }));
   await userEvent.type(within(dialog).getByRole('textbox', { name: '角标文字' }), '新');
   await userEvent.click(within(dialog).getByRole('button', { name: '确定' }));
   expect(screen.queryByRole('dialog', { name: '编辑节点' })).toBeNull();
@@ -390,21 +415,25 @@ it('picks icons from the searchable Lucide catalog and clears back to the defaul
   const overviewMenu = await openRowMenu(rowOf('overview')!, '工作台概览');
   await userEvent.click(within(overviewMenu).getByRole('menuitem', { name: '编辑' }));
   const dialog = screen.getByRole('dialog', { name: '编辑节点' });
-  const grid = within(dialog).getByRole('group', { name: '图标选择器' });
+  expect(screen.queryByRole('group', { name: '图标选择器' })).toBeNull();
+  await userEvent.click(within(dialog).getByRole('button', { name: '选择图标' }));
+  const grid = screen.getByRole('group', { name: '图标选择器' });
   // The catalog covers the product's registered palette and the wider curated set.
   expect(within(grid).getByRole('button', { name: 'UserRound' })).toBeVisible();
   expect(within(grid).getByRole('button', { name: 'LayoutDashboard' })).toBeVisible();
-  await userEvent.type(within(dialog).getByRole('textbox', { name: '搜索图标名称或用途' }), '火箭');
+  await userEvent.type(screen.getByRole('textbox', { name: '搜索图标名称或用途' }), '火箭');
   expect(within(grid).getByRole('button', { name: 'Rocket' })).toBeVisible();
   expect(within(grid).queryByRole('button', { name: 'UserRound' })).toBeNull();
   await userEvent.click(within(grid).getByRole('button', { name: 'Rocket' }));
+  expect(within(dialog).getByRole('button', { name: '选择图标' })).toHaveTextContent('Rocket');
   await userEvent.click(within(dialog).getByRole('button', { name: '确定' }));
   await vi.waitFor(() => expect(screen.queryByRole('dialog', { name: '编辑节点' })).toBeNull());
   // Clearing resets to the empty icon: the workspace falls back to its own default.
   const reopenedMenu = await openRowMenu(rowOf('overview')!, '工作台概览');
   await userEvent.click(within(reopenedMenu).getByRole('menuitem', { name: '编辑' }));
   const reopened = screen.getByRole('dialog', { name: '编辑节点' });
-  await userEvent.click(within(reopened).getByRole('button', { name: '使用默认图标' }));
+  await userEvent.click(within(reopened).getByRole('button', { name: '选择图标' }));
+  await userEvent.click(screen.getByRole('button', { name: '使用默认图标' }));
   await userEvent.click(within(reopened).getByRole('button', { name: '确定' }));
   await vi.waitFor(() => expect(screen.queryByRole('dialog', { name: '编辑节点' })).toBeNull());
   await userEvent.click(screen.getByRole('button', { name: '保存菜单配置' }));
@@ -515,7 +544,7 @@ it('refuses to drop a node onto its own descendant and keeps the draft clean', a
   dragOnto('administration', rowOf('users')!, 'inside');
   dragOnto('administration', rowOf('users')!, 'after');
   expect(screen.queryByText('有未保存的更改')).toBeNull();
-  expect(nodeOrder()).toEqual(['overview', 'notes', 'link:help', 'administration', 'users']);
+  expect(nodeOrder()).toEqual(['overview', 'announcements', 'link:help', 'administration', 'users']);
 });
 
 it('refuses drops that push the subtree past the depth cap and accepts one level higher', async () => {
@@ -548,24 +577,23 @@ it('refuses drops that push the subtree past the depth cap and accepts one level
 it('keeps same-parent drops a pure reorder and inserts beside nested rows when re-parenting', async () => {
   const { saveMenuConfig } = harness();
   await screen.findByRole('row', { name: '业务' });
-  expect(nodeOrder()).toEqual(['overview', 'notes', 'link:help', 'administration']);
-  // Lower third of a sibling row: overview moves after notes, nothing else changes.
-  dragOnto('overview', rowOf('notes')!, 'after');
-  expect(nodeOrder()).toEqual(['notes', 'overview', 'link:help', 'administration']);
+  expect(nodeOrder()).toEqual(['overview', 'announcements', 'link:help', 'administration']);
+  dragOnto('overview', rowOf('announcements')!, 'after');
+  expect(nodeOrder()).toEqual(['announcements', 'overview', 'link:help', 'administration']);
   await userEvent.click(screen.getByRole('button', { name: '保存菜单配置' }));
   await vi.waitFor(() => expect(saveMenuConfig).toHaveBeenCalledTimes(1));
   let payload = saveMenuConfig.mock.calls[0][0] as MenuSaveInput;
   const overview = payload.nodes.find(item => item.id === 'overview')!;
   expect(overview.parent_id).toBeUndefined();
   expect(overview.section_id).toBe('business');
-  expect(payload.nodes.find(item => item.id === 'notes')!.sort).toBeLessThan(overview.sort);
+  expect(payload.nodes.find(item => item.id === 'announcements')!.sort).toBeLessThan(overview.sort);
   expect(payload.nodes.find(item => item.id === 'link:help')!.sort).toBeGreaterThan(overview.sort);
   // Upper third of a nested row inserts into that row's parent list before it,
   // re-parenting across regions through the same subtree rewrite.
   await userEvent.click(within(rowOf('administration')!).getByRole('button', { name: '展开或收起 管理工具' }));
   dragOnto('link:help', rowOf('users')!, 'before');
   expect(rowOf('link:help')!.getAttribute('data-section')).toBe('system');
-  expect(nodeOrder().slice(0, 2)).toEqual(['notes', 'overview']);
+  expect(nodeOrder().slice(0, 2)).toEqual(['announcements', 'overview']);
   await userEvent.click(screen.getByRole('button', { name: '保存菜单配置' }));
   await vi.waitFor(() => expect(saveMenuConfig).toHaveBeenCalledTimes(2));
   payload = saveMenuConfig.mock.calls[1][0] as MenuSaveInput;
@@ -683,9 +711,11 @@ it('distinguishes loading and failed role catalogues from empty assignments and 
   const roles = vi.fn().mockRejectedValueOnce(new Error('角色目录暂不可用')).mockResolvedValue({ items: [role()], permissions: [] });
   mountWeb({ menuConfig: vi.fn().mockResolvedValue(menuList()), roles }, meta(['menus:write']));
   expect(await screen.findByText('角色目录暂不可用')).toBeVisible();
-  expect(screen.queryByText('超级管理员默认访问；未分配其他角色')).toBeNull();
+  const overview = within(rowOf('overview')!);
+  expect(overview.getByText('角色加载失败')).toBeVisible();
+  expect(overview.queryByText('未显式分配角色')).toBeNull();
   await userEvent.click(screen.getByRole('button', { name: '重试' }));
-  expect(await screen.findAllByText('超级管理员默认访问；未分配其他角色')).not.toHaveLength(0);
+  expect(await overview.findByText('未显式分配角色')).toBeVisible();
 });
 
 it('retries a failed role catalogue inside the assignment dialog without exposing an empty editor', async () => {
@@ -712,7 +742,7 @@ it('keeps cached role summaries when a background refresh fails and shows a retr
   render(<QueryClientProvider client={cache}><MessageProvider><AdminMenusPage {...({ client: { web: { menuConfig: vi.fn().mockResolvedValue(menuList()), roles } }, metadata: meta(['menus:write']) } as unknown as PageProps)} /></MessageProvider></QueryClientProvider>);
   expect(await screen.findByText('角色刷新失败')).toBeVisible();
   expect(within(rowOf('overview')!).getByText('显式分配：运营')).toBeVisible();
-  expect(within(rowOf('notes')!).getByText('超级管理员默认访问；未分配其他角色')).toBeVisible();
+  expect(within(rowOf('announcements')!).getByText('未显式分配角色')).toBeVisible();
   expect(screen.getByRole('button', { name: '重试' })).toBeVisible();
 });
 

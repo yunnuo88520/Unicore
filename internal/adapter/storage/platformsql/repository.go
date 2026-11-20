@@ -69,83 +69,91 @@ func (r *Repository) readUser(ctx context.Context, q sqlstore.Runner, id, roleFi
 		return user, err
 	}
 	user.TotpEnabled = state.Secret != ""
-	// User-realm roles are data: echo the assigned user_roles rows so custom
-	// roles surface in listings and sessions instead of the hardcoded builtin.
-	roleRows, err := r.rows(ctx, q, "SELECT role_id FROM unicore_user_roles WHERE user_id=? AND (?='' OR role_id=?) ORDER BY role_id", id, roleFilter, roleFilter)
+	// One namespace-tagged scan replaces the role list, catalogue names,
+	// permission points and the three independent grant tables: six statements
+	// per session resolution become one round trip. The Go side keeps the exact
+	// projection semantics — per-namespace dedup, catalogue-bounded permission
+	// points and id ordering inside each namespace — so sessions, listings and
+	// the account menu read identically.
+	grantScope := "(SELECT ur.role_id FROM unicore_user_roles ur WHERE ur.user_id=? AND (?='' OR ur.role_id=?))"
+	merged := "SELECT 'role' AS ns, ur.role_id AS id, '' AS name FROM unicore_user_roles ur WHERE ur.user_id=? AND (?='' OR ur.role_id=?)"
+	merged += " UNION ALL SELECT 'role_name', r.id, r.name FROM unicore_roles r WHERE r.id IN " + grantScope
+	merged += " UNION ALL SELECT 'permission', rp.permission_id, '' FROM unicore_user_roles ur JOIN unicore_role_permissions rp ON rp.role_id=ur.role_id WHERE ur.user_id=? AND (?='' OR ur.role_id=?)"
+	merged += " UNION ALL SELECT 'menu', rm.menu_id, '' FROM unicore_role_menus rm WHERE rm.role_id IN " + grantScope
+	merged += " UNION ALL SELECT 'action', ra.action_id, '' FROM unicore_role_actions ra WHERE ra.role_id IN " + grantScope
+	merged += " UNION ALL SELECT 'operation', ro.operation_id, '' FROM unicore_role_operations ro WHERE ro.role_id IN " + grantScope
+	merged += " ORDER BY ns, id"
+	args := make([]any, 0, 18)
+	for i := 0; i < 6; i++ {
+		args = append(args, id, roleFilter, roleFilter)
+	}
+	rows, err := r.rows(ctx, q, merged, args...)
 	if err != nil {
 		return user, err
 	}
-	defer roleRows.Close()
-	for roleRows.Next() {
-		var role string
-		if err = roleRows.Scan(&role); err != nil {
+	defer rows.Close()
+	roles, permissions := []string{}, []string{}
+	menuIDs, actionIDs, operationIDs := []string{}, []string{}, []string{}
+	seenRoles, seenPermissions := map[string]bool{}, map[string]bool{}
+	seenMenus, seenActions, seenOperations := map[string]bool{}, map[string]bool{}, map[string]bool{}
+	catalogue := map[string]string{}
+	for rows.Next() {
+		var namespace, value, name string
+		if err = rows.Scan(&namespace, &value, &name); err != nil {
 			return user, err
 		}
-		user.Roles = append(user.Roles, role)
+		switch namespace {
+		case "role":
+			if !seenRoles[value] {
+				seenRoles[value] = true
+				roles = append(roles, value)
+			}
+		case "role_name":
+			catalogue[value] = name
+		case "permission":
+			if !seenPermissions[value] && platform.CatalogPermission(value) {
+				seenPermissions[value] = true
+				permissions = append(permissions, value)
+			}
+		case "menu":
+			if !seenMenus[value] {
+				seenMenus[value] = true
+				menuIDs = append(menuIDs, value)
+			}
+		case "action":
+			if !seenActions[value] {
+				seenActions[value] = true
+				actionIDs = append(actionIDs, value)
+			}
+		case "operation":
+			if !seenOperations[value] {
+				seenOperations[value] = true
+				operationIDs = append(operationIDs, value)
+			}
+		}
 	}
-	if err = roleRows.Err(); err != nil {
+	if err = rows.Err(); err != nil {
 		return user, err
 	}
+	// User-realm roles are data: echo the assigned user_roles rows so custom
+	// roles surface in listings and sessions instead of the hardcoded builtin.
+	user.Roles = roles
 	if roleFilter != "" && len(user.Roles) != 1 {
 		return user, platform.ErrCredentials
 	}
 	// Display names ride parallel to the role ids so listings and the account
 	// menu render catalogue names without a roles:read grant; a missing row
 	// falls back to the raw id instead of hiding the assignment.
-	if len(user.Roles) > 0 {
-		placeholders := strings.Repeat(",?", len(user.Roles)-1)
-		args := make([]any, len(user.Roles))
-		for index, role := range user.Roles {
-			args[index] = role
-		}
-		names, err := r.rows(ctx, q, "SELECT id,name FROM unicore_roles WHERE id IN (?"+placeholders+")", args...)
-		if err != nil {
-			return user, err
-		}
-		catalogue := map[string]string{}
-		err = func() error {
-			defer names.Close()
-			for names.Next() {
-				var id, name string
-				if err := names.Scan(&id, &name); err != nil {
-					return err
-				}
-				catalogue[id] = name
-			}
-			return names.Err()
-		}()
-		if err != nil {
-			return user, err
-		}
-		roleNames := make([]string, len(user.Roles))
-		for index, role := range user.Roles {
-			roleNames[index] = catalogue[role]
-			if roleNames[index] == "" {
-				roleNames[index] = role
-			}
-		}
-		user.RoleNames = &roleNames
-	}
-	rows, err := r.rows(ctx, q, "SELECT DISTINCT rp.permission_id FROM unicore_user_roles ur JOIN unicore_role_permissions rp ON rp.role_id=ur.role_id WHERE ur.user_id=? AND (?='' OR ur.role_id=?) ORDER BY rp.permission_id", id, roleFilter, roleFilter)
-	if err != nil {
-		return user, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var permission string
-		if err = rows.Scan(&permission); err != nil {
-			return user, err
-		}
-		if platform.CatalogPermission(permission) {
-			user.Permissions = append(user.Permissions, permission)
+	roleNames := make([]string, len(user.Roles))
+	for index, role := range user.Roles {
+		roleNames[index] = catalogue[role]
+		if roleNames[index] == "" {
+			roleNames[index] = role
 		}
 	}
-	if err = rows.Err(); err != nil {
-		return user, err
-	}
-	if err = r.loadAuthorizations(ctx, q, &user, roleFilter); err != nil {
-		return user, err
-	}
+	user.RoleNames = &roleNames
+	user.Permissions = permissions
+	user.MenuIds, user.ActionIds, user.OperationIds = &menuIDs, &actionIDs, &operationIDs
 	if err = r.deriveGrantedPermissions(ctx, q, &user); err != nil {
 		return user, err
 	}
@@ -160,49 +168,14 @@ func (r *Repository) readUser(ctx context.Context, q sqlstore.Runner, id, roleFi
 	return user, nil
 }
 
-// loadAuthorizations unions the independent grant sets across a member's
-// roles: navigation items, action buttons and API operations. Rows only
-// exist for materialized or explicitly granted roles, so an empty union is a
-// real empty authorization, never "all".
-func (r *Repository) loadAuthorizations(ctx context.Context, q sqlstore.Runner, user *contracts.User, roleFilter string) error {
-	grants := []struct {
-		table  string
-		column string
-		target *[]string
-	}{
-		{"unicore_role_menus rm", "rm.menu_id", user.MenuIds},
-		{"unicore_role_actions ra", "ra.action_id", user.ActionIds},
-		{"unicore_role_operations ro", "ro.operation_id", user.OperationIds},
-	}
-	memberships := "SELECT role_id FROM unicore_user_roles WHERE user_id=? AND (?='' OR role_id=?)"
-	for _, grant := range grants {
-		rows, err := r.rows(ctx, q, "SELECT DISTINCT "+grant.column+" FROM "+grant.table+" WHERE role_id IN ("+memberships+") ORDER BY 1", user.ID, roleFilter, roleFilter)
-		if err != nil {
-			return err
-		}
-		ids := []string{}
-		err = func() error {
-			defer rows.Close()
-			for rows.Next() {
-				var id string
-				if err := rows.Scan(&id); err != nil {
-					return err
-				}
-				ids = append(ids, id)
-			}
-			return rows.Err()
-		}()
-		if err != nil {
-			return err
-		}
-		*grant.target = ids
-	}
-	return nil
-}
-
-// deriveGrantedPermissions repairs legacy permission-point upper bounds from
-// explicit operation/action grants. It never derives action or menu IDs: an
-// initialized empty grant set is an intentional revocation (ADR-0040).
+// deriveGrantedPermissions supplements stored permission points from explicit
+// operation/action grants on every projection, not only for legacy roles. An
+// action contributes its current Permission even for an any-mode operation;
+// only non-any operations contribute their policy permissions. Rebinding the
+// same action ID can therefore change derived points without changing stored
+// role permissions, which remain DataScope's input (pending decision D25, C).
+// It never derives action or menu IDs: an initialized empty grant set is an
+// intentional revocation (ADR-0040).
 func (r *Repository) deriveGrantedPermissions(ctx context.Context, q sqlstore.Runner, user *contracts.User) error {
 	held := map[string]bool{}
 	for _, permission := range user.Permissions {

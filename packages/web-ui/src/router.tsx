@@ -14,7 +14,7 @@ import { NavigationProgressBar, PageLoader, navigationFinish, navigationStart } 
 export type PageProps = { page: Page; client: AppClient; metadata: Bootstrap; registry: DashboardWidgetRegistry; theme: Theme; setTheme: (theme: Theme) => void; refresh: () => void };
 export type PageComponent = (props: PageProps) => ReactNode;
 
-type ShellOptions = { client: AppClient; registry: DashboardWidgetRegistry; administratorPage?: PageComponent };
+type ShellOptions = { client: AppClient; registry: DashboardWidgetRegistry; administratorPage?: PageComponent; consoles?: readonly import('./console-registry').ConsoleDefinition[] };
 const ShellOptionsContext = createContext<ShellOptions | null>(null);
 const NoticeContext = createContext<string>('');
 const PagePropsContext = createContext<PageProps | null>(null);
@@ -81,7 +81,7 @@ function frame(userLoader: () => Promise<{ default: PageComponent }>, adminEligi
   return Frame;
 }
 
-export function createWorkspaceRouter(options: { history: () => RouterHistory; basepath?: string; shell: () => ReactNode }) {
+export function createWorkspaceRouter(options: { history: () => RouterHistory; basepath?: string; shell: () => ReactNode; consoles?: boolean }) {
   // The progress bar mounts at the router root so every entry and page —
   // including the standalone auth routes — shares one navigation surface.
   const rootRoute = createRootRoute({
@@ -106,6 +106,7 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
   }
   const tree = rootRoute.addChildren([
     pageRoute('/', () => import('./pages/overview').then(module => ({ default: module.OverviewPage })), { search: { oidc: '' } }),
+    ...(options.consoles ? [createRoute({ getParentRoute: () => rootRoute, path: '/workspaces/$', component: () => null }) as unknown as AnyRoute] : []),
     pageRoute('/home', () => import('./pages/home').then(module => ({ default: module.HomePage }))),
     pageRoute('/install', () => import('./pages/install').then(module => ({ default: module.InstallPage }))),
     pageRoute('/login', () => import('./pages/auth').then(module => ({ default: module.LoginPage })), { search: { oidc: '', state: '' } }),
@@ -116,7 +117,10 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     pageRoute('/registration-success', () => import('./pages/auth').then(module => ({ default: module.LoginPage }))),
     pageRoute('/verify-email', () => import('./pages/auth').then(module => ({ default: module.VerifyEmailPage })), { search: { token: '' } }),
     pageRoute('/reset-password', () => import('./pages/auth').then(module => ({ default: module.ResetPasswordPage })), { search: { token: '' } }),
-    ...(__FEATURE_NOTES__ ? [pageRoute('/notes', () => import('./modules/notes/notes').then(module => ({ default: module.NotesPage })))] : []),
+    ...(__FEATURE_NOTES__ ? [
+      pageRoute('/notes', () => import('./modules/notes/notes').then(module => ({ default: module.NotesPage }))),
+      pageRoute('/note-management', () => import('./modules/notes/management')),
+    ] : []),
     pageRoute('/access-tokens', () => import('./pages/admin/access-tokens').then(module => ({ default: module.AdminAccessTokensPage })), { adminEligible: true }),
     pageRoute('/site', () => import('./pages/appearance').then(module => ({ default: module.AdminMailSettingsPage })), { adminEligible: true, search: { tab: '' } }),
     pageRoute('/account-policy', () => import('./pages/appearance').then(module => ({ default: module.AdminMailSettingsPage })), { adminEligible: true }),

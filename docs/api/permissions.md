@@ -5,7 +5,7 @@
 
 | 权限 | API（均在 /api/v1 下） |
 | --- | --- |
-| roles:write | POST /admin/roles；PUT/DELETE /admin/roles/{id}（仅 super_admin；角色可组合两个工作台的权限与授权）；PUT /admin/menus/{id}/roles 同时要求 menus:write、roles:write 与 super_admin |
+| roles:write | POST /admin/roles；PUT/DELETE /admin/roles/{id}（仅 super_admin；角色可组合两个工作台的权限与授权；创建与更新角色拒绝 super_admin 保留权限点进入存储角色行，保留点仅由 super_admin 隐式持有）；PUT /admin/menus/{id}/roles 同时要求 menus:write、roles:write 与 super_admin |
 | menus:write | GET/PUT /admin/menus（单棵共享导航树 navigation.{sections,nodes,version}，PUT 版本号 CAS 冲突返回 409，空数组持久化为空树；`reset` 恢复共享默认树，仅 super_admin） |
 | posts:read/write | GET /admin/posts；POST /admin/posts；PUT/DELETE /admin/posts/{id}（岗位目录，assignable；删除仍有用户关联的岗位返回冲突。用户创建/更新携带 post_ids 多岗位，用户列表支持 post_id 过滤） |
 | dictionaries:read/write | GET/POST /admin/dictionaries；GET/PUT/DELETE /admin/dictionaries/{id}；PUT /admin/dictionaries/{id}/items（可授权给管理员域角色）；用户域 GET /dictionaries/{code} 读取 active 条目 |
@@ -72,6 +72,14 @@ XLSX：`GET /admin/users/export.xlsx` 要求 users:read；`GET /admin/users/impo
 无本地密码的已绑定账号可 POST `/account/oidc/totp`（管理员 `/admin/account/oidc/totp`）发起企业重新认证，需本人会话、CSRF/Origin，不授予管理权限。固定 OIDC callback 验证原浏览器与会话及原绑定身份，成功只准备 TOTP 设置；GET `/account/totp/setup`（管理员同前缀）以 no-store 返回当前会话尚未启用、未过期的待设置密钥，不返回已启用密钥。取消、过期、错误耗尽或成功启用后不能读取。此流程不绕过已有 TOTP，也不替代本地密码账号的密码确认；其他本人 TOTP 接口与业务门禁保持一致。
 
 ## 独立授权与数据范围
+
+`GET /api/v1/admin/notes/management` 要求 `notes:manage:read` 和 `listNoteManagement` operation 授权，按该权限的数据范围过滤。支持按标题、作者昵称、用户名和状态筛选，保留精确的 `owner_id` 筛选；任何筛选都不能扩大范围。列表返回标题、作者显示信息、状态、更新时间、版本、记录标识及逐行操作许可，不返回正文、附件或账号邮箱。
+
+`GET /api/v1/admin/notes/management/{owner}/{id}` 预览正文，要求 `notes:manage:read`、`notes:manage:preview` 和 `previewManagedNote` operation。响应不包含附件且禁用浏览器缓存。`PUT` 编辑标题、正文，另要求 `notes:manage:edit` 和 `editManagedNote` operation，保持归属、状态和附件不变。预览与编辑均取相关权限数据范围的交集；编辑事务内重新校验，使用版本防止覆盖他人修改。不为既有自定义角色自动增加内容访问。
+
+`PATCH` 和 `DELETE /api/v1/admin/notes/management/{owner}/{id}` 分别修改状态与软删除，要求 `notes:manage:read`、对应的 `notes:manage:update` 或 `notes:manage:delete` 以及 `updateNoteManagementStatus` 或 `deleteManagedNote` operation。写入时重新校验授权，目标作者必须同时落在读、写权限的数据范围内；记录版本不一致返回 409。成功操作记录实际操作者。
+
+`GET /api/v1/notes?view=mine` 是个人页面使用的本人过滤；未传 `view` 的既有客户端继续沿用 `notes:access` 数据范围。已有 `/admin/notes` 契约不因新增管理页而改变或自动授权。
 
 完整规则见 [ADR-0038](../adr/ADR-0038-rbac-enforcement.md)。菜单 ID 全局唯一且无工作台前缀，surfaces 描述适用工作台（ADR-0039）；OpenAPI x-unicore.uiPage 注册默认动作。菜单只决定页面入口（含 URL 直达），按钮同时要求权限点、action_ids 与 operation_ids；禁止直接调用 API 需要撤销对应 operation grant。
 

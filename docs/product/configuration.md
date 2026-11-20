@@ -172,7 +172,7 @@ SQLite 不填写上述外部连接字段/DSN，固定使用 data 目录中的 `u
 
 | 设置 key | 默认值 | 说明 |
 | --- | --- | --- |
-| `admin.path` | `/admin` | 后台入口；改后记住新路径，旧入口 404；误配可用 APP_ADMIN_PATH 恢复 |
+| `admin.path` | `/admin` | 后台入口；改后记住新路径，旧入口 404；误配可用 APP_ADMIN_PATH 恢复。`/workspaces` 保留给业务控制台 |
 | `security.login_captcha` | `true` | 登录人机验证（图形验证码），位于 基础设置 → 安全与控制 |
 | `security.register_captcha` | `true` | 注册人机验证（图形验证码），位于 基础设置 → 安全与控制 |
 | `security.session_hours` | `24` | 会话有效期，1–168 小时 |

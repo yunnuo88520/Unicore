@@ -272,8 +272,9 @@ it('creates a page from the region row: the type is picked in the dialog and the
   const created = payload.nodes.find(item => item.route_id === 'note-management');
   expect(created?.section_id).toBe('business');
   expect(created?.parent_id).toBeUndefined();
-  // Surfaces derive from the registered route: note management stays administrator-only.
-  expect(created?.surfaces).toEqual(['administrator']);
+  // Surfaces derive from the registered route: the business page now reaches
+  // the user workspace as well as the administrator console.
+  expect(created?.surfaces).toEqual(['user', 'administrator']);
   expect(payload.role_assignments).toBeUndefined();
 });
 

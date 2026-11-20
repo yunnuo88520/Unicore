@@ -146,6 +146,13 @@ function WorkspaceShell() {
     </div>;
   }
 
+  // A completed installation must not serve the wizard anymore: the server
+  // refuses reinstallation, and pageFromPath normalizes /install to overview,
+  // so without this redirect the shell would render the wizard in chrome.
+  if (data.installed && basename === 'install') {
+    return <Navigate to="/" replace />;
+  }
+
   if (data.capabilities.installation && !data.installed && client.web) {
     const props: PageProps = { page: 'overview', client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
     return <PagePropsProvider value={props}>

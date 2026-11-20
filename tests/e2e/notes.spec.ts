@@ -185,8 +185,11 @@ test('notes have distinct personal and management pages and menu assignments', a
   await expect(page.getByRole('button', { name: '分配角色：我的笔记' })).toHaveCount(0);
   await expect(page.getByText('当前账号侧栏：已显示', { exact: true }).first()).toBeVisible();
   await chooseOption(page, '按工作台筛选', '用户工作台');
+  // Both notes entries are registered for the user workspace: the personal
+  // page and the management page whose default entry now lives in the
+  // business region each expose a menu-row role assignment there.
   await expect(page.getByRole('button', { name: '分配角色：我的笔记' })).toBeVisible();
-  await expect(page.getByRole('button', { name: '分配角色：笔记管理' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '分配角色：笔记管理' })).toBeVisible();
 });
 
 test('ordinary member uploads an avatar and note attachment without file management grants',async({page,instance},info)=>{

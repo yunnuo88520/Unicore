@@ -1,6 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Three-way upstream template sync: normalize to the framework naming, merge, re-apply the product identity; never force or silently drop product work.
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
@@ -257,10 +258,13 @@ export function abortTemplateSync(dir = process.cwd()) {
 
 // Recovery for projects created from an export without template ancestry (the
 // old generator could not record one from archive sources): re-create the
-// branch history on top of the template commit the project was created from —
-// located in the fetched lineage by the provenance's framework_version — with
-// identical trees, messages, authors and dates, so a real three-way sync
-// becomes possible. The trees are untouched; only the ancestry is added.
+// branch history on top of the exact template commit the project was created
+// from, with identical trees, messages, authors and dates, so a real
+// three-way sync becomes possible. The trees are untouched; only the ancestry
+// is added. The baseline is identified from verifiable creation evidence —
+// the recorded template revision, or the recorded input digests checked
+// against each same-version lineage commit — and never by picking the first
+// or last commit of a version. A backup reference preserves the branch.
 export function graftTemplateAncestry(dir = process.cwd()) {
   const provenance = requireDerived(dir);
   if (existsSync(stateFile(dir))) throw Error('A sync is pending. Clean it up with framework:sync --abort before grafting.');
@@ -268,16 +272,29 @@ export function graftTemplateAncestry(dir = process.cwd()) {
   const upstream = fetchTemplate(dir);
   const wanted = provenance.framework_version;
   if (!wanted) throw Error('project.provenance.json records no framework_version; grafting cannot identify the template commit to attach.');
-  let ancestor = null;
-  for (const commit of git(dir, 'rev-list', upstream).split('\n')) {
-    try { if (git(dir, 'show', `${commit}:VERSION`).trim() === wanted) { ancestor = commit; break; } } catch { /* a lineage commit without VERSION */ }
+  const candidates = git(dir, 'rev-list', upstream).split('\n')
+    .filter(commit => { try { return git(dir, 'show', `${commit}:VERSION`).trim() === wanted; } catch { return false; } });
+  if (!candidates.length) throw Error(`The fetched template lineage has no commit at framework version ${wanted}; fetch a lineage that contains the release this project was created from.`);
+  let ancestor = null, evidence = null;
+  const recordedRevision = provenance.template_revision;
+  if (recordedRevision) {
+    if (!candidates.includes(recordedRevision)) throw Error(`The recorded template_revision ${recordedRevision.slice(0, 12)} is not in the fetched lineage at framework version ${wanted}; fetch the lineage the project was created from.`);
+    ancestor = recordedRevision; evidence = 'recorded template revision';
+  } else {
+    const inputs = provenance.input_files;
+    if (!Array.isArray(inputs) || !inputs.length) throw Error('provenance records neither a template revision nor input digests; grafting cannot identify the creation baseline.');
+    const verifying = candidates.filter(commit => templateMatchesInputs(dir, commit, inputs));
+    if (verifying.length === 1) { ancestor = verifying[0]; evidence = 'creation input digests'; }
+    else if (verifying.length === 0) throw Error('No same-version template commit matches the recorded creation input digests; grafting refused. Locate the exact template commit manually.');
+    else throw Error('Several same-version template commits match the recorded creation inputs; the baseline is ambiguous and grafting refused.');
   }
-  if (!ancestor) throw Error(`The fetched template lineage has no commit at framework version ${wanted}; fetch a lineage that contains the release this project was created from.`);
   let common = null;
   try { common = git(dir, 'merge-base', 'HEAD', ancestor); } catch { /* grafting exists for the missing-ancestor case */ }
   if (common) throw Error('This project already shares template ancestry; run framework:sync instead of grafting.');
   const branch = git(dir, 'symbolic-ref', '--short', 'HEAD');
   const expected = git(dir, 'rev-parse', 'HEAD');
+  const backup = `backup/pre-graft-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+  git(dir, 'branch', backup, expected);
   let parent = ancestor;
   for (const commit of git(dir, 'rev-list', '--reverse', '--topo-order', 'HEAD').split('\n')) {
     const metadata = git(dir, 'log', '-1', '--format=%an%x00%ae%x00%aD%x00%cn%x00%ce%x00%cD', commit).split('\x00');
@@ -289,7 +306,35 @@ export function graftTemplateAncestry(dir = process.cwd()) {
   }
   git(dir, 'update-ref', `refs/heads/${branch}`, parent, expected);
   git(dir, 'reset', '-q', '--mixed'); // re-align the index with the re-created tip; the worktree is identical
-  return { grafted: ancestor, tip: parent, commits: git(dir, 'rev-list', '--count', 'HEAD') };
+  return { grafted: ancestor, evidence, backup, tip: parent, commits: git(dir, 'rev-list', '--count', 'HEAD') };
+}
+
+// Verify a same-version template commit against the recorded creation inputs:
+// the whitelist source set must match exactly (catches whitelist files added
+// or removed after creation within the same version) and every non-authored
+// file's bytes must still hash to the recorded digest. The exporter rewrites
+// the README pair, so their template bytes differ from the creation inputs.
+function templateMatchesInputs(dir, commit, inputs) {
+  const recorded = new Map(inputs.filter(file => file.source && file.sha256).map(file => [file.source, file.sha256]));
+  let manifest;
+  try { manifest = JSON.parse(git(dir, 'show', `${commit}:distribution/manifest.json`)); } catch { return false; }
+  const exported = new Map([
+    ...manifest.documents.filter(doc => doc.audiences.includes('project-template')).map(doc => [doc.source, doc.target]),
+    ['LICENSE', 'LICENSE'],
+    ...manifest.template_files.map(file => typeof file === 'string' ? [file, file] : [file.source, file.target]),
+  ]);
+  if (exported.size !== recorded.size) return false;
+  const generatorAuthored = new Set(['README.md', 'README.en.md']);
+  for (const [source, sha] of recorded) {
+    const target = exported.get(source);
+    if (target === undefined) return false;
+    if (generatorAuthored.has(source)) continue;
+    let bytes;
+    try { bytes = execFileSync('git', ['-C', dir, 'show', `${commit}:${target}`], {stdio: ['ignore', 'pipe', 'pipe']}); }
+    catch { return false; }
+    if (createHash('sha256').update(bytes).digest('hex') !== sha) return false;
+  }
+  return true;
 }
 export function continueTemplateSync(dir = process.cwd()) {
   const state = pendingState(dir);
@@ -404,7 +449,7 @@ if (command === 'check' || command === 'sync') {
   try {
     if (!existsSync(`${root}project.provenance.json`)) throw Error('framework graft runs inside a derived project; project.provenance.json is missing.');
     const report = graftTemplateAncestry(root);
-    console.log(`Grafted template ancestry ${report.grafted.slice(0, 12)} under ${report.commits} application commit(s); tip ${report.tip.slice(0, 12)}. Run framework:check, then framework:sync.`);
+    console.log(`Grafted template ancestry ${report.grafted.slice(0, 12)} (evidence: ${report.evidence}) under ${report.commits} application commit(s); backup ${report.backup}. Run framework:check, then framework:sync.`);
   } catch (error) { console.error(error.message); process.exitCode = 1; }
 } else if (command) {
   console.error('Use: framework-sync.mjs check|sync|graft');

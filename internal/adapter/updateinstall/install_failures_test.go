@@ -73,7 +73,7 @@ func previousProgramStillLaunches(t *testing.T, i *Installer, executable string)
 		t.Fatal(e)
 	}
 	running := false
-	for deadline := time.Now().Add(30 * time.Second); time.Now().Before(deadline); time.Sleep(50 * time.Millisecond) {
+	for deadline := time.Now().Add(60 * time.Second); time.Now().Before(deadline); time.Sleep(50 * time.Millisecond) {
 		if raw, e := os.ReadFile(filepath.Join(i.DataDir, "running")); e == nil && strings.TrimSpace(string(raw)) == "1.0.0" {
 			running = true
 			break

@@ -155,7 +155,9 @@ async function exercise(mode,profile) {
       expect((await context.request.patch(`${url}${base}/settings`,{headers,data:{changes}})).status()).toBe(200);
     } else {
       // Appearance belongs to this browser; it is never an instance setting.
-      expect((await context.request.patch(`${url}${base}/settings`,{headers,data:{changes:[{key:'appearance.theme',value:'dark'}]}})).status()).toBe(400);
+      // The contract policy middleware denies the settings operation first
+      // (403 fail-closed) before settings validation could see the key.
+      expect((await context.request.patch(`${url}${base}/settings`,{headers,data:{changes:[{key:'appearance.theme',value:'dark'}]}})).status()).toBe(403);
       await page.getByRole('button',{name:'主题设置',exact:true}).click();
       const drawer=page.getByRole('dialog',{name:'主题设置',exact:true});
       await drawer.locator('.preference-theme').getByRole('button',{name:'深色',exact:true}).click();

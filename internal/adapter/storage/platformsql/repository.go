@@ -69,23 +69,6 @@ func (r *Repository) readUser(ctx context.Context, q sqlstore.Runner, id, roleFi
 		return user, err
 	}
 	user.TotpEnabled = state.Secret != ""
-	// User-realm roles are data: echo the assigned user_roles rows so custom
-	// roles surface in listings and sessions instead of the hardcoded builtin.
-	roleRows, err := r.rows(ctx, q, "SELECT role_id FROM unicore_user_roles WHERE user_id=? AND (?='' OR role_id=?) ORDER BY role_id", id, roleFilter, roleFilter)
-	if err != nil {
-		return user, err
-	}
-	defer roleRows.Close()
-	for roleRows.Next() {
-		var role string
-		if err = roleRows.Scan(&role); err != nil {
-			return user, err
-		}
-		user.Roles = append(user.Roles, role)
-	}
-	if err = roleRows.Err(); err != nil {
-		return user, err
-	}
 	// One namespace-tagged scan replaces the role list, catalogue names,
 	// permission points and the three independent grant tables: six statements
 	// per session resolution become one round trip. The Go side keeps the exact
@@ -185,9 +168,14 @@ func (r *Repository) readUser(ctx context.Context, q sqlstore.Runner, id, roleFi
 	return user, nil
 }
 
-// deriveGrantedPermissions repairs legacy permission-point upper bounds from
-// explicit operation/action grants. It never derives action or menu IDs: an
-// initialized empty grant set is an intentional revocation (ADR-0040).
+// deriveGrantedPermissions supplements stored permission points from explicit
+// operation/action grants on every projection, not only for legacy roles. An
+// action contributes its current Permission even for an any-mode operation;
+// only non-any operations contribute their policy permissions. Rebinding the
+// same action ID can therefore change derived points without changing stored
+// role permissions, which remain DataScope's input (pending decision D25, C).
+// It never derives action or menu IDs: an initialized empty grant set is an
+// intentional revocation (ADR-0040).
 func (r *Repository) deriveGrantedPermissions(ctx context.Context, q sqlstore.Runner, user *contracts.User) error {
 	held := map[string]bool{}
 	for _, permission := range user.Permissions {

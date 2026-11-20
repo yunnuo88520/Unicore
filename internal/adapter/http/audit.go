@@ -37,9 +37,11 @@ func recordDenial(manager *install.Manager, r *http.Request, session *contracts.
 		meta.Target = r.URL.Path
 	}
 	key := ""
+	actorID := ""
 	if session != nil {
+		actorID = session.User.ID
 		meta.ActorName = session.User.Username
-		key = "user:" + session.User.ID
+		key = "user:" + actorID
 	}
 	if meta.IP == "" {
 		meta.IP = ip(r)
@@ -53,7 +55,7 @@ func recordDenial(manager *install.Manager, r *http.Request, session *contracts.
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 	defer cancel()
-	if err := store.Audit(audit.With(ctx, meta), store.DB, "", action); err != nil {
+	if err := store.Audit(audit.With(ctx, meta), store.DB, actorID, action); err != nil {
 		slog.Warn("security denial audit failed", "event", "http.audit_denial_failed", "error", err.Error())
 	}
 }

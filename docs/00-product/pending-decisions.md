@@ -191,10 +191,11 @@
 - 候选：A. 维持滚动（现状），以 `Source:` 尾行与发布完成核对保证可追溯；B. 模板只随正式版本发布，Release 后从该 tag 导出。
 - 推荐方向及理由：A——追溯缺口已由门禁与尾行补齐，滚动模式的时效收益对派生项目真实存在；B 可在派生项目出现"模板与 Release 必须逐字节对应"的真实需求时再切换。**待决策；确认前保留现有滚动行为。**
 
-## D25. 遗留角色行的派生权限点与数据范围口径
+## D25. 角色派生权限点与存储权限点的数据范围口径
 
-- 现状：ADR-0040 之前的旧编辑器角色行可能只有完整的 menu/action/operation 授权而缺 `unicore_role_permissions` 权限点行。会话解析按兼容派生规则补齐这些点（`platformsql.repository.deriveGrantedPermissions`，mode=all 的显式授权才派生，any 分支与菜单不派生，显式空集合即真实撤销），但数据范围解析（`platformsql.DataScope`）只联合表中持有该权限点的角色——遗留行的派生点不参与范围并集。
-- 影响：仅存量遗留行。该类账号可调用派生点覆盖的 API，而可见面按其余角色解析，方向恒为收窄（fail-closed），不构成越权；现行保存校验（授权不得超出权限上界、super_admin 保留点不入存储角色行）使新角色不可能进入该状态，一次显式重存即自愈。
+- 现状：ADR-0040 之前的旧编辑器角色行可能有显式 action/operation 授权而缺 `unicore_role_permissions` 权限点行，但派生并不限于遗留角色。每次账号/会话投影都会执行 `platformsql.repository.deriveGrantedPermissions`：显式 action ID 按当前导航绑定补充其 `Permission`，并从绑定的可委派非 any operation 补充策略权限点；显式 operation grant 也仅从可委派非 any operation 补点。any operation 本身不派生兄弟权限点，但其 action 的显式 `Permission` 仍可派生。菜单不派生权限点，也不从 operation 反推 action/menu ID；显式空授权集合不会被恢复。数据范围解析（`platformsql.DataScope`）只联合存储表中持有请求权限点的角色，不把运行时派生点写回或计入该角色的范围贡献。
+- 触发范围：新角色保存时的权限上界校验不保证后续导航重绑定仍满足该上界。相同 action ID 保持 action 类型而修改绑定时，原有角色 action 行不会被孤儿裁剪移除，运行时会读取新绑定，并非保持 inert。例如正常新建仅持有 `users:read`、显式授权 `roleOptions`（any）及其 action 的角色，action 的 `Permission` 从 `users:read` 改为 `users:update` 后，投影可新增 `users:update`，但该角色存储的权限点仍只有 `users:read`。
+- 影响：派生点与持久点的差异既可能来自遗留行，也可能来自上述重绑定。例中 `users:read` 的 DataScope 仍使用该角色配置的范围，`users:update` 不采用该角色的范围贡献；若没有其他存储该点的角色，范围保留本人，有其他角色时仅按它们的存储权限与范围取并集。API 能否调用仍取决于对应 operation 授权及其他既有校验，不能据此概括为“恒为收窄”或“不构成越权”，也不保证一次重存即可自愈。
 - 候选：A. 启动物化 heal（把派生点写入存储、递增角色版本并撤销受影响会话）；B. 数据范围运行时考虑派生集（每请求按角色重算，成本高）；C. 维持现状并登记口径说明。
-- 裁决（2026-11-19）：**选 C**——维持 fail-closed 现状，不做启动期物化改写，本条即为口径说明。
-- 状态：**已裁决（C），无代码改动。**
+- 裁决（2026-11-19）：**选 C**——维持现有派生与存储范围解析逻辑，不做启动期物化改写，也不新增重绑定授权策略；本条为口径说明，不扩展安全保证。
+- 状态：**已裁决（C），授权逻辑不变。** 2026-11-20 纠正适用范围与派生规则说明，并补充相同 action ID 重绑定的回归测试。

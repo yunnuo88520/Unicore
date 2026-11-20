@@ -1476,7 +1476,9 @@ func validateNavigation(n contracts.Navigation) error {
 // SaveNavigation replaces the tree under optimistic version control. The
 // cascade of guards: menu editing needs menus:write; restoring defaults or
 // touching role assignments needs super_admin (assignments additionally
-// roles:write), so a pure menus:write operator can never widen authorizations.
+// roles:write). Tree edits can rebind an existing action ID without replacing
+// role grant rows; projections derive points from its current binding, while
+// DataScope still uses stored role permissions (pending decision D25, C).
 func (r *Repository) SaveNavigation(ctx context.Context, input contracts.MenuSaveInput, actor string) (contracts.MenuList, error) {
 	if err := r.initializeNavigation(ctx); err != nil {
 		return contracts.MenuList{}, err
@@ -1572,9 +1574,10 @@ func derefAssignments(assignments *[]contracts.NavigationRoleAssignment) []contr
 
 // pruneOrphanedGrants drops role grant rows that reference node IDs the new
 // tree no longer contains with the expected type. Re-pointed action nodes keep
-// their rows on purpose: the projection re-checks the bound permission and
-// operation grants on every request, so a stale row stays inert until the next
-// role edit prunes it.
+// their rows when the ID and action type remain. Those rows are not necessarily
+// inert: deriveGrantedPermissions reads the current action binding and can add
+// points absent from stored role permissions; DataScope still uses the latter.
+// This pruning only checks node existence/type, not role permission bounds.
 func (r *Repository) pruneOrphanedGrants(ctx context.Context, tx *sql.Tx, n contracts.Navigation) error {
 	menus, actions := map[string]bool{}, map[string]bool{}
 	for _, node := range n.Nodes {

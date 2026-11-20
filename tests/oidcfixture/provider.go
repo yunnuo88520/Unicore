@@ -11,6 +11,7 @@ import (
 	"html/template"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,11 +22,11 @@ const ClientID = "unicore-test-client"
 const ClientSecret = "isolated-test-secret"
 
 type Provider struct {
-	URL     string
-	key     *rsa.PrivateKey
-	mu      sync.Mutex
-	codes   map[string]url.Values
-	subject string
+	URL          string
+	key          *rsa.PrivateKey
+	mu           sync.Mutex
+	codes        map[string]url.Values
+	accessTokens map[string]string
 	// Test overrides for security-boundary scenarios.
 	userinfoSubject string
 	AuthMethods     []string
@@ -36,7 +37,7 @@ func New() *Provider {
 	if err != nil {
 		panic(err)
 	}
-	return &Provider{key: key, codes: map[string]url.Values{}}
+	return &Provider{key: key, codes: map[string]url.Values{}, accessTokens: map[string]string{}}
 }
 
 // SetUserinfoSubject overrides the subject the userinfo endpoint reports; the
@@ -70,18 +71,16 @@ func (p *Provider) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "/jwks":
 		p.write(w, jose.JSONWebKeySet{Keys: []jose.JSONWebKey{{Key: &p.key.PublicKey, KeyID: "fixture", Algorithm: "RS256", Use: "sig"}}})
 	case "/userinfo":
-		if r.Header.Get("Authorization") != "Bearer test-only-access-token" {
-			http.Error(w, "invalid bearer", 401)
-			return
-		}
+		token, bearer := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 		p.mu.Lock()
-		subject := p.userinfoSubject
-		if subject == "" {
-			subject = p.subject
+		subject, ok := p.accessTokens[token]
+		if p.userinfoSubject != "" {
+			subject = p.userinfoSubject
 		}
 		p.mu.Unlock()
-		if subject == "" {
-			subject = "employee-001"
+		if !bearer || !ok {
+			http.Error(w, "invalid bearer", http.StatusUnauthorized)
+			return
 		}
 		p.write(w, map[string]any{"sub": subject, "email": "userinfo@example.test", "email_verified": true, "name": "测试员工", "preferred_username": "userinfo-employee"})
 	case "/authorize":
@@ -187,7 +186,11 @@ func (p *Provider) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			panic(err)
 		}
-		p.write(w, map[string]any{"access_token": "test-only-access-token", "token_type": "Bearer", "expires_in": 300, "id_token": id})
+		accessToken := random()
+		p.mu.Lock()
+		p.accessTokens[accessToken] = subject
+		p.mu.Unlock()
+		p.write(w, map[string]any{"access_token": accessToken, "token_type": "Bearer", "expires_in": 300, "id_token": id})
 	default:
 		http.NotFound(w, r)
 	}

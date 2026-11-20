@@ -31,6 +31,20 @@ type policySessionKey struct{}
 type policyRouter struct {
 	chi.Router
 	config Config
+	// mountMux is set only for independently created, controlled submuxes.
+	// Inline With/Group routers share a tree and must never be mounted.
+	mountMux *chi.Mux
+}
+
+// newPolicyRouter creates a mountable submux whose leaves enforce policy.
+// Mounting its raw mux preserves chi's error-handler inheritance and traversal.
+func newPolicyRouter(config Config) policyRouter {
+	raw := chi.NewRouter()
+	return policyRouter{Router: raw, config: config, mountMux: raw}
+}
+
+func (p policyRouter) With(middlewares ...func(http.Handler) http.Handler) chi.Router {
+	return policyRouter{Router: p.Router.With(middlewares...), config: p.config}
 }
 
 func (p policyRouter) Get(pattern string, h http.HandlerFunc) {
@@ -93,20 +107,39 @@ func (p policyRouter) MethodFunc(method, pattern string, h http.HandlerFunc) {
 	p.Router.With(policyHandler(p.config)).MethodFunc(method, pattern, h)
 }
 
+func (p policyRouter) Query(pattern string, h http.HandlerFunc) {
+	p.Router.With(policyHandler(p.config)).Query(pattern, h)
+}
+
 func (p policyRouter) Route(pattern string, fn func(chi.Router)) chi.Router {
-	return p.Router.Route(pattern, func(r chi.Router) {
+	if fn == nil {
+		// Delegate the nil callback to chi so it panics before mounting anything.
+		return p.Router.Route(pattern, nil)
+	}
+	// Call the raw Route: its internal Mount must not go through our controlled
+	// Mount boundary. Only the callback and returned registration surface wrap.
+	raw := p.Router.Route(pattern, func(r chi.Router) {
 		fn(policyRouter{Router: r, config: p.config})
 	})
+	return policyRouter{Router: raw, config: p.config}
 }
 
 func (p policyRouter) Group(fn func(chi.Router)) chi.Router {
-	return p.Router.Group(func(r chi.Router) {
-		fn(policyRouter{Router: r, config: p.config})
-	})
+	group := p.With()
+	if fn != nil {
+		fn(group)
+	}
+	return group
 }
 
 func (p policyRouter) Mount(pattern string, h http.Handler) {
-	p.Router.With(policyHandler(p.config)).Mount(pattern, h)
+	child, ok := h.(policyRouter)
+	if !ok || child.mountMux == nil || child.Router != child.mountMux {
+		panic("httpadapter: Mount requires a submux created by newPolicyRouter")
+	}
+	// Never wrap the mount point in policy middleware: the complete operation
+	// pattern exists only at the leaf, and unmatched paths must stay 404/405.
+	p.Router.Mount(pattern, child.mountMux)
 }
 
 // mountAPI registers every versioned API route behind the contract policy middleware.

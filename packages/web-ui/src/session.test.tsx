@@ -1,10 +1,20 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Revisiting the tab refetches bootstrap through the query cache for both realms.
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { MessageProvider } from '@unicore/ui';
 import type { AppClient } from '@unicore/sdk';
 import { SessionBoundary, useSession } from './session';
+
+let visibilityDescriptor: PropertyDescriptor | undefined;
+beforeEach(() => {
+  visibilityDescriptor = Object.getOwnPropertyDescriptor(document, 'visibilityState');
+  Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+});
+afterEach(() => {
+  if (visibilityDescriptor) Object.defineProperty(document, 'visibilityState', visibilityDescriptor);
+  else Reflect.deleteProperty(document, 'visibilityState');
+});
 
 function probeClient(responses: unknown[], options: { subscribe?: boolean } = {}) {
   let call = 0;
@@ -23,7 +33,7 @@ function Probe({ client }: { client: AppClient }) {
   return <div>{metadata.data?.current_user?.username ?? 'pending'}</div>;
 }
 
-const metadata = (username: string) => ({ profile: 'web-platform', identity_realm: 'user', capabilities: { authentication: true }, current_user: { username } });
+const metadata = (username: string, realm: 'user' | 'administrator' = 'user') => ({ profile: 'web-platform', identity_realm: realm, capabilities: { authentication: true }, current_user: { username } });
 
 function workspace(client: AppClient) {
   return render(
@@ -33,8 +43,8 @@ function workspace(client: AppClient) {
   );
 }
 
-it('revisiting the tab refetches bootstrap and writes the result back to the query cache', async () => {
-  const { client, bootstrap } = probeClient([metadata('before'), metadata('after')]);
+it.each(['user', 'administrator'] as const)('revisiting the %s tab refetches bootstrap and writes the result back to the query cache', async realm => {
+  const { client, bootstrap } = probeClient([metadata('before', realm), metadata('after', realm)]);
   workspace(client);
   await waitFor(() => expect(screen.getByText('before')).toBeTruthy());
   expect(bootstrap).toHaveBeenCalledTimes(1);
@@ -44,22 +54,14 @@ it('revisiting the tab refetches bootstrap and writes the result back to the que
   // the stale administrator navigation and permissions.
   await waitFor(() => expect(screen.getByText('after')).toBeTruthy());
   expect(bootstrap).toHaveBeenCalledTimes(2);
-  // The administrator realm shares the same bootstrap key prefix: the
-  // invalidation family covers both workspace entries.
-  expect(screen.getByText('after')).toBeTruthy();
 });
 
 it('stays idle while the tab is hidden', async () => {
   const { client, bootstrap } = probeClient([metadata('only')]);
   workspace(client);
   await waitFor(() => expect(bootstrap).toHaveBeenCalledTimes(1));
-  const descriptor = Object.getOwnPropertyDescriptor(document, 'visibilityState');
   Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
-  try {
-    await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
-  } finally {
-    if (descriptor) Object.defineProperty(document, 'visibilityState', descriptor);
-  }
+  await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
   expect(bootstrap).toHaveBeenCalledTimes(1);
 });
 

@@ -224,7 +224,7 @@ func TestDenialAuditRows(t *testing.T) {
 	denials := entries("authz.denied")
 	super := 0
 	for _, entry := range denials {
-		if entry.ActorName != "auditor" || entry.Realm != "administrator" {
+		if entry.ActorID != auditor.ID || entry.ActorName != "auditor" || entry.Realm != "administrator" {
 			t.Fatal("denial audit attribution", entry)
 		}
 		if strings.Contains(entry.Detail, "reason=super_admin") && strings.Contains(entry.Detail, "operation=logTail") {
@@ -239,7 +239,7 @@ func TestDenialAuditRows(t *testing.T) {
 		t.Fatal("denial audit cap not enforced", len(denials))
 	}
 	csrf := entries("auth.csrf.invalid")
-	if len(csrf) != 1 || csrf[0].ActorName != "admin" {
+	if len(csrf) != 1 || csrf[0].ActorID != adminUser(t, manager).ID || csrf[0].ActorName != "admin" {
 		t.Fatal("csrf denial audit", csrf)
 	}
 }

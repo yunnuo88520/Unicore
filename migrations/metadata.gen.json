@@ -126,18 +126,18 @@
           "files": {
             "mysql": {
               "path": "platform/mysql/0001_initial.sql",
-              "bytes": 21911,
-              "checksum": "d199d372d0544cb073f57f1d5b1dc179513971d4462ebdeec46d2013ebb0b21d"
+              "bytes": 22582,
+              "checksum": "1539c0ca47977e2eda70a7f9ca56ddc01b909a53c58fd59baa24e6a42975e8f3"
             },
             "postgres": {
               "path": "platform/postgres/0001_initial.sql",
-              "bytes": 22166,
-              "checksum": "1d710680140c899d102215ab734d5471102db7cc82b89092771221221a4cf958"
+              "bytes": 22771,
+              "checksum": "c041ab3b97fe7a64e12b9394ab34215a1931f5f4290ace0c621b46ce0d6b4b78"
             },
             "sqlite": {
               "path": "platform/sqlite/0001_initial.sql",
-              "bytes": 16932,
-              "checksum": "679440130fecf9ee9b8892226eae7ad39b54c148cfc7b4de96dade595108e961"
+              "bytes": 17444,
+              "checksum": "b480d584a15e2650553ba339e879a191e9f7c7f5a7f11fb639fb4415d49bd5f8"
             }
           }
         },
@@ -158,6 +158,26 @@
               "path": "platform/sqlite/0002_inbox_dedupe.sql",
               "bytes": 1084,
               "checksum": "db0b150217c4074aec61319b9dc1d808d36d04cee561527113fcfc8e1803b89f"
+            }
+          }
+        },
+        {
+          "version": 3,
+          "files": {
+            "mysql": {
+              "path": "platform/mysql/0003_retire_legacy_authorization_tables.sql",
+              "bytes": 812,
+              "checksum": "3c5884f0552323cbbca3e31c4d1989ad49f2a5a0a1713997abd5a809a33a39b1"
+            },
+            "postgres": {
+              "path": "platform/postgres/0003_retire_legacy_authorization_tables.sql",
+              "bytes": 815,
+              "checksum": "d5f845a0f86a1f303583501d709781780477ef8c54a53b315489cd26e5401c95"
+            },
+            "sqlite": {
+              "path": "platform/sqlite/0003_retire_legacy_authorization_tables.sql",
+              "bytes": 822,
+              "checksum": "7bb3e0126e5583fe6a6fd9448c24b3d41e86ed5a8f48780213cd661237fb2eb5"
             }
           }
         }
@@ -189,9 +209,9 @@
       "levels": {
         "core": 1,
         "module.notes": 1,
-        "platform": 2
+        "platform": 3
       },
-      "schema_fingerprint": "5f657647526a3dcfef99b47f307d3ac296a5269efc4985f3a231f9224ae8da39"
+      "schema_fingerprint": "6cc3139e8c6001d426cdb4ad3fd91bb4e89c633da008916cc8456d7ca68ad9a4"
     },
     "web-platform": {
       "dialects": [
@@ -212,9 +232,9 @@
       "levels": {
         "core": 1,
         "module.notes": 1,
-        "platform": 2
+        "platform": 3
       },
-      "schema_fingerprint": "6bd009f3826313eaa458202d35297305f202f3e6849e3b7d144046acf348dd82"
+      "schema_fingerprint": "8a84c8f415f05cbf928bc01a510149ade8d2a5e917456c51a88c7b9ee656ef05"
     },
     "web-standalone": {
       "dialects": [
@@ -235,9 +255,9 @@
       "levels": {
         "core": 1,
         "module.notes": 1,
-        "platform": 2
+        "platform": 3
       },
-      "schema_fingerprint": "6bd009f3826313eaa458202d35297305f202f3e6849e3b7d144046acf348dd82"
+      "schema_fingerprint": "8a84c8f415f05cbf928bc01a510149ade8d2a5e917456c51a88c7b9ee656ef05"
     }
   }
 }

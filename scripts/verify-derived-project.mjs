@@ -297,6 +297,12 @@ try{
     if(conflicted.includes('migrations/catalog.json')) reapplyWorkordersCatalog(stage);
     for(const path of conflicted) git(stage,'add','--',path);
     run('pnpm',['framework:sync','--continue']);
+    // catalog.gen.go and metadata.gen.json are framework-owned generated files a
+    // conflict resolves to upstream, so the merged catalog.json (with the derived
+    // workorders namespace) must be regenerated into the embedded executor input
+    // before anything boots — otherwise the ledger check fail-closes on the lost
+    // namespace, exactly like a real downstream skipping its post-sync generation.
+    run('pnpm',['generate:migrations']);
     const backups=git(app,'for-each-ref','--format=%(refname:short)','refs/heads/backup/pre-sync-*').split('\n').filter(Boolean);
     if(backups.length!==1||git(app,'rev-parse','--verify',backups[0])!==preSyncHead) throw Error(`backup branch ${backups.join(',')} does not preserve the pre-sync commit ${preSyncHead.slice(0,12)}`);
     // After the sync HEAD descends from both sides, so the verifiable ancestor of the

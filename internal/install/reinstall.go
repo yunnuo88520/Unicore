@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -64,7 +65,7 @@ func (m *Manager) finalize() error {
 func (m *Manager) inspectTarget(ctx context.Context, store *sqlstore.Store, driver, dsn string) (initialized, own bool, err error) {
 	exists, err := store.HasInstallationTable(ctx)
 	if err != nil {
-		return false, false, ErrDatabase
+		return false, false, fmt.Errorf("%w: %v", ErrDatabase, err)
 	}
 	if !exists {
 		return false, false, nil
@@ -74,7 +75,7 @@ func (m *Manager) inspectTarget(ctx context.Context, store *sqlstore.Store, driv
 		return false, false, nil
 	}
 	if err != nil {
-		return false, false, ErrDatabase
+		return false, false, fmt.Errorf("%w: %v", ErrDatabase, err)
 	}
 	previous := m.config.Reinstall
 	if previous == nil || previous.Driver != driver || previous.Instance != instance || string(previous.Profile) != profile {
@@ -84,7 +85,8 @@ func (m *Manager) inspectTarget(ctx context.Context, store *sqlstore.Store, driv
 	if previous.DSN != "" {
 		previousDSN, err = m.secret.Open(previous.DSN)
 		if err != nil {
-			return true, false, ErrDatabase
+			// The sealed-DSN open failure stays credential-free in its text.
+			return true, false, fmt.Errorf("%w: %v", ErrDatabase, err)
 		}
 	}
 	return true, previousDSN == dsn, nil

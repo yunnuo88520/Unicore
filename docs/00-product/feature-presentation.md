@@ -23,7 +23,7 @@
 
 导航事实源是一棵共享导航树，双端同构镜像：
 
-- 后端种子与持久化：`internal/platform/navigation.go`（`DefaultNavigation`，业务/系统两区域 + 超级管理员/系统设置/运行监控目录；个人中心不留导航，由账号菜单的设置弹窗承载，启动自愈清理存量树中的个人中心区域）、`internal/adapter/storage/platformsql/navigation.go`（CAS 版本持久化，reset 仅 super_admin）。
+- 后端种子与持久化：`internal/platform/navigation.go`（`DefaultNavigation`，业务/系统两区域 + 超级管理员/系统设置/运行监控目录；个人中心不留导航，由账号菜单的设置弹窗承载）、`internal/adapter/storage/platformsql/navigation.go`（CAS 版本持久化，reset 仅 super_admin）。
 - 前端镜像与默认树：`packages/web-ui/src/navigation.ts`（`defaultNavigation` 与后端种子逐条对应）。
 
 呈现规则：

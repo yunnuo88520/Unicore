@@ -195,12 +195,6 @@ export const constraints = {
       "mfa_enrollment_required": {
         "type": "boolean"
       },
-      "menus": {
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/MenuEntry"
-        }
-      },
       "navigation": {
         "$ref": "#/components/schemas/Navigation"
       }
@@ -1705,6 +1699,7 @@ export const constraints = {
       "description",
       "group",
       "assignable",
+      "governance",
       "super_admin"
     ],
     "properties": {
@@ -1721,6 +1716,9 @@ export const constraints = {
         "type": "string"
       },
       "assignable": {
+        "type": "boolean"
+      },
+      "governance": {
         "type": "boolean"
       },
       "super_admin": {
@@ -1743,7 +1741,6 @@ export const constraints = {
       "menu_ids",
       "action_ids",
       "operation_ids",
-      "authorization_initialized",
       "version"
     ],
     "properties": {
@@ -1816,9 +1813,6 @@ export const constraints = {
         },
         "maxItems": 2048,
         "uniqueItems": true
-      },
-      "authorization_initialized": {
-        "type": "boolean"
       },
       "version": {
         "type": "integer",
@@ -5469,70 +5463,16 @@ export const constraints = {
       }
     }
   },
-  "MenuEntry": {
-    "type": "object",
-    "additionalProperties": false,
-    "required": [
-      "menu_key",
-      "label",
-      "group_key",
-      "sort",
-      "visible",
-      "type"
-    ],
-    "properties": {
-      "menu_key": {
-        "type": "string",
-        "maxLength": 64
-      },
-      "label": {
-        "type": "string",
-        "maxLength": 80
-      },
-      "group_key": {
-        "type": "string",
-        "maxLength": 32
-      },
-      "sort": {
-        "type": "integer"
-      },
-      "visible": {
-        "type": "boolean"
-      },
-      "parent_key": {
-        "type": "string",
-        "maxLength": 64
-      },
-      "type": {
-        "type": "string",
-        "enum": [
-          "page",
-          "link"
-        ]
-      },
-      "url": {
-        "type": "string",
-        "maxLength": 2048
-      }
-    }
-  },
   "MenuList": {
     "type": "object",
     "additionalProperties": false,
     "required": [
-      "items",
       "version",
       "sections",
       "nodes",
       "pages"
     ],
     "properties": {
-      "items": {
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/MenuEntry"
-        }
-      },
       "version": {
         "type": "integer",
         "minimum": 0
@@ -5566,13 +5506,6 @@ export const constraints = {
       "nodes"
     ],
     "properties": {
-      "items": {
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/MenuEntry"
-        },
-        "maxItems": 256
-      },
       "version": {
         "type": "integer",
         "minimum": 0

@@ -17,7 +17,7 @@ SQL 负责最终结构、索引/约束、固定字段默认值和必要静态基
 
 每个新手写 SQL 有 Author 头、用途、Profile、兼容和失败恢复说明。checksum 始终取原文件字节 SHA-256，包括注释/换行/BOM，不 normalize、不覆盖 DB checksum。跨 OS 检查发行 SQL 字节，避免 checkout 行尾破坏签名/账本。
 
-冻结自**首个正式（stable）release**起：此前的 development preview / prerelease 不构成冻结起点，维护者仍可将各 namespace 的基线整体整合或改写（squash 回 version=1 或重组版本），因为不存在需要兼容的已发布安装。首个正式版发布后即冻结原文件，只能在该 namespace 追加下一个 version，不修改、删除、插号或再次 squash；需要改已分发结构时新增迁移。移除模块不删除执行历史；变更命名空间/方言/Profile 是单独兼容决策。
+冻结自**首个正式（stable）release**起：此前的 development preview / prerelease 不构成冻结起点，维护者仍可将各 namespace 的基线整体整合或改写（squash 回 version=1 或重组版本），因为不存在需要兼容的已发布安装。首个正式版发布后即冻结原文件，只能在该 namespace 追加下一个 version，不修改、删除、插号或再次 squash；需要改已分发结构时新增迁移。移除模块不删除执行历史；变更命名空间/方言/Profile 是单独兼容决策。0.1.x 实验库不自动迁移也不自动擦除：新版本对旧账本或异构库一律拒绝执行并明确报错；需要保留数据时，用与该实验版本匹配的旧二进制执行 ops backup 并恢复到全新隔离数据目录，恢复仍用同一旧版本二进制完成（见 [framework-upgrade](../product/framework-upgrade.md)）。
 
 新基线以 `unicore_` 前缀定义终态，重放幂等是硬性要求：`CREATE TABLE`/`CREATE INDEX` 带 `IF NOT EXISTS`（MySQL 索引内联于 CREATE TABLE），静态种子行用 `INSERT ... SELECT ... WHERE NOT EXISTS` 守护，保证 MySQL DDL 隐式提交的中断窗口可自愈。SQLite 基线不写 FK 子句；运行时连接开启 `foreign_keys=ON`（`internal/adapter/storage/sqlite/open.go`），但基线无 FK 子句因此不存在数据库级级联，引用完整性与级联由 usecase 层保证（仅开发库重置流程临时关闭）。PostgreSQL/MySQL 保留真实约束。
 

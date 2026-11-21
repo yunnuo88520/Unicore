@@ -93,7 +93,7 @@ func TestApplyCreatesBaselineAndIsIdempotent(t *testing.T) {
 	if len(rows) != expectedRows {
 		t.Fatalf("want %d successful Catalog entries, got %v", expectedRows, rows)
 	}
-	tables := []string{"unicore_install_state", "unicore_system_settings", "unicore_audit_logs", "unicore_users", "unicore_announcement_recipients", "unicore_personal_accounts", "unicore_dict_types", "unicore_menus", "unicore_account_avatars", "unicore_inbox_messages", "unicore_scheduled_jobs", "unicore_departments", "unicore_role_departments", "unicore_posts", "unicore_user_posts"}
+	tables := []string{"unicore_install_state", "unicore_system_settings", "unicore_audit_logs", "unicore_users", "unicore_announcement_recipients", "unicore_personal_accounts", "unicore_dict_types", "unicore_account_avatars", "unicore_inbox_messages", "unicore_scheduled_jobs", "unicore_departments", "unicore_role_departments", "unicore_posts", "unicore_user_posts"}
 	if edition.Notes {
 		tables = append(tables, "unicore_example_notes")
 	}

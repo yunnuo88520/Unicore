@@ -7,50 +7,51 @@ import (
 	"github.com/yunnuo/unicore/internal/module"
 )
 
-// Assignable classifies baseline business permissions granted to new members.
-// All roles can hold catalogue points; reserved operations still require super_admin.
-// Accounts with management permissions use the stricter session and MFA policies.
+// Assignable marks the baseline business permissions granted to new members
+// by default; Governance separately classifies system governance points, and
+// accounts holding one use the stricter session and MFA policies. All roles
+// can hold catalogue points; reserved operations still require super_admin.
 var basePermissionCatalog = []contracts.PermissionDefinition{
-	{ID: "tokens:read", Name: "查看访问令牌", Description: "查看所有用户的访问令牌", Group: "用户管理"},
-	{ID: "tokens:write", Name: "管理访问令牌", Description: "为用户签发、续期和作废访问令牌", Group: "用户管理"},
-	{ID: "posts:read", Name: "查看岗位", Description: "查看岗位与成员分配", Group: "用户管理"},
-	{ID: "posts:write", Name: "管理岗位", Description: "创建、编辑与删除岗位", Group: "用户管理"},
-	{ID: "announcements:read", Name: "查看平台公告", Description: "查看公告列表、草稿与配置", Group: "系统管理"},
-	{ID: "announcements:write", Name: "管理平台公告", Description: "发布、编辑、删除公告与控制展示", Group: "系统管理"},
-	{ID: "updates:read", Name: "查看系统更新", Description: "查看版本、更新历史与检查结果", Group: "系统管理"},
-	{ID: "updates:apply", Name: "安装系统更新", Description: "安装可信兼容版本并重启实例", Group: "系统管理"},
-	{ID: "admin:access", Name: "访问管理工作台", Description: "使用管理员端的共享业务工具", Group: "管理入口"},
-	{ID: "storage:read", Name: "查看对象存储", Description: "查看存储位置与文件策略", Group: "系统管理"},
-	{ID: "storage:write", Name: "管理对象存储", Description: "测试、切换、迁移与清理文件", Group: "系统管理"},
-	{ID: "logs:read", Name: "查看操作日志", Description: "查看审计与邮件投递记录", Group: "系统管理"},
-	{ID: "administrators:read", Name: "查看管理员", Description: "查看管理员工作台账号", Group: "用户管理"},
-	{ID: "administrators:create", Name: "新增管理员", Description: "创建管理员工作台账号", Group: "用户管理"},
-	{ID: "administrators:update", Name: "管理管理员", Description: "启停管理员，保护最后管理员", Group: "用户管理"},
-	{ID: "users:read", Name: "查看用户", Description: "搜索和查看用户账号、角色与状态", Group: "用户管理"},
-	{ID: "users:create", Name: "创建用户", Description: "创建普通用户", Group: "用户管理"},
-	{ID: "users:update", Name: "管理用户身份", Description: "启停普通用户账号", Group: "用户管理"},
-	{ID: "users:credentials:write", Name: "管理用户凭据", Description: "重置业务账号密码与修改登录邮箱；管理账号凭据仅超级管理员可修改", Group: "用户管理"},
-	{ID: "departments:read", Name: "查看部门", Description: "查看部门组织树与用户归属", Group: "用户管理"},
-	{ID: "departments:write", Name: "管理部门", Description: "创建、编辑与删除部门", Group: "用户管理"},
-	{ID: "settings:read", Name: "查看基础设置", Description: "查看站点、品牌、安全和邮件配置", Group: "系统管理"},
-	{ID: "settings:write", Name: "修改基础设置", Description: "修改品牌、安全、SMTP 与账号策略", Group: "系统管理"},
-	{ID: "roles:read", Name: "查看角色权限", Description: "查看角色清单与权限配置", Group: "角色权限"},
-	{ID: "roles:write", Name: "管理角色", Description: "创建、编辑与删除用户角色并分配权限", Group: "角色权限"},
-	{ID: "menus:write", Name: "管理菜单", Description: "调整工作空间菜单的顺序、分组与可见性", Group: "角色权限"},
-	{ID: "dictionaries:read", Name: "查看数据字典", Description: "查看字典类型与字典项", Group: "角色权限"},
-	{ID: "tasks:read", Name: "查看定时任务", Description: "查看定时任务的计划与运行状态", Group: "系统管理"},
-	{ID: "tasks:write", Name: "管理定时任务", Description: "创建、编辑与删除自建任务，启停任务并手动触发执行", Group: "系统管理"},
-	{ID: "monitor:read", Name: "查看运行监控", Description: "查看实例运行状态、资源与服务健康", Group: "系统管理"},
-	{ID: "dictionaries:write", Name: "管理数据字典", Description: "维护字典类型与字典项", Group: "角色权限"},
+	{Governance: true, ID: "tokens:read", Name: "查看访问令牌", Description: "查看所有用户的访问令牌", Group: "用户管理"},
+	{Governance: true, ID: "tokens:write", Name: "管理访问令牌", Description: "为用户签发、续期和作废访问令牌", Group: "用户管理"},
+	{Governance: true, ID: "posts:read", Name: "查看岗位", Description: "查看岗位与成员分配", Group: "用户管理"},
+	{Governance: true, ID: "posts:write", Name: "管理岗位", Description: "创建、编辑与删除岗位", Group: "用户管理"},
+	{Governance: true, ID: "announcements:read", Name: "查看平台公告", Description: "查看公告列表、草稿与配置", Group: "系统管理"},
+	{Governance: true, ID: "announcements:write", Name: "管理平台公告", Description: "发布、编辑、删除公告与控制展示", Group: "系统管理"},
+	{Governance: true, ID: "updates:read", Name: "查看系统更新", Description: "查看版本、更新历史与检查结果", Group: "系统管理"},
+	{Governance: true, ID: "updates:apply", Name: "安装系统更新", Description: "安装可信兼容版本并重启实例", Group: "系统管理"},
+	{Governance: true, ID: "admin:access", Name: "访问管理工作台", Description: "使用管理员端的共享业务工具", Group: "管理入口"},
+	{Governance: true, ID: "storage:read", Name: "查看对象存储", Description: "查看存储位置与文件策略", Group: "系统管理"},
+	{Governance: true, ID: "storage:write", Name: "管理对象存储", Description: "测试、切换、迁移与清理文件", Group: "系统管理"},
+	{Governance: true, ID: "logs:read", Name: "查看操作日志", Description: "查看审计与邮件投递记录", Group: "系统管理"},
+	{Governance: true, ID: "administrators:read", Name: "查看管理员", Description: "查看管理员工作台账号", Group: "用户管理"},
+	{Governance: true, ID: "administrators:create", Name: "新增管理员", Description: "创建管理员工作台账号", Group: "用户管理"},
+	{Governance: true, ID: "administrators:update", Name: "管理管理员", Description: "启停管理员，保护最后管理员", Group: "用户管理"},
+	{Governance: true, ID: "users:read", Name: "查看用户", Description: "搜索和查看用户账号、角色与状态", Group: "用户管理"},
+	{Governance: true, ID: "users:create", Name: "创建用户", Description: "创建普通用户", Group: "用户管理"},
+	{Governance: true, ID: "users:update", Name: "管理用户身份", Description: "启停普通用户账号", Group: "用户管理"},
+	{Governance: true, ID: "users:credentials:write", Name: "管理用户凭据", Description: "重置业务账号密码与修改登录邮箱；管理账号凭据仅超级管理员可修改", Group: "用户管理"},
+	{Governance: true, ID: "departments:read", Name: "查看部门", Description: "查看部门组织树与用户归属", Group: "用户管理"},
+	{Governance: true, ID: "departments:write", Name: "管理部门", Description: "创建、编辑与删除部门", Group: "用户管理"},
+	{Governance: true, ID: "settings:read", Name: "查看基础设置", Description: "查看站点、品牌、安全和邮件配置", Group: "系统管理"},
+	{Governance: true, ID: "settings:write", Name: "修改基础设置", Description: "修改品牌、安全、SMTP 与账号策略", Group: "系统管理"},
+	{Governance: true, ID: "roles:read", Name: "查看角色权限", Description: "查看角色清单与权限配置", Group: "角色权限"},
+	{Governance: true, ID: "roles:write", Name: "管理角色", Description: "创建、编辑与删除用户角色并分配权限", Group: "角色权限"},
+	{Governance: true, ID: "menus:write", Name: "管理菜单", Description: "调整工作空间菜单的顺序、分组与可见性", Group: "角色权限"},
+	{Governance: true, ID: "dictionaries:read", Name: "查看数据字典", Description: "查看字典类型与字典项", Group: "角色权限"},
+	{Governance: true, ID: "tasks:read", Name: "查看定时任务", Description: "查看定时任务的计划与运行状态", Group: "系统管理"},
+	{Governance: true, ID: "tasks:write", Name: "管理定时任务", Description: "创建、编辑与删除自建任务，启停任务并手动触发执行", Group: "系统管理"},
+	{Governance: true, ID: "monitor:read", Name: "查看运行监控", Description: "查看实例运行状态、资源与服务健康", Group: "系统管理"},
+	{Governance: true, ID: "dictionaries:write", Name: "管理数据字典", Description: "维护字典类型与字典项", Group: "角色权限"},
 	{ID: "files:access", Name: "读取文件", Description: "通过文件接口查看与下载授权文件", Group: "业务权限"},
 	{ID: "files:upload", Name: "上传文件", Description: "发起分片或普通上传并写入文件内容", Group: "业务权限"},
 	{ID: "files:delete", Name: "删除文件", Description: "删除本人上传的文件", Group: "业务权限"},
 	{ID: "mcp:access", Name: "使用 MCP 接入", Description: "通过 MCP 使用自己有权访问的业务能力", Group: "AI 管理"},
-	{ID: "mcp:read", Name: "查看 AI 管理", Description: "查看 MCP 接入配置与能力目录", Group: "AI 管理"},
-	{ID: "mcp:write", Name: "管理 AI 接入", Description: "修改 MCP 配置、开放与停用能力", Group: "AI 管理"},
-	{ID: "mcp:logs:read", Name: "查看 MCP 调用记录", Description: "查询 MCP 调用元数据与记录", Group: "AI 管理"},
-	{ID: "mcp:clients:read", Name: "查看 OAuth 客户端", Description: "查看 MCP OAuth 预注册客户端与授权", Group: "AI 管理"},
-	{ID: "mcp:clients:write", Name: "管理 OAuth 客户端", Description: "管理 MCP OAuth 客户端并执行全局撤销", Group: "AI 管理"},
+	{Governance: true, ID: "mcp:read", Name: "查看 AI 管理", Description: "查看 MCP 接入配置与能力目录", Group: "AI 管理"},
+	{Governance: true, ID: "mcp:write", Name: "管理 AI 接入", Description: "修改 MCP 配置、开放与停用能力", Group: "AI 管理"},
+	{Governance: true, ID: "mcp:logs:read", Name: "查看 MCP 调用记录", Description: "查询 MCP 调用元数据与记录", Group: "AI 管理"},
+	{Governance: true, ID: "mcp:clients:read", Name: "查看 OAuth 客户端", Description: "查看 MCP OAuth 预注册客户端与授权", Group: "AI 管理"},
+	{Governance: true, ID: "mcp:clients:write", Name: "管理 OAuth 客户端", Description: "管理 MCP OAuth 客户端并执行全局撤销", Group: "AI 管理"},
 }
 
 // PermissionCatalog aggregates the built-in catalogue with the registered
@@ -114,14 +115,17 @@ func SuperOnlyPermission(id string) bool {
 	return false
 }
 
-// HasManagementAccess identifies privileged accounts independently of workspace URLs.
+// HasManagementAccess identifies privileged accounts independently of
+// workspace URLs: super_admin or any explicitly governance-classified point.
+// Business permissions — including business management ones — never confer
+// the framework administrator status.
 func HasManagementAccess(user contracts.User) bool {
 	if IsSuper(user) {
 		return true
 	}
 	for _, p := range user.Permissions {
 		for _, def := range PermissionCatalog() {
-			if p == def.ID && !def.Assignable {
+			if p == def.ID && def.Governance {
 				return true
 			}
 		}

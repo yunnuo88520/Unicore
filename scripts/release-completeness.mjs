@@ -2,7 +2,7 @@
 // Description: Verify the release identity chain and every published surface before a release may be declared complete.
 // The expected asset matrix is derived from the release's own manifest.json under the same structural rules as
 // scripts/release-assets.mjs assemble — never from a hardcoded architecture list. Maintainer tooling; not an automated gate.
-// Usage: node scripts/release-completeness.mjs --tag v0.1.6 [--kind preview|stable] [--repo owner/name] [--bundle build/candidate]
+// Usage: node scripts/release-completeness.mjs --tag v0.2.0 [--kind preview|stable] [--repo owner/name] [--bundle build/candidate]
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {mkdirSync,mkdtempSync,readFileSync,rmSync,writeFileSync} from 'node:fs';

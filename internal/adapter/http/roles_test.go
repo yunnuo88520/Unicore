@@ -83,10 +83,10 @@ func exerciseRoleHTTP(t *testing.T, manager *install.Manager, request func(strin
 	if w = request("POST", "/api/v1/admin/roles", map[string]any{"name": "", "permissions": []string{}}, admin, adminCSRF); w.Code != 400 {
 		t.Fatal("empty role name", w.Code)
 	}
-	if w = request("POST", "/api/v1/admin/roles", map[string]any{"name": "escalated", "permissions": []string{"users:read"}}, admin, adminCSRF); w.Code != 200 {
+	if w = request("POST", "/api/v1/admin/roles", map[string]any{"name": "escalated", "permissions": []string{"users:read"}, "operation_ids": []string{"exportUsers", "listUsers", "roleOptions"}}, admin, adminCSRF); w.Code != 200 {
 		t.Fatal("management permission assignment failed", w.Code)
 	}
-	w = request("POST", "/api/v1/admin/roles", map[string]any{"name": "编辑者", "permissions": []string{"files:access"}}, admin, adminCSRF)
+	w = request("POST", "/api/v1/admin/roles", map[string]any{"name": "编辑者", "permissions": []string{"files:access"}, "operation_ids": []string{"adminFileAccess", "fileAccess", "listFiles"}}, admin, adminCSRF)
 	if w.Code != 200 {
 		t.Fatal("role create", w.Code, w.Body.String())
 	}
@@ -132,7 +132,7 @@ func exerciseRoleHTTP(t *testing.T, manager *install.Manager, request func(strin
 	if perms := memberPerms(); len(perms) != 1 || perms[0] != "files:access" {
 		t.Fatal("custom role grants missing", perms)
 	}
-	if w = request("PUT", "/api/v1/admin/roles/"+roleID, map[string]any{"version": roleHTTPVersion(t, request, admin, roleID), "name": "编辑者", "permissions": []string{"notes:access"}}, admin, adminCSRF); w.Code != 200 {
+	if w = request("PUT", "/api/v1/admin/roles/"+roleID, map[string]any{"version": roleHTTPVersion(t, request, admin, roleID), "name": "编辑者", "permissions": []string{"notes:access"}, "operation_ids": []string{"adminFileAccess", "fileAccess", "listNotes", "notesFileAccess", "notesFileUploadPolicy", "notesListFiles", "notesMultipartUpload"}}, admin, adminCSRF); w.Code != 200 {
 		t.Fatal("role update", w.Code, w.Body.String())
 	}
 	if perms := memberPerms(); len(perms) != 1 || perms[0] != "notes:access" {
@@ -257,7 +257,7 @@ func TestRestrictedAdministrator(t *testing.T) {
 
 	// The administrator-realm role takes management permission points; the
 	// omitted realm keeps the user-realm default.
-	w = request("POST", "/api/v1/admin/roles", map[string]any{"name": "受限管理员", "data_scope": "all", "realm": "administrator", "permissions": []string{"users:read", "users:create", "users:update", "announcements:read", "menus:write"}}, adminCookie, csrf)
+	w = request("POST", "/api/v1/admin/roles", map[string]any{"name": "受限管理员", "data_scope": "all", "realm": "administrator", "permissions": []string{"users:read", "users:create", "users:update", "announcements:read", "menus:write"}, "operation_ids": []string{"adminAnnouncements", "announcementReadStatus", "announcementSettings", "createUser", "exportUsers", "importUsers", "listMenus", "listUsers", "roleOptions", "saveMenus", "updateUser", "userImportTemplate"}}, adminCookie, csrf)
 	if w.Code != 200 {
 		t.Fatal("restricted role create", w.Code, w.Body.String())
 	}
@@ -266,7 +266,7 @@ func TestRestrictedAdministrator(t *testing.T) {
 		t.Fatal("restricted role payload", w.Body.String(), err)
 	}
 	roleID := restricted.Data.ID
-	w = request("POST", "/api/v1/admin/roles", map[string]any{"name": "用户域角色", "permissions": []string{"files:access"}}, adminCookie, csrf)
+	w = request("POST", "/api/v1/admin/roles", map[string]any{"name": "用户域角色", "permissions": []string{"files:access"}, "operation_ids": []string{"adminFileAccess", "fileAccess", "listFiles"}}, adminCookie, csrf)
 	if w.Code != 200 {
 		t.Fatal("user realm role create", w.Code, w.Body.String())
 	}
@@ -373,7 +373,7 @@ func TestRestrictedAdministrator(t *testing.T) {
 	}
 
 	// A role permission change revokes the member session.
-	w = request("PUT", "/api/v1/admin/roles/"+roleID, map[string]any{"version": roleHTTPVersion(t, request, adminCookie, roleID), "name": "受限管理员", "data_scope": "all", "permissions": []string{"announcements:read"}}, adminCookie, csrf)
+	w = request("PUT", "/api/v1/admin/roles/"+roleID, map[string]any{"version": roleHTTPVersion(t, request, adminCookie, roleID), "name": "受限管理员", "data_scope": "all", "permissions": []string{"announcements:read"}, "operation_ids": []string{"adminAnnouncements", "announcementReadStatus", "announcementSettings"}}, adminCookie, csrf)
 	if w.Code != 200 {
 		t.Fatal("role permission change", w.Code, w.Body.String())
 	}

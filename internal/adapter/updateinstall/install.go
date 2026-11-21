@@ -16,6 +16,7 @@ import (
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/updates"
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path"
@@ -38,6 +39,7 @@ type Installer struct {
 	Options
 	mu             sync.Mutex
 	reason         string
+	prepareCause   string
 	Root, StateDir string
 }
 type Plan struct {
@@ -221,6 +223,11 @@ func (i *Installer) Start(payload updates.Payload) (contracts.UpdateJob, error) 
 	go func() {
 		defer lock.Unlock()
 		if e := i.prepare(job, payload); e != nil {
+			// The job message stays stable for users; the log carries the
+			// actionable cause (stage, path class, signature verdict) without
+			// credentials.
+			i.setPrepareCause(e.Error())
+			slog.Warn("update prepare failed", "event", "update.prepare_failed", "job", job.ID, "version", job.Version, "error", e.Error())
 			job.Status = "failed"
 			job.Message = "更新准备失败，当前程序和数据未改变，请检查网络、签名与安装权限"
 			job.FinishedAt = time.Now().UTC().Format(time.RFC3339)
@@ -229,6 +236,24 @@ func (i *Installer) Start(payload updates.Payload) (contracts.UpdateJob, error) 
 	}()
 	return job, nil
 }
+
+// setPrepareCause records the last failed preparation's underlying error for
+// diagnostics; tests and operators read it through PrepareCause while the job
+// keeps its stable user-facing message.
+func (i *Installer) setPrepareCause(cause string) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	i.prepareCause = cause
+}
+
+// PrepareCause reports the recorded preparation failure cause, empty when the
+// last preparation succeeded.
+func (i *Installer) PrepareCause() string {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	return i.prepareCause
+}
+
 func (i *Installer) prepare(job contracts.UpdateJob, payload updates.Payload) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()

@@ -92,11 +92,11 @@ func Operation(id string) (contracts.APIOperation, bool) {
 	return contracts.APIOperation{}, false
 }
 
-// MaterializedOperations derives the explicit API grants a legacy role
-// deserves from its current permission points: mode any needs one shared
-// point, mode all needs the full set. Run once at upgrade; never again, so
-// later operations stay denied until granted explicitly.
-func MaterializedOperations(realm string, permissions []string) []string {
+// DefaultOperations resolves the delegable API operations a permission set
+// already unlocks: mode any needs one shared point, mode all needs the full
+// set. It runs only while seeding the builtin default role, writing explicit
+// grant rows once; later operations stay denied until an operator grants them.
+func DefaultOperations(realm string, permissions []string) []string {
 	result := []string{}
 	for _, op := range APIOperations() {
 		if !op.Grantable {

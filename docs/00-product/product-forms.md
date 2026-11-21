@@ -89,7 +89,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
    - **装配省略**（源码强制）：identity/branding/mailer 与云存储仅在 web-platform 装配；Standalone 的 files 仅为本地业务附件，不暴露平台存储管理接口。
    - **handler 自查**（维护约定）：**`x-unicore.profiles` 声明不被中间件执行**——形态隔离的最后一环是各 handler 的 profile 自查（如 `notes.go`、`announcements.go`、`updates.go`）。新增非全形态接口必须写 handler 自查，不得只声明 profiles 字段。
    前端隐藏菜单或按钮不构成权限控制。Standalone 页面只呈现已装配的本机能力；平台专属功能与载体不具备的能力不显示占位、标签或权限引导，直达地址按不存在处理。
-5. [源码强制] 菜单授权不授予 API：menu_ids、action_ids、operation_ids 三个命名空间相互独立，服务端授权是唯一执行点（权限派生明确排除菜单行，`internal/adapter/storage/platformsql/repository.go`）。
+5. [源码强制] 菜单授权不授予 API：menu_ids、action_ids、operation_ids 三个命名空间相互独立，服务端授权是唯一执行点（会话投影只读存储权限点，无运行时派生，`internal/adapter/storage/platformsql/repository.go`、[ADR-0050](../adr/ADR-0050-explicit-authorization-baseline.md)）。
 6. [源码强制] profile 在安装后不可变（`internal/install/manager.go`）；不得提供运行期形态切换。发行包默认 profile 的部署期覆盖属有意设计（[D15 已裁决](pending-decisions.md)）。
 7. [源码强制] 业务模块不得在 desktop/CLI 装配路径引入平台模块；依赖向内规则见 [后端规范](../02-standards/backend.md)。
 8. [维护约定] 矩阵与清单的状态以源码为准：不得把未实现写成已实现，不得用文档表述替代装配证据。

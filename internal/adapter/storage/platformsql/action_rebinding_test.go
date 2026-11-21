@@ -10,7 +10,7 @@ import (
 	"github.com/yunnuo/unicore/internal/platform"
 )
 
-func TestActionRebindingDerivesPointsButKeepsStoredDataScope(t *testing.T) {
+func TestActionRebindingKeepsStoredProjection(t *testing.T) {
 	ctx := t.Context()
 	store, repo, super := navigationFixture(t, ctx)
 	op, ok := platform.Operation("roleOptions")
@@ -58,19 +58,21 @@ func TestActionRebindingDerivesPointsButKeepsStoredDataScope(t *testing.T) {
 	if err != nil {
 		t.Fatal("create actor", err)
 	}
-	assertProjection := func(wantPermissions []string, wantUpdate bool) {
+	assertProjection := func() {
 		t.Helper()
 		user, err := repo.user(ctx, store.DB, actor.ID)
 		if err != nil {
 			t.Fatal("read actor projection", err)
 		}
-		if !slices.Equal(user.Roles, []string{role.ID}) || !slices.Equal(user.Permissions, wantPermissions) ||
+		if !slices.Equal(user.Roles, []string{role.ID}) || !slices.Equal(user.Permissions, []string{"users:read"}) ||
 			!slices.Equal(deref(user.ActionIds), []string{actionID}) ||
 			!slices.Equal(deref(user.OperationIds), []string{"roleOptions"}) || len(deref(user.MenuIds)) != 0 {
 			t.Fatalf("unexpected projection: %+v", user)
 		}
-		if platform.Has(user, "users:update") != wantUpdate || platform.Has(user, "users:create") {
-			t.Fatal("any operation must not derive sibling points", user.Permissions)
+		// The projection reads stored points only: no rebind may silently add
+		// points the role never saved, and DataScope uses the same stored set.
+		if platform.Has(user, "users:update") || platform.Has(user, "users:create") {
+			t.Fatal("rebind must not widen the stored projection", user.Permissions)
 		}
 		stored, err := repo.role(ctx, store.DB, role.ID)
 		if err != nil {
@@ -89,9 +91,11 @@ func TestActionRebindingDerivesPointsButKeepsStoredDataScope(t *testing.T) {
 			t.Fatalf("unstored users:update must retain self-only fallback: %+v %v", updateScope, err)
 		}
 	}
-	assertProjection([]string{"users:read"}, false)
+	assertProjection()
 
-	// Keep the same action ID/type and any operation, changing only the point.
+	// Keep the same action ID/type and any operation, changing only the point:
+	// the guarded authorization change alters future saves and the button
+	// semantics, never the already-saved roles.
 	for index := range listed.Nodes {
 		if listed.Nodes[index].ID == actionID {
 			listed.Nodes[index].Permission = strPtr("users:update")
@@ -100,7 +104,7 @@ func TestActionRebindingDerivesPointsButKeepsStoredDataScope(t *testing.T) {
 	if _, err := repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: listed.Version, Sections: listed.Sections, Nodes: listed.Nodes}, super.ID); err != nil {
 		t.Fatal("rebind existing action", err)
 	}
-	assertProjection([]string{"users:read", "users:update"}, true)
+	assertProjection()
 }
 
 func TestMenusWriterCannotRebindAuthorizedAction(t *testing.T) {

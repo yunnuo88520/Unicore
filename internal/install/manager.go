@@ -7,6 +7,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -270,16 +272,20 @@ func (m *Manager) recover(ctx context.Context) error {
 	}
 	store, err := m.connect(ctx)
 	if err != nil {
+		cause := fmt.Errorf("%w: %v", ErrDatabase, err)
 		if m.config.State == "INSTALLED" {
-			return ErrDatabase
+			return cause
 		}
+		// A failed prepare keeps the installer bootable: persist the failed
+		// state and start normally, the log carries the actionable cause.
+		slog.Warn("install database connect failed", "event", "install.db_connect_failed", "error", cause.Error())
 		m.config.State = "INSTALL_FAILED"
 		return m.save()
 	}
 	exists, checkErr := store.HasInstallationTable(ctx)
 	if checkErr != nil {
 		_ = store.Close()
-		return ErrDatabase
+		return fmt.Errorf("%w: %v", ErrDatabase, checkErr)
 	}
 	if exists {
 		profile, instance, markerErr := store.Installation(ctx)
@@ -298,9 +304,17 @@ func (m *Manager) recover(ctx context.Context) error {
 	}
 	if err = runner.Apply(ctx, store.DB, runner.Options{Dialect: store.Dialect, Profile: string(m.config.Profile)}); err != nil {
 		_ = store.Close()
+		// The runner error names the namespace and failure class without
+		// credentials; the stable ErrDatabase stays the external identity.
+		cause := fmt.Errorf("%w: %v", ErrDatabase, err)
 		if m.config.State == "INSTALLED" {
-			return ErrDatabase
+			// A migration failure on an installed instance is a fatal start:
+			// the operator sees the namespace and class in the log.
+			return cause
 		}
+		// A failed prepare keeps the installer bootable: persist the failed
+		// state and start normally, the log carries the actionable cause.
+		slog.Warn("install migration failed", "event", "install.migration_failed", "error", cause.Error())
 		m.config.State = "INSTALL_FAILED"
 		return m.save()
 	}
@@ -314,7 +328,7 @@ func (m *Manager) recover(ctx context.Context) error {
 		m.config.TokenHash = ""
 		if err = m.attach(store); err != nil {
 			_ = store.Close()
-			return ErrDatabase
+			return fmt.Errorf("%w: %v", ErrDatabase, err)
 		}
 		// Catalogue upgrades add permission points; re-apply the catalogue rows
 		// and the super_admin grant set. Role authorizations are NOT touched
@@ -325,11 +339,11 @@ func (m *Manager) recover(ctx context.Context) error {
 			if repo, ok := m.identity.Store.(*platformsql.Repository); ok {
 				if err = repo.EnsurePermissions(ctx); err != nil {
 					_ = store.Close()
-					return ErrDatabase
+					return fmt.Errorf("%w: %v", ErrDatabase, err)
 				}
 				if err = repo.EnsureNavigation(ctx); err != nil {
 					_ = store.Close()
-					return ErrDatabase
+					return fmt.Errorf("%w: %v", ErrDatabase, err)
 				}
 			}
 		}
@@ -340,7 +354,7 @@ func (m *Manager) recover(ctx context.Context) error {
 		return ErrTaken
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
-		return ErrDatabase
+		return fmt.Errorf("%w: %v", ErrDatabase, err)
 	}
 	m.config.State = "INSTALL_FAILED"
 	return m.save()
@@ -433,11 +447,11 @@ func (m *Manager) Verify(ctx context.Context, token string, input contracts.Data
 	}
 	store, err := webdb.Open(ctx, input.Driver, dsn, filepath.Join(m.directory, "unicore.db"))
 	if err != nil {
-		return result, ErrDatabase
+		return result, fmt.Errorf("%w: %v", ErrDatabase, err)
 	}
 	defer store.Close()
 	if err = store.InstallationScope(ctx); err != nil {
-		return result, ErrDatabase
+		return result, fmt.Errorf("%w: %v", ErrDatabase, err)
 	}
 	result.DatabaseName = name
 	result.TableCount, err = store.TableCount(ctx)

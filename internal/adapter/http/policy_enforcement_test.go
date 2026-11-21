@@ -129,7 +129,7 @@ func TestPolicyBlocksUndelegatedOperations(t *testing.T) {
 func TestPolicyEnforcesSuperAdminReservation(t *testing.T) {
 	manager, _, request := enforcementRouter(t)
 	adminCookie, adminCSRF := actionInstall(t, request)
-	w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "日志员", "realm": "administrator", "permissions": []string{"logs:read"}}, adminCookie, adminCSRF)
+	w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "日志员", "realm": "administrator", "permissions": []string{"logs:read"}, "operation_ids": []string{"exportSystemLogs", "mailJobs", "systemLogs"}}, adminCookie, adminCSRF)
 	if w.Code != http.StatusOK {
 		t.Fatal("role create", w.Code, w.Body.String())
 	}
@@ -165,7 +165,7 @@ func TestRoleSaveRejectsReservedPermissions(t *testing.T) {
 			t.Fatal("reserved permission accepted on create", permissions, w.Code, w.Body.String())
 		}
 	}
-	w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "日志员", "permissions": []string{"logs:read"}}, adminCookie, adminCSRF)
+	w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "日志员", "permissions": []string{"logs:read"}, "operation_ids": []string{"exportSystemLogs", "mailJobs", "systemLogs"}}, adminCookie, adminCSRF)
 	if w.Code != http.StatusOK {
 		t.Fatal("ordinary role create refused", w.Code, w.Body.String())
 	}
@@ -177,7 +177,7 @@ func TestRoleSaveRejectsReservedPermissions(t *testing.T) {
 	if w.Code != http.StatusForbidden {
 		t.Fatal("reserved permission accepted on update", w.Code, w.Body.String())
 	}
-	w = request("PUT", "/api/v1/admin/roles/"+created.Data.ID, map[string]any{"version": created.Data.Version, "name": "日志员", "permissions": []string{"logs:read"}}, adminCookie, adminCSRF)
+	w = request("PUT", "/api/v1/admin/roles/"+created.Data.ID, map[string]any{"version": created.Data.Version, "name": "日志员", "permissions": []string{"logs:read"}, "operation_ids": []string{"exportSystemLogs", "mailJobs", "systemLogs"}}, adminCookie, adminCSRF)
 	if w.Code != http.StatusOK {
 		t.Fatal("ordinary role update refused", w.Code, w.Body.String())
 	}
@@ -189,7 +189,7 @@ func TestRoleSaveRejectsReservedPermissions(t *testing.T) {
 func TestDenialAuditRows(t *testing.T) {
 	manager, _, request := enforcementRouter(t)
 	adminCookie, adminCSRF := actionInstall(t, request)
-	w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "日志员", "realm": "administrator", "permissions": []string{"logs:read"}}, adminCookie, adminCSRF)
+	w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "日志员", "realm": "administrator", "permissions": []string{"logs:read"}, "operation_ids": []string{"exportSystemLogs", "mailJobs", "systemLogs"}}, adminCookie, adminCSRF)
 	if w.Code != http.StatusOK {
 		t.Fatal("role create", w.Code, w.Body.String())
 	}

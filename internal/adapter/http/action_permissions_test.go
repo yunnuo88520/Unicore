@@ -19,6 +19,7 @@ import (
 
 	"github.com/yunnuo/unicore/internal/bootstrap"
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/files"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/module"
@@ -96,7 +97,7 @@ func TestButtonLevelPermissions(t *testing.T) {
 
 	// A member whose role can read notes but create, edit or delete nothing;
 	// file browsing without upload or delete.
-	w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "笔记读者", "permissions": []string{"notes:access", "files:access"}}, adminCookie, adminCSRF)
+	w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "笔记读者", "permissions": []string{"notes:access", "files:access"}, "operation_ids": []string{"adminFileAccess", "fileAccess", "listFiles", "listNotes", "notesFileAccess", "notesFileUploadPolicy", "notesListFiles", "notesMultipartUpload"}}, adminCookie, adminCSRF)
 	if w.Code != 200 {
 		t.Fatal("role create", w.Code, w.Body.String())
 	}
@@ -218,7 +219,7 @@ func TestRestrictedAdministratorFiles(t *testing.T) {
 	if err := json.Unmarshal(limited.Body.Bytes(), &limitedList); err != nil || limited.Code != 200 || limitedList.Data.Total != 0 {
 		t.Fatal("storage permission bypassed self scope", limited.Code, limited.Body.String(), err)
 	}
-	if w := request("PUT", "/api/v1/admin/roles/"+restrictedRole, map[string]any{"version": roleHTTPVersion(t, request, adminCookie, restrictedRole), "name": "文件运营", "permissions": []string{"storage:read"}, "data_scope": "all"}, adminCookie, adminCSRF); w.Code != 200 {
+	if w := request("PUT", "/api/v1/admin/roles/"+restrictedRole, map[string]any{"version": roleHTTPVersion(t, request, adminCookie, restrictedRole), "name": "文件运营", "permissions": []string{"storage:read"}, "operation_ids": []string{"adminFileUploadPolicy", "adminListFiles", "adminMultipartUpload", "exportFiles", "storageLocations"}, "data_scope": "all"}, adminCookie, adminCSRF); w.Code != 200 {
 		t.Fatal(w.Body.String())
 	}
 	restrictedCookie, restrictedCSRF := issueSession(t, manager, true, restricted)
@@ -252,7 +253,11 @@ func TestRestrictedAdministratorFiles(t *testing.T) {
 // actionRole creates a role and returns its generated id.
 func actionRole(t *testing.T, request func(string, string, any, *http.Cookie, string) *httptest.ResponseRecorder, adminCookie *http.Cookie, csrf, name, realm string, permissions []string) string {
 	t.Helper()
-	body := map[string]any{"name": name, "permissions": permissions}
+	operationIDs := []any{}
+	for _, id := range platform.DefaultOperations(realm, permissions) {
+		operationIDs = append(operationIDs, id)
+	}
+	body := map[string]any{"name": name, "permissions": permissions, "operation_ids": operationIDs}
 	if realm != "" {
 		body["realm"] = realm
 	}
@@ -275,7 +280,7 @@ func TestAnyModeAttachmentAccess(t *testing.T) {
 	adminCookie, adminCSRF := actionInstall(t, request)
 	_, _, identity, _ := manager.Services()
 
-	w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "笔记员", "permissions": []string{"notes:access"}}, adminCookie, adminCSRF)
+	w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "笔记员", "permissions": []string{"notes:access"}, "operation_ids": []string{"adminFileAccess", "fileAccess", "listNotes", "notesFileAccess", "notesFileUploadPolicy", "notesListFiles", "notesMultipartUpload"}}, adminCookie, adminCSRF)
 	if w.Code != 200 {
 		t.Fatal("role create", w.Code, w.Body.String())
 	}
@@ -331,7 +336,7 @@ func TestRowCapabilitiesRespectActionGrants(t *testing.T) {
 	store, _, identity, _ := manager.Services()
 
 	// One notes-only reader and one files-only browser, each owning one row.
-	w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "只读员", "permissions": []string{"notes:access"}}, adminCookie, adminCSRF)
+	w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "只读员", "permissions": []string{"notes:access"}, "operation_ids": []string{"adminFileAccess", "fileAccess", "listNotes", "notesFileAccess", "notesFileUploadPolicy", "notesListFiles", "notesMultipartUpload"}}, adminCookie, adminCSRF)
 	if w.Code != 200 {
 		t.Fatal("notes role create", w.Code, w.Body.String())
 	}
@@ -339,7 +344,7 @@ func TestRowCapabilitiesRespectActionGrants(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &notesRole); err != nil || notesRole.Data.ID == "" {
 		t.Fatal("notes role payload", w.Body.String(), err)
 	}
-	w = request("POST", "/api/v1/admin/roles", map[string]any{"name": "浏览员", "permissions": []string{"files:access"}}, adminCookie, adminCSRF)
+	w = request("POST", "/api/v1/admin/roles", map[string]any{"name": "浏览员", "permissions": []string{"files:access"}, "operation_ids": []string{"adminFileAccess", "fileAccess", "listFiles"}}, adminCookie, adminCSRF)
 	if w.Code != 200 {
 		t.Fatal("files role create", w.Code, w.Body.String())
 	}
@@ -406,10 +411,10 @@ func TestRowCapabilitiesRespectActionGrants(t *testing.T) {
 	}
 
 	// Granting the points reopens exactly those controls on the owned rows.
-	if w = request("PUT", "/api/v1/admin/roles/"+notesRole.Data.ID, map[string]any{"version": roleHTTPVersion(t, request, adminCookie, notesRole.Data.ID), "name": "只读员", "permissions": []string{"notes:access", "notes:update"}}, adminCookie, adminCSRF); w.Code != 200 {
+	if w = request("PUT", "/api/v1/admin/roles/"+notesRole.Data.ID, map[string]any{"version": roleHTTPVersion(t, request, adminCookie, notesRole.Data.ID), "name": "只读员", "permissions": []string{"notes:access", "notes:update"}, "operation_ids": []string{"adminFileAccess", "fileAccess", "listNotes", "notesCompleteMultipartUpload", "notesCreateMultipartUpload", "notesDeleteFile", "notesFileAccess", "notesFileUploadPolicy", "notesListFiles", "notesMultipartUpload", "notesSignUploadPart", "notesUploadLocalPart", "updateNote"}}, adminCookie, adminCSRF); w.Code != 200 {
 		t.Fatal("notes role update", w.Code, w.Body.String())
 	}
-	if w = request("PUT", "/api/v1/admin/roles/"+filesRole.Data.ID, map[string]any{"version": roleHTTPVersion(t, request, adminCookie, filesRole.Data.ID), "name": "浏览员", "permissions": []string{"files:access", "files:delete"}}, adminCookie, adminCSRF); w.Code != 200 {
+	if w = request("PUT", "/api/v1/admin/roles/"+filesRole.Data.ID, map[string]any{"version": roleHTTPVersion(t, request, adminCookie, filesRole.Data.ID), "name": "浏览员", "permissions": []string{"files:access", "files:delete"}, "operation_ids": []string{"adminFileAccess", "deleteFile", "fileAccess", "listFiles"}}, adminCookie, adminCSRF); w.Code != 200 {
 		t.Fatal("files role update", w.Code, w.Body.String())
 	}
 	noteCookie, _ = issueSession(t, manager, false, noteOwner)
@@ -524,7 +529,7 @@ func TestBusinessUploadsUseBusinessGrantsAndExactOwnership(t *testing.T) {
 		t.Fatal(w.Code, w.Body.String())
 	}
 	// Revoking note creation and update must revoke the upload helper endpoints too.
-	role := request("POST", "/api/v1/admin/roles", map[string]any{"name": "business-reader", "permissions": []string{"notes:access"}}, adminCookie, adminCSRF)
+	role := request("POST", "/api/v1/admin/roles", map[string]any{"name": "business-reader", "permissions": []string{"notes:access"}, "operation_ids": []string{"adminFileAccess", "fileAccess", "listNotes", "notesFileAccess", "notesFileUploadPolicy", "notesListFiles", "notesMultipartUpload"}}, adminCookie, adminCSRF)
 	var created contracts.RoleResponse
 	if role.Code != 200 {
 		t.Fatal(role.Code, role.Body.String())

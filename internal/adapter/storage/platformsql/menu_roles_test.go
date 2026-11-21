@@ -18,6 +18,20 @@ func TestAssignMenuRolesAtomicPatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Menu visibility never widens authorization: assigning the users page is
+	// refused until the role editor grants users:read explicitly.
+	navBefore, err := repo.ListMenuConfig(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = repo.AssignMenuRoles(ctx, "users", contracts.MenuRoleAssignmentInput{Version: navBefore.Version, ExpectedRoleIds: []string{}, RoleIds: []string{role.ID}}, owner.ID); !errors.Is(err, platform.ErrMenuRolePermissionMissing) {
+		t.Fatalf("assignment without the page point must be refused, got %v", err)
+	}
+	// The explicit authorization change happens in the role editor.
+	role, err = repo.UpdateRole(ctx, role.ID, contracts.RoleSaveInput{Version: currentRoleVersion(t, ctx, repo, role.ID), Name: "Management reader", Permissions: []string{"notes:access", "users:read"}, MenuIds: &[]string{}, ActionIds: &[]string{}, OperationIds: &[]string{"listNotes", "listUsers"}}, owner.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	nav, err := repo.ListMenuConfig(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -43,7 +57,7 @@ func TestAssignMenuRolesAtomicPatch(t *testing.T) {
 			saved = r
 		}
 	}
-	if !slices.Contains(saved.MenuIds, "users") || !slices.Contains(saved.MenuIds, "administration") || !slices.Contains(saved.OperationIds, "listUsers") || !slices.Contains(saved.OperationIds, "listNotes") || slices.Contains(saved.OperationIds, "createUser") || len(saved.ActionIds) != 0 {
+	if !slices.Contains(saved.MenuIds, "users") || !slices.Contains(saved.MenuIds, "administration") || !slices.Contains(saved.Permissions, "users:read") || !slices.Contains(saved.OperationIds, "listUsers") || !slices.Contains(saved.OperationIds, "listNotes") || slices.Contains(saved.OperationIds, "createUser") || len(saved.ActionIds) != 0 {
 		t.Fatal("wrong grants", saved)
 	}
 	var count int
@@ -108,8 +122,8 @@ func TestAssignMenuRolesPrivilegeBounds(t *testing.T) {
 			node = "users"
 			input.RoleIds = []string{"user"}
 		}
-		if _, err = repo.AssignMenuRoles(ctx, node, input, owner.ID); !errors.Is(err, platform.ErrForbidden) {
-			t.Fatal("reserved/registration grant accepted", id, err)
+		if _, err = repo.AssignMenuRoles(ctx, node, input, owner.ID); err == nil || (id == "monitor" && !errors.Is(err, platform.ErrForbidden)) || (id == "users" && !errors.Is(err, platform.ErrMenuRolePermissionMissing)) {
+			t.Fatal("reserved/unauthorized grant accepted", id, err)
 		}
 	}
 	input.RoleIds = []string{"super_admin"}
@@ -121,7 +135,7 @@ func TestAssignMenuRolesPrivilegeBounds(t *testing.T) {
 func TestMenuPatchStalesRoleSnapshotAndNoopKeepsVersion(t *testing.T) {
 	ctx := t.Context()
 	_, repo, owner := navigationFixture(t, ctx)
-	role, err := repo.CreateRole(ctx, contracts.RoleSaveInput{Name: "Interleaved", Permissions: []string{"notes:access"}, MenuIds: &[]string{}, ActionIds: &[]string{}, OperationIds: &[]string{"listNotes"}}, owner.ID)
+	role, err := repo.CreateRole(ctx, contracts.RoleSaveInput{Name: "Interleaved", Permissions: []string{"notes:access", "users:read"}, MenuIds: &[]string{}, ActionIds: &[]string{}, OperationIds: &[]string{"listNotes", "listUsers"}}, owner.ID)
 	if err != nil {
 		t.Fatal(err)
 	}

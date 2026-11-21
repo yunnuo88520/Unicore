@@ -53,7 +53,6 @@ export interface Bootstrap {
   maintenance_message?: string;
   mfa_pending?: boolean;
   mfa_enrollment_required?: boolean;
-  menus?: Array<MenuEntry>;
   navigation?: Navigation;
 }
 
@@ -458,6 +457,7 @@ export interface PermissionDefinition {
   description: string;
   group: string;
   assignable: boolean;
+  governance: boolean;
   super_admin: boolean;
 }
 
@@ -473,7 +473,6 @@ export interface Role {
   menu_ids: Array<string>;
   action_ids: Array<string>;
   operation_ids: Array<string>;
-  authorization_initialized: boolean;
   version: number;
 }
 
@@ -1340,19 +1339,7 @@ export interface RoleSaveInput {
   operation_ids?: Array<string>;
 }
 
-export interface MenuEntry {
-  menu_key: string;
-  label: string;
-  group_key: string;
-  sort: number;
-  visible: boolean;
-  parent_key?: string;
-  type: "page" | "link";
-  url?: string;
-}
-
 export interface MenuList {
-  items: Array<MenuEntry>;
   version: number;
   sections: Array<NavigationSection>;
   nodes: Array<NavigationNode>;
@@ -1360,7 +1347,6 @@ export interface MenuList {
 }
 
 export interface MenuSaveInput {
-  items?: Array<MenuEntry>;
   version: number;
   sections: Array<NavigationSection>;
   nodes: Array<NavigationNode>;

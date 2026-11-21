@@ -31,7 +31,7 @@ const nodes: NavigationNode[] = [
 
 const role = (overrides: Partial<Role> = {}): Role => ({
   id: 'r1', name: '运营', version: 4, builtin: false, permissions: ['users:read'], user_count: 3, realm: 'administrator',
-  data_scope: 'all', department_ids: [], menu_ids: ['users'], action_ids: [], operation_ids: [], authorization_initialized: true, ...overrides,
+  data_scope: 'all', department_ids: [], menu_ids: ['users'], action_ids: [], operation_ids: [], ...overrides,
 });
 
 const operation = (overrides: Partial<APIOperation>): APIOperation => ({
@@ -44,7 +44,7 @@ const operations: APIOperation[] = [
   operation({ operation_id: 'listNotes', method: 'GET', path: '/api/v1/notes', summary: '笔记列表', realm: 'user', permissions: ['notes:access'] }),
 ];
 
-const menuList = (): MenuList => ({ items: [], version: 7, sections: sections.map(s => ({ ...s, surfaces: [...s.surfaces] })), nodes: nodes.map(n => ({ ...n, surfaces: [...n.surfaces] })), pages: [] });
+const menuList = (): MenuList => ({ version: 7, sections: sections.map(s => ({ ...s, surfaces: [...s.surfaces] })), nodes: nodes.map(n => ({ ...n, surfaces: [...n.surfaces] })), pages: [] });
 
 // The shared fixture plus one action nested inside the management directory,
 // so the copy test can prove action nodes ride along in the saved payload

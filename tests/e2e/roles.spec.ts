@@ -3,7 +3,7 @@
 // and isolated client appearance; the three-way authorization model (menus,
 // buttons, API operations) stays independent of the permission upper bound.
 import { mkdir } from 'node:fs/promises';
-import { chooseOption, test, expect, installPlatform, adminLogin, workspaceLogin, sdkClient, loginClient, navigate, nodeDisplayLabel, pageNode, menuChain, materializedOperations, pageBoot, memberPassword, type Instance } from './fixtures';
+import { chooseOption, test, expect, installPlatform, adminLogin, workspaceLogin, sdkClient, loginClient, navigate, nodeDisplayLabel, pageNode, menuChain, chainActions, materializedOperations, pageBoot, memberPassword, type Instance } from './fixtures';
 import { operations } from '../../packages/contracts/src/operations.gen';
 
 const adminPassword = 'administrator-password-strong';
@@ -310,10 +310,12 @@ test('button-level grants hide note actions while the notes page stays reachable
   // The files page itself no longer renders on the user surface — its points
   // remain grantable because the notes attachment flow rides on them.
   const permissions = ['notes:access', 'notes:create', 'notes:update', 'files:access', 'files:upload'];
+  const recorderOperations = materializedOperations('user', permissions);
   const recorder = await admin.web!.createRole({
     name: '记录员', permissions, realm: 'user',
     menu_ids: [...new Set([...menuChain(config, 'notes')])],
-    operation_ids: materializedOperations('user', permissions),
+    operation_ids: recorderOperations,
+    action_ids: chainActions(config, menuChain(config, 'notes'), permissions, recorderOperations),
   });
   expect(recorder.permissions.length).toBe(5);
   expect((await page.request.post(`${instance.url}/api/v1/admin/users`, { headers: { 'X-CSRF-Token': (await pageBoot(page, instance.url)).csrf_token }, data: { username: 'member', email: 'member@example.test', password: member, role: recorder.id } })).status()).toBe(200);

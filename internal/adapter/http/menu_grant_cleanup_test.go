@@ -18,7 +18,7 @@ func TestNavigationEditPrunesOrphanedRoleGrants(t *testing.T) {
 
 	// Omitted grant arrays derive every administrator-surface item the points
 	// unlock: the users page, its action buttons and the API operations.
-	w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "用户运营", "realm": "administrator", "permissions": []string{"users:read", "users:create"}}, adminCookie, adminCSRF)
+	w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "用户运营", "realm": "administrator", "permissions": []string{"users:read", "users:create"}, "operation_ids": []string{"createUser", "exportUsers", "importUsers", "listUsers", "roleOptions", "userImportTemplate"}, "action_ids": []string{"op:listUsers", "op:createUser"}}, adminCookie, adminCSRF)
 	if w.Code != http.StatusOK {
 		t.Fatal("role create", w.Code, w.Body.String())
 	}
@@ -26,8 +26,10 @@ func TestNavigationEditPrunesOrphanedRoleGrants(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &created); err != nil || created.Data.ID == "" {
 		t.Fatal("role payload", w.Body.String(), err)
 	}
-	if len(created.Data.MenuIds) == 0 || len(created.Data.ActionIds) == 0 || len(created.Data.OperationIds) == 0 {
-		t.Fatal("derived grants missing", created.Data.MenuIds, created.Data.ActionIds, created.Data.OperationIds)
+	// Explicit grants only: the submitted operation and action rows persist,
+	// while menu visibility starts empty until the editor grants it.
+	if len(created.Data.OperationIds) == 0 || len(created.Data.ActionIds) == 0 || len(created.Data.MenuIds) != 0 {
+		t.Fatal("explicit grants missing", created.Data.MenuIds, created.Data.ActionIds, created.Data.OperationIds)
 	}
 	operations := append([]string{}, created.Data.OperationIds...)
 

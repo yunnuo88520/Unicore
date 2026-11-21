@@ -75,7 +75,7 @@ func TestScopedUserListAndExportShareVisibility(t *testing.T) {
 	}
 	scope := "custom"
 	departments := []string{department.ID}
-	role, err := identity.Store.CreateRole(ctx, contracts.RoleSaveInput{Name: "Scoped reader", Permissions: []string{"users:read"}, DataScope: &scope, DepartmentIds: &departments}, actor.ID)
+	role, err := identity.Store.CreateRole(ctx, contracts.RoleSaveInput{Name: "Scoped reader", Permissions: []string{"users:read"}, OperationIds: &[]string{"exportUsers", "listUsers", "roleOptions"}, DataScope: &scope, DepartmentIds: &departments}, actor.ID)
 	if err != nil {
 		t.Fatal(err)
 	}

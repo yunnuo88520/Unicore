@@ -10,7 +10,7 @@ test('one account uses business and management workspaces with multiple roles', 
   // Menu visibility is grant-based on the shared tree: the administrator-surface
   // users page needs its explicit ancestor chain for the management workspace.
   const config = await owner.web!.menuConfig();
-  const role = await owner.createRole({ name: 'User reader', permissions: ['users:read', 'admin:access', 'notes:access'], menu_ids: menuChain(config, 'users', 'administrator') });
+  const role = await owner.createRole({ name: 'User reader', permissions: ['users:read', 'admin:access', 'notes:access'], menu_ids: menuChain(config, 'users', 'administrator'), operation_ids: ['adminListNotes', 'exportUsers', 'listUsers', 'roleOptions'] });
   const member = await owner.createUser({ username: 'multirole', email: 'multi@example.test', password: memberPassword, role_ids: ['user', role.id] });
   expect(member.roles.slice().sort()).toEqual(['user', role.id].sort());
   await workspaceLogin(page, instance.url, member.username);

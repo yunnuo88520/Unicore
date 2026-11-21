@@ -1,0 +1,32 @@
+# Author: yunnuo <ymz@ebox.vip>
+# Description: Registration shim for the orders example acceptance: the drill and its kit live
+# on the acceptance branch (the orders example is a test and never merges into the product),
+# but workflow_dispatch can only register from the default branch. This shim checks out the
+# acceptance ref and runs its drill unchanged, so a release candidate can depend on a
+# same-commit successful acceptance run in the cloud.
+name: Orders example acceptance
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Acceptance branch carrying the orders kit, rebased on the release candidate
+        required: false
+        default: feat/orders-example
+jobs:
+  drill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0, ref: "${{ inputs.ref || 'feat/orders-example' }}" }
+      - uses: actions/setup-go@v5
+        with: { go-version-file: go.mod }
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - name: Run the orders acceptance drill from the acceptance branch
+        run: node scripts/verify-orders-example.mjs
+      - name: Keep the drill artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with: { name: orders-acceptance-failure, path: build/, if-no-files-found: ignore }

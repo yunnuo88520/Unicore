@@ -1644,6 +1644,8 @@ func (r *Repository) pruneOrphanedGrants(ctx context.Context, tx *sql.Tx, n cont
 // grant rows. Grant rows authorize by action id and derive their effective
 // points from the action's current binding, so rebinding one is an
 // authorization change (pending decision D25, C) and needs roles:write.
+// Every lookup failure fails closed: a partial grant or stored-node read must
+// never let the guard conclude "no rebind" and wave the save through.
 func (r *Repository) authorizedActionRebinds(ctx context.Context, tx *sql.Tx, n contracts.Navigation) (bool, error) {
 	granted := map[string]bool{}
 	rows, err := r.Store.Rows(ctx, tx, "SELECT DISTINCT action_id FROM unicore_role_actions")
@@ -1657,6 +1659,10 @@ func (r *Repository) authorizedActionRebinds(ctx context.Context, tx *sql.Tx, n 
 			return false, err
 		}
 		granted[id] = true
+	}
+	if err = rows.Err(); err != nil {
+		rows.Close()
+		return false, err
 	}
 	rows.Close()
 	if len(granted) == 0 {
@@ -1680,6 +1686,10 @@ func (r *Repository) authorizedActionRebinds(ctx context.Context, tx *sql.Tx, n 
 		}
 		stored[node.ID] = node
 	}
+	if err = srows.Err(); err != nil {
+		srows.Close()
+		return false, err
+	}
 	srows.Close()
 	for _, node := range n.Nodes {
 		if node.Type != "action" || !granted[node.ID] {
@@ -1687,7 +1697,10 @@ func (r *Repository) authorizedActionRebinds(ctx context.Context, tx *sql.Tx, n 
 		}
 		prev, ok := stored[node.ID]
 		if !ok {
-			continue // a fresh action id holds no stored binding to compare
+			// A grant row without a stored action binding cannot be compared:
+			// treating it as fresh would silently skip the guard, so refuse
+			// the save until the inconsistency is repaired.
+			return false, fmt.Errorf("authorized action %s has no stored binding to compare", node.ID)
 		}
 		if !sameActionBinding(prev, node) {
 			return true, nil
@@ -1698,7 +1711,9 @@ func (r *Repository) authorizedActionRebinds(ctx context.Context, tx *sql.Tx, n 
 
 // sameActionBinding compares the authorization-relevant fields of two action
 // nodes: the granted permission and the operation set. Labels, placement and
-// visibility are layout and stay on menus:write.
+// visibility are layout and stay on menus:write. The operation sets compare
+// unordered: resubmitting the same operations in a different order is a
+// layout-grade edit, not a rebind.
 func sameActionBinding(a, b contracts.NavigationNode) bool {
 	if (a.Permission == nil) != (b.Permission == nil) {
 		return false
@@ -1706,5 +1721,5 @@ func sameActionBinding(a, b contracts.NavigationNode) bool {
 	if a.Permission != nil && *a.Permission != *b.Permission {
 		return false
 	}
-	return slices.Equal(a.OperationIds, b.OperationIds)
+	return slices.Equal(slices.Sorted(slices.Values(a.OperationIds)), slices.Sorted(slices.Values(b.OperationIds)))
 }

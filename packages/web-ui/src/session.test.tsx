@@ -1,10 +1,12 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Revisiting the tab refetches bootstrap through the query cache for both realms.
+import { useEffect } from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { MessageProvider } from '@unicore/ui';
 import type { AppClient } from '@unicore/sdk';
-import { SessionBoundary, useSession } from './session';
+import { CacheScope, SessionBoundary, useSession } from './session';
 
 let visibilityDescriptor: PropertyDescriptor | undefined;
 beforeEach(() => {
@@ -71,4 +73,28 @@ it('keeps clients without session subscription idle', async () => {
   await waitFor(() => expect(bootstrap).toHaveBeenCalledTimes(1));
   await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
   expect(bootstrap).toHaveBeenCalledTimes(1);
+});
+
+it('a keyed cache scope tears its queries and state down when the key changes', async () => {
+  const client = probeClient([], { subscribe: false }).client;
+  const fetches = vi.fn(() => Promise.resolve('value'));
+  const gone = vi.fn();
+  function CachedProbe() {
+    const query = useQuery({ queryKey: ['probe'], queryFn: fetches, staleTime: Infinity });
+    useEffect(() => () => gone(), []);
+    return <div>{query.data ?? 'pending'}</div>;
+  }
+  function SwitchingWorkspaces({ consoleId }: { consoleId: string }) {
+    return <CacheScope key={consoleId} client={client}><CachedProbe /></CacheScope>;
+  }
+  const view = render(<MessageProvider><SwitchingWorkspaces consoleId="alpha" /></MessageProvider>);
+  await screen.findByText('value');
+  expect(fetches).toHaveBeenCalledTimes(1);
+  // Switching to another console remounts the scope: the previous cache is
+  // cleared (its probe unmounts) and the new console refetches from scratch.
+  view.rerender(<MessageProvider><SwitchingWorkspaces consoleId="beta" /></MessageProvider>);
+  await screen.findByText('value');
+  await waitFor(() => expect(gone).toHaveBeenCalled());
+  expect(fetches).toHaveBeenCalledTimes(2);
+  view.unmount();
 });

@@ -70,8 +70,8 @@ func mountNotes(api chi.Router, config Config) {
 				// Super administrators manage every user-realm note from the
 				// management surface, mirroring the files module Admin rule.
 				manageAll = administratorRequest(r) && platform.IsSuper(session.User)
-				// The personal screen opts into a server-filtered owner view.
-				// Preserve the legacy scoped API for existing integrations.
+				// The personal screen opts into an owner-scoped view; the
+				// default list resolves the caller's notes:access data scope.
 				if r.Method == http.MethodGet && r.URL.Query().Get("view") != "mine" {
 					filter, err := identity.Store.DataScope(r.Context(), session.User, "notes:access")
 					if err != nil {

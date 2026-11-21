@@ -192,7 +192,7 @@ try{
     writeFileSync(join(fixture.source,'distribution/manifest.json'),JSON.stringify(rollManifest,null,2)+'\n');
     const integratedVersion='0.1.8';
     writeFileSync(join(fixture.source,'VERSION'),integratedVersion+'\n');
-    execFileSync('pnpm',['version:sync'],{cwd:fixture.source,env:{...process.env,CI:'true'},stdio:['ignore','pipe','inherit']});
+    run('pnpm',['version:sync'],fixture.source);
     git(fixture.source,'add','-A');git(fixture.source,'commit','-qm','framework template roll: whitelist evidence file and framework version');
     const newTemplate=updateTemplateBranch(fixture.source).commit;
     if(newTemplate===creationTemplate) throw Error('the template roll did not produce a new template commit');

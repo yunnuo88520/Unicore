@@ -248,7 +248,7 @@ func TestRealHelperUpgradeAndRollback(t *testing.T) {
 							break
 						}
 						if job.Status == "failed" {
-							t.Fatal(job)
+							t.Fatal(job, "prepare cause:", i.PrepareCause())
 						}
 						time.Sleep(50 * time.Millisecond)
 					}

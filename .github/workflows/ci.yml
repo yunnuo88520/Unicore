@@ -84,6 +84,14 @@ jobs:
           if [ "$(git rev-parse "$tag^{commit}")" = "$(git rev-parse HEAD)" ]; then
             tag="$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null)" || { echo 'No previous release tag exists; skipping the upgrade rehearsal.'; exit 0; }
           fi
+          # The upgrade rehearsal starts from official releases only: the 0.1.x
+          # tags are internal experiments and are not upgrade sources for the
+          # first-release baseline.
+          version="$(git show "$tag:VERSION" 2>/dev/null || echo '')"
+          case "$version" in
+            0.1.*) echo "Skipping $tag: experimental 0.1.x releases are not upgrade sources for the first official release."; exit 0 ;;
+            '') echo "Skipping $tag: the tag carries no VERSION file."; exit 0 ;;
+          esac
           echo "Upgrading from $tag"
           make test-upgrade FROM_REF="$tag"
       - run: pnpm exec playwright install --with-deps chromium
@@ -204,9 +212,10 @@ jobs:
       - name: Verify the customized derived application full drill on Windows
         if: hashFiles('project.provenance.json') == '' && runner.os == 'Windows'
         run: node scripts/verify-derived-project.mjs full
-      # And the path a real downstream actually walks: create from the previous release
-      # template, commit customization, then framework:sync to the current template.
-      - name: Verify a real old-template upgrade drill on Windows
+      # And the path a real downstream actually walks: create from the current
+      # template, commit an application release, then framework:sync to a
+      # rolled-forward template lineage.
+      - name: Verify a real derived-project upgrade drill on Windows
         if: hashFiles('project.provenance.json') == '' && runner.os == 'Windows'
         run: node scripts/verify-derived-project.mjs upgrade
   docker-build:

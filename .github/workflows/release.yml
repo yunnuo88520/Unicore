@@ -19,7 +19,7 @@ on:
         required: true
         type: string
       upgrade_from_ref:
-        description: Trusted previous release tag or commit for the cross-version upgrade gate (for example v0.1.5)
+        description: Trusted previous release tag or commit for the cross-version upgrade gate (the nearest official release; experimental 0.1.x tags are not upgrade sources)
         required: true
         type: string
 permissions:

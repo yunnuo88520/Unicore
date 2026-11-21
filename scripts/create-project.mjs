@@ -208,7 +208,17 @@ export function createProject({ source = frameworkRoot, directory, name, module,
     return target;
   } catch(error) { rmSync(staging,{recursive:true,force:true}); throw error; }
 }
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+// Node realpaths ESM entry URLs: invoking this script through a symlinked
+// path (macOS /var/folders → /private/var/folders) must still be detected,
+// otherwise the generator exits 0 without creating anything.
+function invokedAsCli() {
+  if (!process.argv[1]) return false;
+  const direct = resolve(process.argv[1]);
+  let real;
+  try { real = realpathSync(direct); } catch { return false; }
+  return import.meta.url === pathToFileURL(direct).href || import.meta.url === pathToFileURL(real).href;
+}
+if (invokedAsCli()) {
   try {
     const args = process.argv.slice(2), options = {};
     for (let i = 0; i < args.length; i += 2) {

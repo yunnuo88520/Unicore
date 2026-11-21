@@ -54,4 +54,4 @@ Core import HTTP/Wails/SQL/身份模块；CLI 引 modules 或 DB；domain/usecas
 
 make test、go run ./scripts/check-boundaries、pnpm typecheck/check:i18n、受影响 profile build；有迁移时跑三方言与 test-upgrade 演练。
 
-参考可运行的完整模块：`internal/modules/notes/module.go` 及其子包（迁移自原分层样板的参考实现）；流程说明 docs/03-runbooks/business-example.md 与 docs/product/development.md。迁移遵守 docs/02-standards/database-migrations.md 与 ADR-0024/0025：module.<slug> 独立版本、统一 namespace 账本、depends_on 决定顺序。平台 scope 固定在入口生成；分页、软删除、乐观版本、审计与状态机遵守 [后端规范](../../../docs/02-standards/backend.md)。entity_test.go 自动发现新结构体；值对象例外须有说明。
+参考可运行的完整模块：`internal/modules/notes/module.go` 及其子包（迁移自原分层样板的参考实现）；流程说明 docs/03-runbooks/business-example.md 与 docs/product/development.md。服务端资源授权（权限点 + DataScope + 主体关系）与多工作台接入的对外验收样例见 `examples/orders/`（含演练脚本 `scripts/verify-orders-example.mjs`，在一次性派生项目上验证授权矩阵）。迁移遵守 docs/02-standards/database-migrations.md 与 ADR-0024/0025：module.<slug> 独立版本、统一 namespace 账本、depends_on 决定顺序。平台 scope 固定在入口生成；分页、软删除、乐观版本、审计与状态机遵守 [后端规范](../../../docs/02-standards/backend.md)。entity_test.go 自动发现新结构体；值对象例外须有说明。

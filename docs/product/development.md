@@ -88,6 +88,8 @@ Git 来源中选中的文件有未提交修改时，创建器默认拒绝导出�
 业务主体关系（如代理与订单的归属）属于业务模块，框架只提供身份、授权与数据范围基础。模块按既有三层完成服务端校验，前端传入的角色名、主体 ID 或工作台 ID 一律不可信：
 
 1. **权限点与 operation**：每个读写 operation 在契约中声明 `x-unicore.permissions`/`permissionMode`；handler 用 `require(...)` 复核权限点，运行时策略中间件按访问类与授权集 fail-closed。
+
+完整可运行的验收样例见 `examples/orders/`：一个一次性派生项目按公开流程创建、应用补丁、构建并启动隔离实例，验证客户/代理/运营的授权矩阵、深链接 403、篡改 ID 404 与多角色并集；演练脚本 `scripts/verify-orders-example.mjs` 可随时重跑。
 2. **数据范围**：需要按组织或本人收敛时，用 `identity.Store.DataScope(ctx, user, "<资源权限点>")` 解析 `ScopeFilter`，逐行用 `scope.Contains(subjectID)` 校验归属；写操作在存储事务内用 `AuthorizeScopedMutation` 复核浏览与写入范围的交集。笔记管理（`internal/adapter/http/notes.go`）是完整参考实现。
 3. **主体关系**：超出现有数据范围表达的业务归属（如"代理只能看被授权的订单"）由模块自建关系表并在查询与写入两侧校验；同一账号持有多角色时按显式权限并集生效，业务上下文不得放大授权。
 

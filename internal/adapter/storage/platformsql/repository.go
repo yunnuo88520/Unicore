@@ -154,9 +154,10 @@ func (r *Repository) readUser(ctx context.Context, q sqlstore.Runner, id, roleFi
 	user.RoleNames = &roleNames
 	user.Permissions = permissions
 	user.MenuIds, user.ActionIds, user.OperationIds = &menuIDs, &actionIDs, &operationIDs
-	if err = r.deriveGrantedPermissions(ctx, q, &user); err != nil {
-		return user, err
-	}
+	// The session projection reads stored authorization only: the permission
+	// points saved with the role are the single source for API checks and the
+	// DataScope row filter, so no menu or action rebind can silently widen a
+	// role (ADR-0050). super_admin keeps the whole catalogue.
 	if platform.IsSuper(user) {
 		user.Permissions = append([]string{}, platform.Permissions()...)
 	}
@@ -166,66 +167,6 @@ func (r *Repository) readUser(ctx context.Context, q sqlstore.Runner, id, roleFi
 	}
 	user.PostIds = &posts
 	return user, nil
-}
-
-// deriveGrantedPermissions supplements stored permission points from explicit
-// operation/action grants on every projection, not only for legacy roles. An
-// action contributes its current Permission even for an any-mode operation;
-// only non-any operations contribute their policy permissions. Rebinding the
-// same action ID can therefore change derived points without changing stored
-// role permissions, which remain DataScope's input (pending decision D25, C).
-// It never derives action or menu IDs: an initialized empty grant set is an
-// intentional revocation (ADR-0040).
-func (r *Repository) deriveGrantedPermissions(ctx context.Context, q sqlstore.Runner, user *contracts.User) error {
-	held := map[string]bool{}
-	for _, permission := range user.Permissions {
-		held[permission] = true
-	}
-	add := func(permission string) {
-		if permission != "" && !held[permission] && platform.CatalogPermission(permission) {
-			held[permission] = true
-			user.Permissions = append(user.Permissions, permission)
-		}
-	}
-	n, err := r.readNavigation(ctx, q)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return err
-	}
-	if err == nil {
-		nodes := map[string]contracts.NavigationNode{}
-		for _, node := range n.Nodes {
-			nodes[node.ID] = node
-		}
-		for _, id := range deref(user.ActionIds) {
-			node, ok := nodes[id]
-			if !ok || node.Type != "action" {
-				continue
-			}
-			if node.Permission != nil {
-				add(*node.Permission)
-			}
-			for _, operationID := range node.OperationIds {
-				if op, ok := platform.Operation(operationID); ok && op.Grantable && op.PermissionMode != "any" {
-					for _, permission := range op.Permissions {
-						add(permission)
-					}
-				}
-			}
-		}
-	}
-	// Granted operations speak for themselves: their policy permissions are
-	// exactly the points the role demonstrably needs. Mode any is the
-	// exception — the grant is satisfied by any one held point, so it implies
-	// none of its sibling points and derives nothing.
-	for _, id := range deref(user.OperationIds) {
-		if op, ok := platform.Operation(id); ok && op.Grantable && op.PermissionMode != "any" {
-			for _, permission := range op.Permissions {
-				add(permission)
-			}
-		}
-	}
-	sort.Strings(user.Permissions)
-	return nil
 }
 
 func deref(ids *[]string) []string {
@@ -259,13 +200,21 @@ func (r *Repository) Seed(ctx context.Context, tx *sql.Tx, input contracts.UserC
 			return contracts.User{}, err
 		}
 	}
-	// The builtin user role starts with every assignable permission point, so
-	// existing deployments keep their behaviour after the switch to grants.
+	// The builtin user role starts with every assignable permission point plus
+	// the delegable operations those points already unlock: the install writes
+	// this explicit default once, and later startup never widens it (ADR-0050).
+	assignable := []string{}
 	for _, permission := range platform.PermissionCatalog() {
 		if !permission.Assignable {
 			continue
 		}
+		assignable = append(assignable, permission.ID)
 		if _, err := r.exec(ctx, tx, "INSERT INTO unicore_role_permissions(role_id,permission_id) SELECT 'user',? WHERE NOT EXISTS (SELECT 1 FROM unicore_role_permissions WHERE role_id='user' AND permission_id=?)", permission.ID, permission.ID); err != nil {
+			return contracts.User{}, err
+		}
+	}
+	for _, operation := range platform.DefaultOperations("user", assignable) {
+		if _, err := r.exec(ctx, tx, "INSERT INTO unicore_role_operations(role_id,operation_id) SELECT 'user',? WHERE NOT EXISTS (SELECT 1 FROM unicore_role_operations WHERE role_id='user' AND operation_id=?)", operation, operation); err != nil {
 			return contracts.User{}, err
 		}
 	}

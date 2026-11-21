@@ -1,0 +1,28 @@
+# Author: yunnuo <ymz@ebox.vip>
+# Description: Orders acceptance drill: proves the derived-app console and explicit-authorization
+# flows on demand. It creates a disposable derived project through the public generator, applies
+# examples/orders and runs the assertion matrix against an isolated instance. Kept out of the
+# push gates: the drill compiles a full application and is the release-candidate acceptance,
+# not a per-commit check.
+name: Orders example acceptance
+on:
+  workflow_dispatch:
+
+jobs:
+  drill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-go@v5
+        with: { go-version-file: go.mod }
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - name: Run the orders acceptance drill
+        run: node scripts/verify-orders-example.mjs
+      - name: Keep the drill artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with: { name: orders-example-failure, path: build/, if-no-files-found: ignore }

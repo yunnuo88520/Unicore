@@ -31,7 +31,6 @@ func (r *Repository) role(ctx context.Context, q sqlstore.Runner, id string) (co
 	result := contracts.Role{ID: id, Version: version, Name: name, Realm: realm, Builtin: platform.BuiltinRole(id), Permissions: []string{}, DataScope: scope, DepartmentIds: []string{}}
 	if id == "super_admin" {
 		result.DataScope = platform.ScopeSelf
-		result.AuthorizationInitialized = true
 		result.MenuIds, result.ActionIds, result.OperationIds = []string{}, []string{}, []string{}
 		result.Permissions = append(result.Permissions, platform.Permissions()...)
 		if err := r.Store.Row(ctx, q, "SELECT COUNT(*) FROM unicore_user_roles WHERE role_id='super_admin'").Scan(&result.UserCount); err != nil {
@@ -67,9 +66,6 @@ func (r *Repository) role(ctx context.Context, q sqlstore.Runner, id string) (co
 	}
 	// Independent authorization relations: navigation items, action buttons and
 	// API operations are separate grant sets, all empty unless assigned.
-	if result.AuthorizationInitialized, err = r.roleAuthorizationInitialized(ctx, q, id); err != nil {
-		return contracts.Role{}, err
-	}
 	if result.MenuIds, err = r.roleIDList(ctx, q, "unicore_role_menus", id); err != nil {
 		return contracts.Role{}, err
 	}
@@ -166,12 +162,6 @@ func (r *Repository) saveRoleAuthorization(ctx context.Context, tx *sql.Tx, role
 				return err
 			}
 		}
-	}
-	if _, err := r.Store.Exec(ctx, tx, "DELETE FROM unicore_role_authorizations WHERE role_id=?", roleID); err != nil {
-		return err
-	}
-	if _, err := r.Store.Exec(ctx, tx, "INSERT INTO unicore_role_authorizations(role_id,initialized) VALUES(?,1)", roleID); err != nil {
-		return err
 	}
 	return nil
 }
@@ -386,10 +376,10 @@ func (r *Repository) CreateRole(ctx context.Context, input contracts.RoleSaveInp
 	if err != nil {
 		return contracts.Role{}, err
 	}
-	// Omitted grant arrays derive the role's exact current equivalents: every
-	// surface item and operation its permission points already unlock, so a
-	// newly created role keeps working without enumerating the catalogue.
-	menuIds, actionIds, operationIds := deriveGrants(realm, input.Permissions, nav)
+	// A new role starts with exactly the submitted grants: an omitted array is
+	// an explicit empty set, never an implied expansion of the permission
+	// points. saveRoleAuthorization validates every grant against the points.
+	menuIds, actionIds, operationIds := []string{}, []string{}, []string{}
 	if input.MenuIds != nil {
 		menuIds = *input.MenuIds
 	}
@@ -398,29 +388,6 @@ func (r *Repository) CreateRole(ctx context.Context, input contracts.RoleSaveInp
 	}
 	if input.OperationIds != nil {
 		operationIds = *input.OperationIds
-	}
-	if input.ActionIds == nil {
-		covered := map[string]bool{}
-		for _, id := range operationIds {
-			covered[id] = true
-		}
-		actions := map[string]contracts.NavigationNode{}
-		for _, node := range nav.Nodes {
-			actions[node.ID] = node
-		}
-		filtered := []string{}
-		for _, id := range actionIds {
-			valid := true
-			for _, op := range actions[id].OperationIds {
-				if !covered[op] {
-					valid = false
-				}
-			}
-			if valid {
-				filtered = append(filtered, id)
-			}
-		}
-		actionIds = filtered
 	}
 	if err = r.saveRoleAuthorization(ctx, tx, id, realm, input.Permissions, menuIds, actionIds, operationIds, nav); err != nil {
 		return contracts.Role{}, err
@@ -677,11 +644,10 @@ func (r *Repository) writeRoleDepartments(ctx context.Context, tx *sql.Tx, id st
 
 // EnsurePermissions re-applies the catalogue to an installed instance so new
 // permission points and the super_admin grant set survive version upgrades.
-// Apart from retired demo grants it never touches the builtin user role: revoked points stay
-// revoked and new points stay unassigned until an operator grants them. The
-// install-time Seed keeps the original full-assignable default for fresh
-// instances, and role authorization materialization runs exactly once at the
-// navigation upgrade, so upgrades never silently widen any role.
+// It never touches the builtin user role: revoked points stay revoked and new
+// points stay unassigned until an operator grants them. The install-time Seed
+// keeps the full-assignable default for fresh instances, so upgrades never
+// silently widen any role.
 func (r *Repository) EnsurePermissions(ctx context.Context) error {
 	tx, err := r.Store.DB.BeginTx(ctx, nil)
 	if err != nil {
@@ -693,11 +659,6 @@ func (r *Repository) EnsurePermissions(ctx context.Context) error {
 	}
 	before, err := r.roleEditSnapshots(ctx, tx)
 	if err != nil {
-		return err
-	}
-	// Retire the object-storage demo grants on the built-in user role only.
-	// Explicit custom-role API grants remain operator-owned.
-	if _, err := r.Store.Exec(ctx, tx, "DELETE FROM unicore_role_permissions WHERE role_id=? AND permission_id IN (?,?,?)", "user", "files:access", "files:upload", "files:delete"); err != nil {
 		return err
 	}
 	for _, permission := range platform.Permissions() {
@@ -712,46 +673,6 @@ func (r *Repository) EnsurePermissions(ctx context.Context) error {
 		return err
 	}
 	return tx.Commit()
-}
-
-// deriveGrants computes the equivalent authorization of a permission set
-// against the current navigation: surface items of the realm, action buttons
-// whose point is held and whose operations are all covered, and the API
-// operations the points already unlocked.
-func deriveGrants(realm string, permissions []string, n contracts.Navigation) ([]string, []string, []string) {
-	operations := platform.MaterializedOperations(realm, permissions)
-	operationSet := map[string]bool{}
-	for _, id := range operations {
-		operationSet[id] = true
-	}
-	permissionSet := map[string]bool{}
-	for _, permission := range permissions {
-		permissionSet[permission] = true
-	}
-	// The shared tree declares surfaces per node; a legacy role keeps the
-	// reach of its own realm only.
-	menus, actions := []string{}, []string{}
-	for _, node := range n.Nodes {
-		if !contains(node.Surfaces, realm) {
-			continue
-		}
-		if node.Type == "action" {
-			if node.Permission != nil && permissionSet[*node.Permission] {
-				covered := len(node.OperationIds) > 0
-				for _, id := range node.OperationIds {
-					if !operationSet[id] {
-						covered = false
-					}
-				}
-				if covered {
-					actions = append(actions, node.ID)
-				}
-			}
-			continue
-		}
-		menus = append(menus, node.ID)
-	}
-	return uniqueIDs(menus), uniqueIDs(actions), uniqueIDs(operations)
 }
 
 // derefIDs normalizes the optional contract arrays: nil means "keep" for

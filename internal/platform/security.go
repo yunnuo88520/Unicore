@@ -34,6 +34,10 @@ var (
 	ErrPostInUse = errors.New("post still has members")
 	// ErrPostConflict marks a duplicate post code distinct from account conflicts.
 	ErrPostConflict = errors.New("post code already exists")
+	// ErrMenuRolePermissionMissing refuses a menu role assignment for a role
+	// that does not hold the page's permission point: menu edits configure
+	// visibility only and never widen authorization (ADR-0050).
+	ErrMenuRolePermissionMissing = errors.New("role lacks the page permission point")
 )
 
 // AccountConflict identifies the already-used field without exposing database

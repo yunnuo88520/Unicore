@@ -19,6 +19,7 @@ var ErrorCatalog = map[string]ErrorDefinition{
 	"CSRF_INVALID":                         {Status: 403, Message: "请求校验已失效，请刷新页面"},
 	"DATABASE_INITIALIZED":                 {Status: 409, Message: "目标数据库已有安装记录，请恢复原实例配置，不能重新安装"},
 	"DATABASE_UNAVAILABLE":                 {Status: 400, Message: "无法连接或初始化数据库，请检查配置与权限后重试"},
+	"MENU_ROLE_PERMISSION_MISSING":         {Status: 400, Message: "角色尚未持有该页面的权限点：请先在角色编辑中授予，菜单分配只配置可见性"},
 	"DEPARTMENT_IN_USE":                    {Status: 409, Message: "部门下仍有子部门或挂靠用户，请先迁移后再删除"},
 	"INSTALL_COMMITTED":                    {Status: 500, Message: "安装已完成，请前往登录页面"},
 	"INSTALL_REQUIRED":                     {Status: 409, Message: "请先完成安装"},

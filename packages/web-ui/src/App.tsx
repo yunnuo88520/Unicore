@@ -370,7 +370,7 @@ function AccountMenuItems({ data, client, avatarURL, administration, onOpenAccou
       <DropdownMenuGroup>
       {data.admin_path && !administration && <DropdownMenuItem onSelect={() => window.location.assign(data.admin_path!)}><LayoutDashboard size={18} aria-hidden="true" />{t('管理工作台')}</DropdownMenuItem>}
       {administration && <DropdownMenuItem onSelect={() => window.location.assign('/')}><LayoutDashboard size={18} aria-hidden="true" />{t('工作空间')}</DropdownMenuItem>}
-      {consoles?.filter(console => consoleAccess({ console, pageID: '' }, data)).map(console =>
+      {consoles?.filter(console => consoleAccess({ console, pageID: '', rest: [] }, data)).map(console =>
         <DropdownMenuItem key={console.id} onSelect={() => void router.navigate({ to: consoleHref(console.id) })}><LayoutDashboard size={18} aria-hidden="true" />{t(console.title)}</DropdownMenuItem>)}
       <DropdownMenuItem onSelect={onOpenAccount}><UserRound size={18} aria-hidden="true" />{t('个人中心')}</DropdownMenuItem>
       <DropdownMenuItem onSelect={onOpenPassword}><KeyRound size={18} aria-hidden="true" />{t('修改密码')}</DropdownMenuItem>

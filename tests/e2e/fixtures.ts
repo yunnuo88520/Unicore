@@ -280,6 +280,20 @@ export function menuChain(config: MenuList, routeId: string, surface?: 'user' | 
   return chain;
 }
 
+// Action nodes the role can explicitly hold: children of the granted pages
+// whose permission point is in the set and whose operations are all granted —
+// the same bound the role editor and the server enforce on save.
+export function chainActions(config: MenuList, menuIds: string[], permissions: string[], operationIds: string[]): string[] {
+  const grantedPages = new Set(menuIds);
+  const ops = new Set(operationIds);
+  const points = new Set(permissions);
+  return config.nodes
+    .filter(node => node.type === 'action' && node.parent_id && grantedPages.has(node.parent_id)
+      && !!node.permission && points.has(node.permission)
+      && node.operation_ids.length > 0 && node.operation_ids.every(op => ops.has(op)))
+    .map(node => node.id).sort();
+}
+
 // Follow the shared control's semantic presentation, keeping option names visible in tests.
 export async function chooseOption(page: Page, label: string, option: string | RegExp, scope: Page | Locator = page) {
   const group = scope.getByRole('radiogroup', { name: label, exact: true });

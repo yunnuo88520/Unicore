@@ -79,7 +79,19 @@ Git 来源中选中的文件有未提交修改时，创建器默认拒绝导出�
 
 需要独立首页、导航或外壳的 Platform 应用，可以在用户 Web 入口从 `@unicore/web-ui` 导入 `defineConsoles`，将 `defineConsoles({ id, title, permission, shell, pages })` 的返回值传入 `<Workspace consoles={consoles} />`。例如以 `partner` 注册 `/workspaces/partner`，页面 `orders` 和 `reconciliation` 分别声明自己的权限点。根入口打开当前账号可达的第一个页面；有权限的账号也能从账号菜单进入。外壳通过 `navigation` 与 `children` 渲染独立导航和页面；需要侧栏几何时复用 `WorkspaceLayout`，不自行算偏移。控制台和页面标题和其他 UI 一样提供双语消息。
 
+子路由与详情页由页面自行渲染：`/workspaces/<id>/<page>/<rest…>` 的剩余段经页面 props 的 `path` 传入（如 `/workspaces/partner/orders/42` 使 `path` 为 `['42']`），深链接与刷新天然可用；跳转用 `consolePageHref(consoleId, pageId, …rest)` 构造地址。切换工作台只改变呈现，不改身份与权限并集；每个工作台的查询缓存与页面状态由独立缓存作用域持有，切换后上一工作台的缓存与状态被清空，不跨工作台复用。入口权限（`console.permission`）决定账号能否进入该工作台，页面权限（`page.permission`）决定渲染哪个页面；两者都只是呈现门禁，服务端授权独立生效。
+
 在后端模块登记进入与页面使用的权限点，在角色管理给代理业务员、财务等角色分别授予所需权限；实际请求仍走独立契约 operation 和资源校验。控制台定义不是授权策略，也不改变账号的多角色并集。系统治理仍放内置管理后台；自定义控制台没有新的登录 Cookie、API realm 或产品 profile，导航由代码注册，内置菜单编辑器不会改它。`/workspaces` 是业务控制台保留前缀；已在该地址部署管理后台的实例需要先将后台迁到另一前缀。
+
+### 业务资源的服务端授权
+
+业务主体关系（如代理与订单的归属）属于业务模块，框架只提供身份、授权与数据范围基础。模块按既有三层完成服务端校验，前端传入的角色名、主体 ID 或工作台 ID 一律不可信：
+
+1. **权限点与 operation**：每个读写 operation 在契约中声明 `x-unicore.permissions`/`permissionMode`；handler 用 `require(...)` 复核权限点，运行时策略中间件按访问类与授权集 fail-closed。
+
+完整可运行的验收样例见 `examples/orders/`：一个一次性派生项目按公开流程创建、应用补丁、构建并启动隔离实例，验证客户/代理/运营的授权矩阵、深链接 403、篡改 ID 404 与多角色并集；演练脚本 `scripts/verify-orders-example.mjs` 可随时重跑。
+2. **数据范围**：需要按组织或本人收敛时，用 `identity.Store.DataScope(ctx, user, "<资源权限点>")` 解析 `ScopeFilter`，逐行用 `scope.Contains(subjectID)` 校验归属；写操作在存储事务内用 `AuthorizeScopedMutation` 复核浏览与写入范围的交集。笔记管理（`internal/adapter/http/notes.go`）是完整参考实现。
+3. **主体关系**：超出现有数据范围表达的业务归属（如"代理只能看被授权的订单"）由模块自建关系表并在查询与写入两侧校验；同一账号持有多角色时按显式权限并集生效，业务上下文不得放大授权。
 
 ## 应用发版与框架版本
 

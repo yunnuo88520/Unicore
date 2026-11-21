@@ -9,7 +9,7 @@ const renders = vi.fn();
 function PartnerShell({ title, navigation, children }: ConsoleShellProps) {
   return <div data-testid="partner-shell"><h1>{title}</h1><nav>{navigation.map(item => <a key={item.href} href={item.href}>{item.label}</a>)}</nav>{children}</div>;
 }
-function PartnerOrders() { renders('orders'); return <h2>Assigned customer orders</h2>; }
+function PartnerOrders({ path }: { path: readonly string[] }) { renders(['orders', ...path]); return <h2>Assigned customer orders</h2>; }
 function Reconciliation() { renders('finance'); return <h2>Partner reconciliation</h2>; }
 const consoles = defineConsoles({ id: 'partner', title: 'Partner console', permission: 'partner:access', shell: PartnerShell, pages: [
   { id: 'orders', label: 'Orders', permission: 'orders:assigned:read', component: PartnerOrders },
@@ -53,4 +53,15 @@ it('does not expose the console on standalone', async () => {
 it('rejects conflicting and invalid registrations', () => {
   expect(() => defineConsoles(consoles[0], consoles[0])).toThrow();
   expect(() => defineConsoles({ ...consoles[0], id: '../admin' })).toThrow();
+});
+
+it('deep-links a console page with its sub-route segments and keeps refresh semantics', async () => {
+  mount('/workspaces/partner/orders/42', ['agent'], ['partner:access', 'orders:assigned:read']);
+  expect(await screen.findByRole('heading', { name: 'Assigned customer orders' })).toBeVisible();
+  expect(renders).toHaveBeenCalledWith(['orders', '42']);
+});
+
+it('rejects dot segments in console sub-routes instead of mounting a page', () => {
+  mount('/workspaces/partner/orders/../reconciliation', ['agent'], ['partner:access', 'orders:assigned:read', 'orders:reconcile']);
+  return screen.findByText('404').then(() => expect(renders).not.toHaveBeenCalled());
 });

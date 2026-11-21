@@ -26,9 +26,11 @@ import (
 
 type truncatedProvider struct{ archive string }
 
-func (p truncatedProvider) Name() string                                             { return "fixture-truncated" }
-func (p truncatedProvider) Releases(context.Context) ([]updates.Release, error)      { return nil, nil }
-func (p truncatedProvider) Read(_ context.Context, _ string, _ int64) ([]byte, error) { return nil, nil }
+func (p truncatedProvider) Name() string                                        { return "fixture-truncated" }
+func (p truncatedProvider) Releases(context.Context) ([]updates.Release, error) { return nil, nil }
+func (p truncatedProvider) Read(_ context.Context, _ string, _ int64) ([]byte, error) {
+	return nil, nil
+}
 func (p truncatedProvider) Download(_ context.Context, _ string, w io.Writer, _ int64, progress func(int64)) error {
 	raw, e := os.ReadFile(p.archive)
 	if e != nil {

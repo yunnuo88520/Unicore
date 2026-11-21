@@ -1,5 +1,5 @@
 -- Author: yunnuo <ymz@ebox.vip>
--- Purpose: platform final-state baseline (roles version CAS, inbox actions, MCP governance and OAuth storage); sqlite; web-platform, web-standalone and desktop.
+-- Purpose: platform final-state baseline (roles version CAS, inbox actions with the source dedupe key, MCP governance and OAuth storage); sqlite; web-platform, web-standalone and desktop.
 -- Compatibility: pre-stable squash for fresh databases; previous development ledgers are rejected.
 -- Recovery: restore matching DB/data/config/key/binary snapshots to a new target. No down SQL.
 -- Baseline DDL and static seed rows are replay-idempotent; roles/accounts are initialized by Go Seed.
@@ -109,18 +109,6 @@ CREATE TABLE IF NOT EXISTS unicore_email_changes (
 );
 
 INSERT INTO unicore_storage_locations(id,name,provider,endpoint,bucket,region,prefix,path_style,credentials,tested,created_at) SELECT 'legacy-brand','历史品牌文件','local','','','','',1,'',1,0 WHERE NOT EXISTS (SELECT 1 FROM unicore_storage_locations WHERE id='legacy-brand');
-
-CREATE TABLE IF NOT EXISTS unicore_menus (
- menu_key VARCHAR(64) NOT NULL PRIMARY KEY,
- label VARCHAR(80) NOT NULL DEFAULT '',
- group_key VARCHAR(32) NOT NULL DEFAULT '',
- sort INTEGER NOT NULL DEFAULT 100,
- visible INTEGER NOT NULL DEFAULT 1,
- updated_at BIGINT NOT NULL DEFAULT 0,
- parent_key VARCHAR(64) NULL,
- type VARCHAR(16) NOT NULL DEFAULT 'page',
- url VARCHAR(2048) NULL
-);
 CREATE TABLE IF NOT EXISTS unicore_dict_types (
  id VARCHAR(64) NOT NULL PRIMARY KEY,
  code VARCHAR(64) NOT NULL UNIQUE,
@@ -155,6 +143,8 @@ CREATE TABLE IF NOT EXISTS unicore_inbox_messages (
  actions TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS unicore_inbox_recipient ON unicore_inbox_messages(recipient_id,read_at,created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS unicore_inbox_source_key
+  ON unicore_inbox_messages(recipient_id, type, source_id) WHERE source_id <> '';
 CREATE TABLE IF NOT EXISTS unicore_scheduled_jobs (
  name VARCHAR(64) NOT NULL PRIMARY KEY,
  schedule VARCHAR(64) NOT NULL,
@@ -187,7 +177,6 @@ CREATE TABLE IF NOT EXISTS unicore_navigation_state (id INTEGER PRIMARY KEY, ver
 INSERT INTO unicore_navigation_state(id,version,initialized) SELECT 1,0,0 WHERE NOT EXISTS (SELECT 1 FROM unicore_navigation_state WHERE id=1);
 CREATE TABLE IF NOT EXISTS unicore_navigation_sections (id VARCHAR(64) NOT NULL PRIMARY KEY, surface VARCHAR(32) NOT NULL, payload TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS unicore_navigation_nodes (id VARCHAR(64) NOT NULL, section_id VARCHAR(64) NOT NULL, node_type VARCHAR(16) NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(section_id, id));
-CREATE TABLE IF NOT EXISTS unicore_role_authorizations (role_id VARCHAR(64) NOT NULL PRIMARY KEY, initialized INTEGER NOT NULL);
 
 CREATE TABLE IF NOT EXISTS unicore_role_menus (role_id VARCHAR(64) NOT NULL, menu_id VARCHAR(64) NOT NULL, PRIMARY KEY(role_id,menu_id));
 CREATE TABLE IF NOT EXISTS unicore_role_actions (role_id VARCHAR(64) NOT NULL, action_id VARCHAR(64) NOT NULL, PRIMARY KEY(role_id,action_id));

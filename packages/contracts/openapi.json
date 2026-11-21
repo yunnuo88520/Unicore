@@ -18021,13 +18021,6 @@
           "mfa_enrollment_required": {
             "type": "boolean"
           },
-          "menus": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MenuEntry"
-            },
-            "description": "Operator-edited menu overrides; absent entries fall back to route defaults."
-          },
           "navigation": {
             "$ref": "#/components/schemas/Navigation"
           }
@@ -19571,6 +19564,7 @@
           "description",
           "group",
           "assignable",
+          "governance",
           "super_admin"
         ],
         "properties": {
@@ -19587,7 +19581,12 @@
             "type": "string"
           },
           "assignable": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Baseline business permissions are granted to new members by default; governance points never are."
+          },
+          "governance": {
+            "type": "boolean",
+            "description": "System governance point: holding it marks the account as privileged for session and MFA policy, independent of the default-grant question."
           },
           "super_admin": {
             "type": "boolean",
@@ -19610,7 +19609,6 @@
           "menu_ids",
           "action_ids",
           "operation_ids",
-          "authorization_initialized",
           "version"
         ],
         "properties": {
@@ -19687,9 +19685,6 @@
             },
             "maxItems": 2048,
             "uniqueItems": true
-          },
-          "authorization_initialized": {
-            "type": "boolean"
           },
           "version": {
             "type": "integer",
@@ -23367,73 +23362,16 @@
           }
         }
       },
-      "MenuEntry": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "menu_key",
-          "label",
-          "group_key",
-          "sort",
-          "visible",
-          "type"
-        ],
-        "properties": {
-          "menu_key": {
-            "type": "string",
-            "maxLength": 64
-          },
-          "label": {
-            "type": "string",
-            "maxLength": 80
-          },
-          "group_key": {
-            "type": "string",
-            "maxLength": 32
-          },
-          "sort": {
-            "type": "integer"
-          },
-          "visible": {
-            "type": "boolean"
-          },
-          "parent_key": {
-            "type": "string",
-            "maxLength": 64,
-            "description": "Key of the configured page or link row this entry nests under; omitted or empty places the entry at its top-level group. The tree depth is limited to 5 and cycles are rejected on save."
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "page",
-              "link"
-            ],
-            "description": "page rows override a registered route page and never carry url; link rows are operator-created external links with a link: prefixed key and a required url."
-          },
-          "url": {
-            "type": "string",
-            "maxLength": 2048,
-            "description": "Link target; only link rows carry it. Accepts http(s) URLs or in-site relative paths starting with /."
-          }
-        }
-      },
       "MenuList": {
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "items",
           "version",
           "sections",
           "nodes",
           "pages"
         ],
         "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MenuEntry"
-            }
-          },
           "version": {
             "type": "integer",
             "minimum": 0
@@ -23467,13 +23405,6 @@
           "nodes"
         ],
         "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MenuEntry"
-            },
-            "maxItems": 256
-          },
           "version": {
             "type": "integer",
             "minimum": 0
@@ -27616,6 +27547,10 @@
     "DATABASE_UNAVAILABLE": {
       "status": 400,
       "message": "无法连接或初始化数据库，请检查配置与权限后重试"
+    },
+    "MENU_ROLE_PERMISSION_MISSING": {
+      "status": 400,
+      "message": "角色尚未持有该页面的权限点：请先在角色编辑中授予，菜单分配只配置可见性"
     },
     "DEPARTMENT_IN_USE": {
       "status": 409,

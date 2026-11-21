@@ -430,21 +430,13 @@ func TestRoleCleanupVersions(t *testing.T) {
 	if _, err = repo.UpdateRole(ctx, role.ID, contracts.RoleSaveInput{Name: role.Name, Version: &role.Version}, owner.ID); !errors.Is(err, platform.ErrConflict) {
 		t.Fatal("cleanup did not stale snapshot", err)
 	}
-	// Retired user permission cleanup changes once, and repeated startup is quiet.
-	if _, err = repo.Store.Exec(ctx, repo.Store.DB, "INSERT INTO unicore_role_permissions(role_id,permission_id) VALUES('user','files:access')"); err != nil {
-		t.Fatal(err)
-	}
+	// Startup permission re-assertion never touches the builtin user role, so a
+	// clean state keeps every role version still.
 	before := *currentRoleVersion(t, ctx, repo, "user")
 	if err = repo.EnsurePermissions(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if got := *currentRoleVersion(t, ctx, repo, "user"); got != before+1 {
-		t.Fatalf("permission cleanup version %d, before %d", got, before)
-	}
-	if err = repo.EnsurePermissions(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if got := *currentRoleVersion(t, ctx, repo, "user"); got != before+1 {
-		t.Fatalf("permission no-op version %d", got)
+	if got := *currentRoleVersion(t, ctx, repo, "user"); got != before {
+		t.Fatalf("clean startup advanced role version %d", got)
 	}
 }

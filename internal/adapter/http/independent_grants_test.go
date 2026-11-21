@@ -18,7 +18,7 @@ import (
 func TestIndependentGrantRevocation(t *testing.T) {
 	manager, request := actionRouter(t)
 	adminCookie, adminCSRF := actionInstall(t, request)
-	w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "用户运营", "realm": "administrator", "permissions": []string{"users:read", "users:create"}}, adminCookie, adminCSRF)
+	w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "用户运营", "realm": "administrator", "permissions": []string{"users:read", "users:create"}, "operation_ids": []string{"createUser", "exportUsers", "importUsers", "listUsers", "roleOptions", "userImportTemplate"}}, adminCookie, adminCSRF)
 	if w.Code != http.StatusOK {
 		t.Fatal("role create", w.Code, w.Body.String())
 	}
@@ -26,8 +26,10 @@ func TestIndependentGrantRevocation(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &created); err != nil || created.Data.ID == "" {
 		t.Fatal("role payload", w.Body.String(), err)
 	}
-	if len(created.Data.MenuIds) == 0 || len(created.Data.ActionIds) == 0 || len(created.Data.OperationIds) == 0 {
-		t.Fatal("derived grants missing", created.Data.MenuIds, created.Data.ActionIds, created.Data.OperationIds)
+	// Explicit grants only: the submitted operation rows persist, while menu
+	// and action visibility start empty until the editor grants them.
+	if len(created.Data.OperationIds) == 0 || len(created.Data.MenuIds) != 0 || len(created.Data.ActionIds) != 0 {
+		t.Fatal("explicit grants missing", created.Data.MenuIds, created.Data.ActionIds, created.Data.OperationIds)
 	}
 	operations := append([]string{}, created.Data.OperationIds...)
 
@@ -36,8 +38,8 @@ func TestIndependentGrantRevocation(t *testing.T) {
 	empty := []string{}
 	w = request("PUT", "/api/v1/admin/roles/"+created.Data.ID, map[string]any{
 		"version": created.Data.Version, "name": "用户运营",
-		"permissions": []string{"users:read", "users:create"},
-		"menu_ids":    empty, "action_ids": empty,
+		"permissions": []string{"users:read", "users:create"}, "operation_ids": []string{"createUser", "exportUsers", "importUsers", "listUsers", "roleOptions", "userImportTemplate"},
+		"menu_ids": empty, "action_ids": empty,
 	}, adminCookie, adminCSRF)
 	if w.Code != http.StatusOK {
 		t.Fatal("menu/action revocation", w.Code, w.Body.String())
@@ -110,7 +112,7 @@ func TestDataScopeWriteBoundary(t *testing.T) {
 	}
 	deptA, deptB := dept("范围内部门"), dept("范围外部门")
 	scope := "dept"
-	w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "部门运营", "data_scope": scope, "permissions": []string{"users:read", "users:create", "users:update"}}, adminCookie, adminCSRF)
+	w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "部门运营", "data_scope": scope, "permissions": []string{"users:read", "users:create", "users:update"}, "operation_ids": []string{"createUser", "exportUsers", "importUsers", "listUsers", "roleOptions", "updateUser", "userImportTemplate"}}, adminCookie, adminCSRF)
 	if w.Code != http.StatusOK {
 		t.Fatal("role create", w.Code, w.Body.String())
 	}

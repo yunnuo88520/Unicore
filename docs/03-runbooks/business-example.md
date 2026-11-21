@@ -83,3 +83,7 @@ Web 与桌面复用 React 页面和 Go 用例，分别通过 HTTP 与 Wails 调�
 笔记以 `module.notes` 命名空间接入统一 Catalog 和迁移执行器。自己的模块使用独立命名空间，后续追加连续版本，并提供各方言 SQL、兼容与恢复说明。已交付的 SQL 保持原字节和 checksum。
 
 裁剪回归使用 `pnpm test:notes`，覆盖前后端装配、API 404、页面产物和 SQLite 数据保留；PostgreSQL/MySQL 的真实数据库执行需另行验证。具体关闭和永久移除步骤见 [裁剪示例与可选能力](../product/features.md)。
+
+## 对外验收样例
+
+`examples/orders/` 是不进模板的派生项目验收样例：按公开创建流程得到一次性项目，应用补丁包后构建并启动隔离实例，验证服务端主体关系授权（客户/代理/运营）、`defineConsoles` 多工作台接入、深链接 403、篡改 ID 404 与多角色并集。`node scripts/verify-orders-example.mjs` 可随时重跑；授权接入规范见 [development](../product/development.md) 的"业务资源的服务端授权"。

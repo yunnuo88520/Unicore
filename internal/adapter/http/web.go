@@ -119,6 +119,8 @@ func webError(w http.ResponseWriter, err error) {
 		code = "INVALID_CREDENTIALS"
 	case errors.Is(err, platform.ErrForbidden):
 		code = "PERMISSION_DENIED"
+	case errors.Is(err, platform.ErrMenuRolePermissionMissing):
+		code = "MENU_ROLE_PERMISSION_MISSING"
 	// Bare conflicts (menu version CAS, role name uniqueness races) read as
 	// generic record conflicts; account duplicates keep their dedicated
 	// AccountConflict branch above, and post conflicts map below.
@@ -272,6 +274,9 @@ func require(manager *install.Manager, w http.ResponseWriter, r *http.Request, p
 	}
 	if permission != "" && !platform.Has(session.User, permission) {
 		webError(w, platform.ErrForbidden)
+		// The handler layer re-checks points the policy middleware already
+		// gated; those denials deserve the same audit trail.
+		recordDenial(manager, r, &session, "authz.denied", "reason=permission; point="+permission)
 		return session, false
 	}
 	identity := manager.Identity(administratorRequest(r))
@@ -384,11 +389,8 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 			}
 			data.CsrfToken = &session.CsrfToken
 			if entries, err := identity.Store.ListMenuConfig(r.Context()); err == nil {
-				if len(entries.Items) != 0 {
-					data.Menus = &entries.Items
-				}
-				// The normalized navigation is projected per surface and per
-				// member grants; the legacy items above stay as a compat echo.
+				// The shared navigation is projected per surface and per member
+				// grants; the frontend renders only this projected tree.
 				surface := "user"
 				if administratorRequest(r) {
 					surface = "administrator"

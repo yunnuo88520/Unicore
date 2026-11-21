@@ -481,7 +481,7 @@ func TestPersonalTokenSingleRoleAndBrowserOnlyAdministration(t *testing.T) {
 		tokenData[any](t, f.request("GET", path, nil, adminPAT.Token, "", false), 403)
 	}
 	// A role edit revokes the security anchor. A fresh browser cannot renew it back to life.
-	if _, err = f.identity.Store.UpdateRole(ctx, read.ID, contracts.RoleSaveInput{Version: &read.Version, Name: "Renamed reader", Permissions: []string{"notes:access"}}, f.admin.ID); err != nil {
+	if _, err = f.identity.Store.UpdateRole(ctx, read.ID, contracts.RoleSaveInput{Version: &read.Version, Name: "Renamed reader", Permissions: []string{"notes:access"}, OperationIds: &[]string{"adminFileAccess", "fileAccess", "listNotes", "notesFileAccess", "notesFileUploadPolicy", "notesListFiles", "notesMultipartUpload"}}, f.admin.ID); err != nil {
 		t.Fatal(err)
 	}
 	tokenData[any](t, f.request("GET", "/notes", nil, pat.Token, "", false), 401)
@@ -520,11 +520,11 @@ func TestPersonalTokenAdministrativeDataScope(t *testing.T) {
 	f := newTokenHTTP(t)
 	ctx := t.Context()
 	self, all := platform.ScopeSelf, platform.ScopeAll
-	narrow, err := f.identity.Store.CreateRole(ctx, contracts.RoleSaveInput{Name: "Self account editor", Permissions: []string{"users:read", "users:update"}, DataScope: &self}, f.admin.ID)
+	narrow, err := f.identity.Store.CreateRole(ctx, contracts.RoleSaveInput{Name: "Self account editor", Permissions: []string{"users:read", "users:update"}, OperationIds: &[]string{"exportUsers", "listUsers", "roleOptions", "updateUser"}, DataScope: &self}, f.admin.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	wide, err := f.identity.Store.CreateRole(ctx, contracts.RoleSaveInput{Name: "Global account editor", Permissions: []string{"users:read", "users:update", "users:create"}, DataScope: &all}, f.admin.ID)
+	wide, err := f.identity.Store.CreateRole(ctx, contracts.RoleSaveInput{Name: "Global account editor", Permissions: []string{"users:read", "users:update", "users:create"}, OperationIds: &[]string{"createUser", "exportUsers", "importUsers", "listUsers", "roleOptions", "updateUser", "userImportTemplate"}, DataScope: &all}, f.admin.ID)
 	if err != nil {
 		t.Fatal(err)
 	}

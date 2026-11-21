@@ -63,7 +63,9 @@ test('notes have distinct personal and management pages and menu assignments', a
   await page.goto(`${instance.url}/notes`);
   await expect(page.getByRole('heading', { name: 'Owner personal note' })).toBeVisible();
   await expect(page.getByText('Member private note')).toHaveCount(0);
-  await page.goto(`${instance.url}/admin/note-management`);
+  // 笔记管理 is a user business region page: the super admin opens it from
+  // the user workspace, the administrator console keeps no notes entry.
+  await page.goto(`${instance.url}/note-management`);
   await expect(page.getByRole('heading', { name: '笔记管理', exact: true })).toBeVisible();
   const actions = page.getByRole('button', { name: '笔记操作：Member private note', exact: true });
   const authorCell = info.project.name === 'mobile'
@@ -181,12 +183,15 @@ test('notes have distinct personal and management pages and menu assignments', a
   expect((await myNotes()).items).toHaveLength(0);
   await page.goto(`${instance.url}/admin/menus`);
   await expect(page.getByRole('combobox', { name: '按工作台筛选' })).toHaveText('管理工作台');
-  await expect(page.getByRole('button', { name: '分配角色：笔记管理' })).toBeVisible();
-  await expect(page.getByRole('button', { name: '分配角色：我的笔记' })).toHaveCount(0);
-  await expect(page.getByText('当前账号侧栏：已显示', { exact: true }).first()).toBeVisible();
-  await chooseOption(page, '按工作台筛选', '用户工作台');
-  await expect(page.getByRole('button', { name: '分配角色：我的笔记' })).toBeVisible();
+  // Both notes entries live in the user business region only: the
+  // administrator surface exposes no notes rows at all.
   await expect(page.getByRole('button', { name: '分配角色：笔记管理' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '分配角色：我的笔记' })).toHaveCount(0);
+  await chooseOption(page, '按工作台筛选', '用户工作台');
+  // The personal page and the management page each expose a menu-row role
+  // assignment in the user workspace.
+  await expect(page.getByRole('button', { name: '分配角色：我的笔记' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '分配角色：笔记管理' })).toBeVisible();
 });
 
 test('ordinary member uploads an avatar and note attachment without file management grants',async({page,instance},info)=>{

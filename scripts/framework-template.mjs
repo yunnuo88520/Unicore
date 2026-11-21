@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Maintain the framework-template branch: an independent whitelist-only history whose commits chain per template update.
 import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -80,7 +80,11 @@ export function updateTemplateBranch(root = process.cwd()) {
 
 // pathToFileURL, not a manual file:// concat: Windows drive paths (D:\a\...)
 // produce an invalid URL with the naive form and the CLI silently never ran.
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+// realpathSync closes the same class of silent no-op on macOS, where tmpdir()
+// hands out symlinked /var/folders paths while Node resolves module URLs to
+// /private/var — a bare resolve() would never match and the CLI would exit 0
+// without running.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(resolve(process.argv[1]))).href) {
   try {
     // Baseline validation runs this source checkout's own generator so an old
     // template is compared against what its contemporary generator produced.

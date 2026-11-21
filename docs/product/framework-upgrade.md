@@ -74,52 +74,16 @@ pnpm framework:sync --abort
 
 `--abort` 仅丢弃本次隔离合并及其人工解决结果，不重置业务分支、不删除业务工作区的新改动。完成或中止前不要再次发起新的同步。
 
-## 旧版本创建的项目：先迁移同步工具
+## 首发前的实验版本不是升级来源
 
-由 0.1.6 及更早模板创建、尚未完成 0.1.7 首次同步的项目，自带旧版 `scripts/framework-sync.mjs`。旧工具遇到冲突会安全拒绝且不推进分支，但它不记录 `framework_integration`、不按应用自己的 VERSION 重生成版本投影，也没有本轮的版本字段冲突自动处理；直接用它完成升级会得到一次"能合并但不完整"的集成。按项目所处情形分三步走，升级入口始终是应用自己的命令，不要借用框架检出里的脚本。
+0.1.x 实验版本（v0.1.1–v0.1.7）的模板与数据库基线属于内部验证，不作为 0.2.0 首发的升级来源；旧创建器的同步工具链迁移与缺失祖先 graft 补偿流程已随它们退役。以这些版本创建的项目与数据：
 
-### 情形一：正常升级（有模板祖先）
+- 不自动迁移、不自动擦除：旧数据目录保持原样，框架不会改写或删除它们，新版本代码遇到旧账本会安全拒绝并明确报错。
+- 需要保留数据时，用与该实验版本匹配的旧二进制执行 `ops backup`，把恢复目标指向一个全新的隔离数据目录，恢复本身也用同一旧版本二进制完成；不要用新版本二进制读写旧数据目录。
+- 仅需继续开发时，从当前模板重新创建项目，把业务源码与迁移按[应用开发](development.md)的模块边界迁入，迁移命名空间在新基线上重建；不要复用实验库的账本。
+- 隔离重建的操作边界见[数据库迁移规范](https://unicore.ebox.vip/02-standards/database-migrations)。
 
-`pnpm framework:check` 能报告待更新且列出预览冲突。旧工具拒绝后，刷新同步工具链（四个脚本都只依赖 Node 内置模块，从待同步模板整体取出），再用刷新后的工具完成升级：
-
-```sh
-pnpm framework:check
-pnpm framework:sync   # 冲突时安全拒绝，原分支不变；按上文人工解决后 --continue
-git fetch framework framework-template
-for script in framework-sync.mjs product-identity.mjs check-product-residuals.mjs distribution.mjs; do
-  git show FETCH_HEAD:scripts/$script > scripts/$script
-  git add scripts/$script
-done
-git commit -m "Refresh framework sync tooling from the pending template"
-pnpm framework:sync --abort   # 刷新后的工具清理旧工具留下的现场（Windows 路径差异下旧 --abort 可能失败）
-pnpm framework:sync
-```
-
-被拒绝场景留下的 `backup/pre-sync-*` 备份分支随该场景一并清理。刷新后的 `--abort` 会先校验 `build/framework-sync-state.json` 再移除隔离 worktree 与临时目录，可用于恢复任何旧工具留下的未完成现场。
-
-### 情形二：缺失模板祖先（由导出档案创建）
-
-从导出档案（无 `.git`）创建的项目没有模板祖先，旧工具的 check/sync 直接以"No common ancestor with framework-template"拒绝，且不会留下同步现场。迁移工具链之后，用刷新后的 `graft` 把待同步模板提交嫁接为现有历史的祖先（树、提交说明、作者与日期逐字节保留，只新增祖先关系），再正常同步：
-
-```sh
-pnpm framework:check        # 旧工具拒绝：缺失模板祖先
-git fetch framework framework-template
-for script in framework-sync.mjs product-identity.mjs check-product-residuals.mjs distribution.mjs; do
-  git show FETCH_HEAD:scripts/$script > scripts/$script
-  git add scripts/$script
-done
-git commit -m "Refresh framework sync tooling from the pending template"
-node scripts/framework-sync.mjs graft
-pnpm framework:sync
-```
-
-`graft` 要求工作区干净、项目与模板尚无共同祖先；它依据可验证的创建来源定位准确的基线模板提交——优先使用 provenance 记录的 `template_revision`，缺失时用记录的原始输入摘要（`input_files` 的逐文件 SHA-256）与白名单集合，逐一核对谱系中同框架版本的每个模板提交——把该提交嫁接为现有历史的祖先（重写本地分支的提交对象，树、提交说明、作者与日期逐字节保留），并在改写前创建 `backup/pre-graft-*` 备份引用。同一版本存在多个模板提交时，只有与创建输入完全一致的提交会被采用；无法唯一确定（无证据、无匹配或多匹配）时 `graft` 拒绝执行，分支与工作区保持不变。已有祖先的项目运行 `graft` 会被拒绝并提示直接 `framework:sync`。
-
-### 情形三：旧工具留下未完成的现场
-
-旧工具在冲突拒绝或中途失败后可能留下隔离 worktree、`build/framework-sync-state.json` 与 `backup/pre-sync-*`；Windows 上旧工具的路径比较还可能让 `--abort` 自身失败。只要完成了工具链刷新，直接运行 `pnpm framework:sync --abort`，刷新后的工具按同一入口清理现场；之后删除该场景的 `backup/pre-sync-*` 备份分支，再继续迁移与同步。
-
-迁移提交本身不合并任何框架源码；`framework_integration` 由随后的首次同步在合并提交中记录，镜像仓库引用（ghcr 的完整 `owner/repository`）等发布投影也随刷新后的工具按 `project.provenance.json` 的 repository 重新推导，仓库名与产品 slug 不同时同样正确。此迁移只需一次：之后的每次同步都会把工具链当作普通模板文件一并更新。
+正式首发（0.2.0）之后，已发行的迁移 SQL 字节即冻结：后续变更一律追加版本并保持账本校验连续，跨版本升级演练以最近一个正式版本标签为锚。
 
 ## 应用反馈与框架通用问题
 

@@ -192,6 +192,19 @@ CREATE TABLE IF NOT EXISTS unicore_email_changes (
 
 INSERT INTO unicore_storage_locations(id,name,provider,endpoint,bucket,region,prefix,path_style,credentials,tested,created_at) SELECT 'legacy-brand','历史品牌文件','local','','','','',1,'',1,0 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM unicore_storage_locations WHERE id='legacy-brand');
 
+CREATE TABLE IF NOT EXISTS `unicore_menus` (
+  `menu_key` varchar(64) NOT NULL,
+  `label` varchar(80) NOT NULL DEFAULT '',
+  `group_key` varchar(32) NOT NULL DEFAULT '',
+  `sort` int NOT NULL DEFAULT 100,
+  `visible` bigint NOT NULL DEFAULT 1,
+  `updated_at` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`menu_key`),
+ `parent_key` VARCHAR(64) NULL,
+ `type` VARCHAR(16) NOT NULL DEFAULT 'page',
+ `url` VARCHAR(2048) NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE IF NOT EXISTS `unicore_dict_types` (
   `id` varchar(64) NOT NULL,
   `code` varchar(64) NOT NULL,
@@ -278,6 +291,7 @@ CREATE TABLE IF NOT EXISTS unicore_navigation_state (id INTEGER PRIMARY KEY, ver
 INSERT INTO unicore_navigation_state(id,version,initialized) SELECT 1,0,0 WHERE NOT EXISTS (SELECT 1 FROM unicore_navigation_state WHERE id=1);
 CREATE TABLE IF NOT EXISTS unicore_navigation_sections (id VARCHAR(64) PRIMARY KEY, surface VARCHAR(32) NOT NULL, payload TEXT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 CREATE TABLE IF NOT EXISTS unicore_navigation_nodes (id VARCHAR(64) NOT NULL, section_id VARCHAR(64) NOT NULL, node_type VARCHAR(16) NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(section_id, id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE IF NOT EXISTS unicore_role_authorizations (role_id VARCHAR(64) PRIMARY KEY, initialized INTEGER NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS unicore_role_menus (role_id VARCHAR(64) NOT NULL, menu_id VARCHAR(64) NOT NULL, PRIMARY KEY(role_id,menu_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 CREATE TABLE IF NOT EXISTS unicore_role_actions (role_id VARCHAR(64) NOT NULL, action_id VARCHAR(64) NOT NULL, PRIMARY KEY(role_id,action_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

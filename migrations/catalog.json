@@ -125,6 +125,14 @@
             "postgres": "platform/postgres/0002_inbox_dedupe.sql",
             "mysql": "platform/mysql/0002_inbox_dedupe.sql"
           }
+        },
+        {
+          "version": 3,
+          "files": {
+            "sqlite": "platform/sqlite/0003_retire_legacy_authorization_tables.sql",
+            "postgres": "platform/postgres/0003_retire_legacy_authorization_tables.sql",
+            "mysql": "platform/mysql/0003_retire_legacy_authorization_tables.sql"
+          }
         }
       ]
     },

@@ -11,11 +11,12 @@
 - **控制台**：`/workspaces/agent`（侧栏外壳）与 `/workspaces/operations`（顶部标签外壳）共用同一页面集——一个权限点可进入多个工作台，布局只是呈现；切换工作台清空上一工作台的查询缓存与页面状态。
 - **深链接**：`/workspaces/agent/orders/<orderId>` 由页面按 URL 渲染详情；无权限深链接呈现外壳但底层 API 403，直达 API 403。
 - **多角色并集**：账号权限 = 各角色显式授权并集（ADR-0050），业务上下文不放大授权。
+- **浏览器验收**：Playwright 驱动真实浏览器验证三角色的工作台入口、两种外壳布局、列表、详情深链、工作台切换与越权拒绝页；API 断言精确到状态码与错误码（403/404/409 与 PERMISSION_DENIED/ENTITY_NOT_FOUND/ORDER_STATUS）。
 
 ## 运行
 
 ```bash
-node scripts/verify-orders-example.mjs          # 完整演练（创建→应用→构建→启动→断言）
+node scripts/verify-orders-example.mjs          # 完整演练（创建→应用→构建→启动→API 断言→浏览器验收）
 node scripts/verify-orders-example.mjs --keep   # 保留临时目录用于人工检查
 ```
 

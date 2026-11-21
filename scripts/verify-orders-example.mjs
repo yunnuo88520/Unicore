@@ -149,19 +149,19 @@ try {
 
   expect(await agentAFetch('GET', `/api/v1/orders/${orderA.data.id}`).then(r => r.status === 200), 'agent A reads the assigned order');
   expect(await agentBFetch('GET', `/api/v1/orders/${orderA.data.id}`).then(r => r.status === 404), "another agent's order id reads as not found");
-  expect(await agentAFetch('GET', '/api/v1/orders/not-a-real-id').then(r => r.status === 404), 'bogus order id reads as not found');
+  expect(await agentAFetch('GET', '/api/v1/orders/not-a-real-id').then(r => r.status === 404 && r.error.code === 'ENTITY_NOT_FOUND'), 'bogus order id reads as the precise not-found identity');
 
   const customerTransition = await customerFetch('PUT', `/api/v1/orders/${orderA.data.id}/status`, {status: 'processing', version: orderA.data.version});
   expect(customerTransition.status === 403, 'customer cannot transition orders', customerTransition.status);
   const agentTransition = await agentAFetch('PUT', `/api/v1/orders/${orderA.data.id}/status`, {status: 'processing', version: orderA.data.version});
   expect(agentTransition.status === 200 && agentTransition.data.status === 'processing', 'assigned agent applies the controlled transition', agentTransition.error);
-  expect(await agentBFetch('PUT', `/api/v1/orders/${orderA.data.id}/status`, {status: 'processing', version: orderA.data.version}).then(r => r.status === 404), 'unassigned agent cannot transition');
+  expect(await agentBFetch('PUT', `/api/v1/orders/${orderA.data.id}/status`, {status: 'processing', version: orderA.data.version}).then(r => r.status === 404 && r.error.code === 'ENTITY_NOT_FOUND'), 'unassigned agent cannot transition: precise not-found');
   const replay = await opsFetch('PUT', `/api/v1/orders/${orderA.data.id}/status`, {status: 'done', version: orderA.data.version});
-  expect(replay.status !== 200, 'stale version is rejected', replay.status);
+  expect(replay.status === 409 && replay.error.code === 'ORDER_STATUS', 'stale version is the precise conflict identity', replay);
   const done = await opsFetch('PUT', `/api/v1/orders/${orderA.data.id}/status`, {status: 'done', version: agentTransition.data.version});
   expect(done.status === 200 && done.data.status === 'done', 'operations completes the order', done.error);
   const terminal = await opsFetch('PUT', `/api/v1/orders/${orderA.data.id}/status`, {status: 'processing', version: done.data.version});
-  expect(terminal.status !== 200, 'terminal orders are immutable', terminal.status);
+  expect(terminal.status === 409 && terminal.error.code === 'ORDER_STATUS', 'terminal orders are immutable: precise conflict identity', terminal);
 
   // 8. Deep links: the pages themselves are frontend gates; the server stays
   // authoritative. Assert the console route serves the shell and the API
@@ -169,13 +169,20 @@ try {
   const consolePage = await fetch(`${base}/workspaces/agent/orders`, {headers: {cookie: customer.cookie}});
   expect(consolePage.status === 200, 'console deep link serves the application shell');
   const customerManaged = await customerFetch('GET', '/api/v1/orders/managed');
-  expect(customerManaged.status === 403, 'deep-linked console cannot read the managed API without the grant', customerManaged.status);
+  expect(customerManaged.status === 403 && customerManaged.error.code === 'PERMISSION_DENIED', 'deep-linked console cannot read the managed API without the grant', customerManaged);
 
   // 9. Multi-role union: the agent+user account sees the explicit union —
   // personal orders through orders:access and assigned orders through the
   // handle scope, nothing more.
   const unionList = await json('GET', '/api/v1/orders/managed?page=1', {cookie: agentA.cookie});
   expect(unionList.status === 200, 'multi-role account reads the managed surface', unionList.error);
+  // 10. Browser acceptance: the consoles, their shells, deep links, workbench
+  // switching and the denial surfaces under a real browser, running the example's
+  // own spec inside the derived application's Playwright harness.
+  console.log('$ playwright install chromium');
+  pnpmRunner()(['exec', 'playwright', 'install', 'chromium']);
+  pnpmRunner()(['exec', 'playwright', 'test', 'tests/e2e/orders-consoles.spec.ts', '--project=chromium', '--workers=1']);
+
   console.log('orders example acceptance: PASS');
   server.kill();
   server.once('exit', () => {

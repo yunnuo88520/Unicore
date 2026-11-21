@@ -28,6 +28,14 @@ export function SessionBoundary({ client, children }: { client: AppClient; child
   return <QueryScope key={generation} client={client}>{children(notice)}</QueryScope>;
 }
 
+// A keyed query cache scope: everything mounted inside resolves against its
+// own QueryClient, and unmounting cancels and clears it. The session shell
+// keys it by session generation; the console view keys it by console id so
+// switching workspaces never reuses another console's queries or page state.
+export function CacheScope({ client, children }: { client: AppClient; children: ReactNode }) {
+  return <QueryScope client={client}>{children}</QueryScope>;
+}
+
 function QueryScope({ client, children }: { client: AppClient; children: ReactNode }) {
   useLocale();
   const message = useMessage();

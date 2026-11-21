@@ -102,3 +102,238 @@ func TestActionRebindingDerivesPointsButKeepsStoredDataScope(t *testing.T) {
 	}
 	assertProjection([]string{"users:read", "users:update"}, true)
 }
+
+func TestMenusWriterCannotRebindAuthorizedAction(t *testing.T) {
+	ctx := t.Context()
+	_, repo, super := navigationFixture(t, ctx)
+	listed, err := repo.ListMenuConfig(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var page contracts.NavigationNode
+	for _, node := range listed.Nodes {
+		if node.Type == "page" && node.RouteID != nil && *node.RouteID == "users" {
+			page = node
+			break
+		}
+	}
+	if page.ID == "" {
+		t.Fatal("missing users page")
+	}
+	const actionID = "test:rebind-guard-branch"
+	listed.Nodes = append(listed.Nodes, contracts.NavigationNode{
+		ID: actionID, SectionID: page.SectionID, ParentID: &page.ID,
+		Surfaces: []string{"administrator"}, Type: "action", Label: "Rebind guard",
+		Visible: true, OpenMode: "same_tab", Permission: strPtr("users:read"),
+		OperationIds: []string{"roleOptions"},
+	})
+	listed, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: listed.Version, Sections: listed.Sections, Nodes: listed.Nodes}, super.ID)
+	if err != nil {
+		t.Fatal("save initial action", err)
+	}
+
+	// A role holds a grant row for the action: it is an authorized action.
+	_, err = repo.CreateRole(ctx, contracts.RoleSaveInput{
+		Name: "Guarded action holder", Permissions: []string{"users:read"},
+		MenuIds: &[]string{}, ActionIds: &[]string{actionID},
+		OperationIds: &[]string{"roleOptions"}, DataScope: strPtr(platform.ScopeAll),
+	}, super.ID)
+	if err != nil {
+		t.Fatal("create role", err)
+	}
+	// The menu editor: only menus:write, no roles:write, not a super admin.
+	editorRole, err := repo.CreateRole(ctx, contracts.RoleSaveInput{
+		Name: "Menu editor only", Permissions: []string{"menus:write"},
+		MenuIds: &[]string{}, ActionIds: &[]string{}, OperationIds: &[]string{}, DataScope: strPtr(platform.ScopeAll),
+	}, super.ID)
+	if err != nil {
+		t.Fatal("create editor role", err)
+	}
+	editor, err := repo.CreateUser(ctx, contracts.UserCreate{
+		Username: "menu-editor-only", Email: "menu-editor@example.test",
+		RoleIds: &[]string{editorRole.ID},
+	}, "hash", super.ID)
+	if err != nil {
+		t.Fatal("create editor", err)
+	}
+	// Rebinding the authorized action's permission is an authorization change:
+	// refused without roles:write, and nothing is stored. The read result is
+	// cached by version, so clone before mutating instead of editing shared state.
+	rebound := slices.Clone(listed.Nodes)
+	for i, node := range rebound {
+		if node.ID == actionID {
+			rebound[i].Permission = strPtr("users:update")
+		}
+	}
+	_, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: listed.Version, Sections: listed.Sections, Nodes: rebound}, editor.ID)
+	if err != platform.ErrForbidden {
+		t.Fatalf("rebind without roles:write must be forbidden, got %v", err)
+	}
+	after, err := repo.ListMenuConfig(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, node := range after.Nodes {
+		if node.ID == actionID && (node.Permission == nil || *node.Permission != "users:read") {
+			t.Fatalf("the stored binding must stay users:read, got %v", func() any {
+				if node.Permission == nil {
+					return nil
+				}
+				return *node.Permission
+			}())
+		}
+	}
+	// Pure layout on the same tree stays on menus:write.
+	relabeled := slices.Clone(listed.Nodes)
+	for i, node := range relabeled {
+		if node.ID == actionID {
+			relabeled[i].Label = "Rebind guard (relabeled)"
+		}
+	}
+	if after, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: after.Version, Sections: after.Sections, Nodes: relabeled}, editor.ID); err != nil {
+		t.Fatalf("pure layout edits must stay allowed for menus:write, got %v", err)
+	}
+	// The super admin can perform the rebind: the authorization change is
+	// validated by their full grant set, never auto-widened for the editor.
+	if _, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: after.Version, Sections: after.Sections, Nodes: rebound}, super.ID); err != nil {
+		t.Fatal("super admin rebind", err)
+	}
+}
+
+func TestMenusWriterCanReorderAuthorizedActionOperations(t *testing.T) {
+	ctx := t.Context()
+	_, repo, super := navigationFixture(t, ctx)
+	listed, err := repo.ListMenuConfig(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var page contracts.NavigationNode
+	for _, node := range listed.Nodes {
+		if node.Type == "page" && node.RouteID != nil && *node.RouteID == "users" {
+			page = node
+			break
+		}
+	}
+	if page.ID == "" {
+		t.Fatal("missing users page")
+	}
+	const actionID = "test:reorder-guard-branch"
+	listed.Nodes = append(listed.Nodes, contracts.NavigationNode{
+		ID: actionID, SectionID: page.SectionID, ParentID: &page.ID,
+		Surfaces: []string{"administrator"}, Type: "action", Label: "Reorder guard",
+		Visible: true, OpenMode: "same_tab", Permission: strPtr("users:read"),
+		OperationIds: []string{"roleOptions", "exportUsers"},
+	})
+	listed, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: listed.Version, Sections: listed.Sections, Nodes: listed.Nodes}, super.ID)
+	if err != nil {
+		t.Fatal("save initial action", err)
+	}
+	_, err = repo.CreateRole(ctx, contracts.RoleSaveInput{
+		Name: "Reorder action holder", Permissions: []string{"users:read"},
+		MenuIds: &[]string{}, ActionIds: &[]string{actionID},
+		OperationIds: &[]string{"roleOptions", "exportUsers"}, DataScope: strPtr(platform.ScopeAll),
+	}, super.ID)
+	if err != nil {
+		t.Fatal("create role", err)
+	}
+	editorRole, err := repo.CreateRole(ctx, contracts.RoleSaveInput{
+		Name: "Reorder menu editor", Permissions: []string{"menus:write"},
+		MenuIds: &[]string{}, ActionIds: &[]string{}, OperationIds: &[]string{}, DataScope: strPtr(platform.ScopeAll),
+	}, super.ID)
+	if err != nil {
+		t.Fatal("create editor role", err)
+	}
+	editor, err := repo.CreateUser(ctx, contracts.UserCreate{
+		Username: "reorder-editor", Email: "reorder-editor@example.test",
+		RoleIds: &[]string{editorRole.ID},
+	}, "hash", super.ID)
+	if err != nil {
+		t.Fatal("create editor", err)
+	}
+	// Resubmitting the same operation set in a different order carries no
+	// authorization delta: the set compares unordered and stays on menus:write.
+	reordered := slices.Clone(listed.Nodes)
+	for i, node := range reordered {
+		if node.ID == actionID {
+			slices.Reverse(reordered[i].OperationIds)
+			reordered[i].Label = "Reorder guard (relabeled)"
+		}
+	}
+	if _, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: listed.Version, Sections: listed.Sections, Nodes: reordered}, editor.ID); err != nil {
+		t.Fatalf("operation reorder must stay on menus:write, got %v", err)
+	}
+}
+
+func TestRebindGuardFailsClosedOnMissingStoredBinding(t *testing.T) {
+	ctx := t.Context()
+	store, repo, super := navigationFixture(t, ctx)
+	listed, err := repo.ListMenuConfig(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var page contracts.NavigationNode
+	for _, node := range listed.Nodes {
+		if node.Type == "page" && node.RouteID != nil && *node.RouteID == "users" {
+			page = node
+			break
+		}
+	}
+	if page.ID == "" {
+		t.Fatal("missing users page")
+	}
+	const actionID = "test:unbound-guard-branch"
+	listed.Nodes = append(listed.Nodes, contracts.NavigationNode{
+		ID: actionID, SectionID: page.SectionID, ParentID: &page.ID,
+		Surfaces: []string{"administrator"}, Type: "action", Label: "Unbound guard",
+		Visible: true, OpenMode: "same_tab", Permission: strPtr("users:read"),
+		OperationIds: []string{"roleOptions"},
+	})
+	listed, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: listed.Version, Sections: listed.Sections, Nodes: listed.Nodes}, super.ID)
+	if err != nil {
+		t.Fatal("save initial action", err)
+	}
+	_, err = repo.CreateRole(ctx, contracts.RoleSaveInput{
+		Name: "Unbound action holder", Permissions: []string{"users:read"},
+		MenuIds: &[]string{}, ActionIds: &[]string{actionID},
+		OperationIds: &[]string{"roleOptions"}, DataScope: strPtr(platform.ScopeAll),
+	}, super.ID)
+	if err != nil {
+		t.Fatal("create role", err)
+	}
+	// Corrupt the invariant the guard relies on: a grant row whose action node
+	// payload is gone cannot be compared, so the guard must refuse the save
+	// instead of treating the incoming node as fresh.
+	if _, err = store.Exec(ctx, store, "DELETE FROM unicore_navigation_nodes WHERE id=?", actionID); err != nil {
+		t.Fatal("drop stored binding", err)
+	}
+	editorRole, err := repo.CreateRole(ctx, contracts.RoleSaveInput{
+		Name: "Unbound menu editor", Permissions: []string{"menus:write"},
+		MenuIds: &[]string{}, ActionIds: &[]string{}, OperationIds: &[]string{}, DataScope: strPtr(platform.ScopeAll),
+	}, super.ID)
+	if err != nil {
+		t.Fatal("create editor role", err)
+	}
+	editor, err := repo.CreateUser(ctx, contracts.UserCreate{
+		Username: "unbound-editor", Email: "unbound-editor@example.test",
+		RoleIds: &[]string{editorRole.ID},
+	}, "hash", super.ID)
+	if err != nil {
+		t.Fatal("create editor", err)
+	}
+	relabeled := slices.Clone(listed.Nodes)
+	for i, node := range relabeled {
+		if node.ID == actionID {
+			relabeled[i].Label = "Unbound guard (relabeled)"
+		}
+	}
+	if _, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: listed.Version, Sections: listed.Sections, Nodes: relabeled}, editor.ID); err == nil {
+		t.Fatal("a granted action without a stored binding must fail the save closed")
+	}
+	after, err := repo.ListMenuConfig(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.Version != listed.Version {
+		t.Fatalf("the refused save must persist nothing: version %d vs %d", after.Version, listed.Version)
+	}
+}

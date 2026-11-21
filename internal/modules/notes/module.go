@@ -33,7 +33,7 @@ var Module = module.Module{
 	},
 	Navigation: []contracts.NavigationPage{
 		{ID: "notes", Surfaces: []string{"user"}, Permission: "notes:access"},
-		{ID: "note-management", Surfaces: []string{"administrator"}, Permission: "notes:manage:read"},
+		{ID: "note-management", Surfaces: []string{"user"}, Permission: "notes:manage:read"},
 	},
 	Migrations: "notes",
 	Edition:    "notes",

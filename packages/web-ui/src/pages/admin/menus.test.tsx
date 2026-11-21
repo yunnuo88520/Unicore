@@ -261,6 +261,10 @@ it('creates a page from the region row: the type is picked in the dialog and the
   await userEvent.click(screen.getByRole('option', { name: '笔记管理' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '确定' }));
   // New nodes take a random id; the row is located by its display name.
+  // 笔记管理 is registered for the user workspace only, so the row shows up
+  // after switching the editor's surface filter away from the administrator view.
+  await userEvent.click(screen.getByRole('combobox', { name: '按工作台筛选' }));
+  await userEvent.click(screen.getByRole('option', { name: '用户工作台' }));
   const labRow = screen.getByText('笔记管理').closest('tr') as HTMLElement;
   expect(labRow.getAttribute('data-node-type')).toBe('page');
   expect(labRow.getAttribute('data-section')).toBe('business');
@@ -272,8 +276,9 @@ it('creates a page from the region row: the type is picked in the dialog and the
   const created = payload.nodes.find(item => item.route_id === 'note-management');
   expect(created?.section_id).toBe('business');
   expect(created?.parent_id).toBeUndefined();
-  // Surfaces derive from the registered route: note management stays administrator-only.
-  expect(created?.surfaces).toEqual(['administrator']);
+  // Surfaces derive from the registered route: the business management page
+  // reaches the user workspace only and never the administrator console.
+  expect(created?.surfaces).toEqual(['user']);
   expect(payload.role_assignments).toBeUndefined();
 });
 
@@ -331,6 +336,10 @@ it('adds a child page from a page row with the parent preset to that row', async
   await userEvent.click(within(dialog).getByRole('combobox', { name: '目标页面（仅已注册路由）' }));
   await userEvent.click(screen.getByRole('option', { name: '笔记管理' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '确定' }));
+  // 笔记管理 is registered for the user workspace only: the created row shows
+  // up after switching the editor's surface filter away from the administrator view.
+  await userEvent.click(screen.getByRole('combobox', { name: '按工作台筛选' }));
+  await userEvent.click(screen.getByRole('option', { name: '用户工作台' }));
   const labRow = screen.getByText('笔记管理').closest('tr') as HTMLElement;
   expect(labRow.getAttribute('data-node-type')).toBe('page');
   await userEvent.click(screen.getByRole('button', { name: '保存菜单配置' }));

@@ -2,7 +2,7 @@
 import { expect, installPlatform, installStandalone, test } from './fixtures';
 
 for (const { entry, install, path } of [
-  { entry: 'administrator', install: installPlatform, path: '/admin/note-management' },
+  { entry: 'administrator', install: installPlatform, path: '/admin/users' },
   { entry: 'standalone', install: installStandalone, path: '/notes' },
 ]) {
   test(`${entry} startup fallback works with strict script CSP`, async ({ page, instance }) => {

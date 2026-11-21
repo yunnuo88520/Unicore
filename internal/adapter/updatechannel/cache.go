@@ -4,9 +4,12 @@ package updatechannel
 
 import (
 	"encoding/json"
-	"github.com/yunnuo/unicore/internal/updates"
 	"os"
 	"path/filepath"
+	"runtime"
+	"time"
+
+	"github.com/yunnuo/unicore/internal/updates"
 )
 
 type FileCache struct{ Directory string }
@@ -49,5 +52,24 @@ func Atomic(path string, raw []byte) error {
 	if closeErr != nil {
 		return closeErr
 	}
-	return os.Rename(name, path)
+	return renameOverSharingViolation(name, path)
+}
+
+// renameOverSharingViolation replaces path with the fully written temp file.
+// On Windows the rename fails while the destination is briefly held open — a
+// real-time scanner or the sibling process writing the same state file — so a
+// bounded retry resolves the transient window. Every caller writes idempotent
+// state, and the old file stays intact until the rename lands.
+func renameOverSharingViolation(name, path string) error {
+	if runtime.GOOS != "windows" {
+		return os.Rename(name, path)
+	}
+	var err error
+	for attempt := 0; attempt < 5; attempt++ {
+		if err = os.Rename(name, path); err == nil {
+			return nil
+		}
+		time.Sleep(time.Duration(25*(attempt+1)) * time.Millisecond)
+	}
+	return err
 }

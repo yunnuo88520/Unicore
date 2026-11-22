@@ -137,7 +137,7 @@ Linux amd64 daemon 将上例改为 linux/amd64。验收只创建随机命名容�
 
 源码采用 MIT，各 tar 包包含 LICENSE；Web 的备份/恢复共用 unicore 入口，manifest 从 Catalog 生成 schema_generation、schema_fingerprint 与 namespace_versions。归档及默认镜像名读取根 package.name，VERSION 仍唯一版本源。派生项目构建前按 [上游约定](framework-upgrade.md) 保留 provenance 与作者。
 
-提交 VERSION/CHANGELOG 并合入 main，等待 Quality and profile builds 与 Dependency security 全部成功，再手动运行 Prepare release candidate workflow，输入完全匹配的 version、该 main 质量 workflow 的 ci_run_id，以及可信的上一发布 tag 或提交（upgrade_from_ref，最近一个正式版本标签；0.1.x 实验标签不作为升级来源；首个正式版本没有前一正式基线，传 none，升级门禁记录基线证据 upgrade-baseline.json 而不执行跨版本演练）。候选构建全 Web/CLI tar，合并同一提交的三系统原生桌面归档，校验 13 个 tar 包以及 macOS DMG、Windows 便携 EXE 的版本、来源提交、目标矩阵和 SHA-256；后两者记录在对应桌面 artifact 的 downloads 字段，统一进入 checksums.txt 与来源证明，OTA 清单仍只选择 tar；同时核对该 main 提交的 Dependency security 成功后，要求 GitHub Secret UNICORE_UPDATE_SIGNING_KEY 匹配已提交公钥，签发两份 OTA 清单，再生成 GitHub 构建来源证明，输出 release-bundle artifact。旧运行、PR 构建、不同提交、缺包或校验和不符均拒绝；不创建 tag/Release 或推送镜像。
+提交 VERSION/CHANGELOG 并合入 main，等待 Quality and profile builds 与 Dependency security 全部成功，再手动运行 Prepare release candidate workflow，输入完全匹配的 version、该 main 质量 workflow 的 ci_run_id，以及可信的上一发布 tag 或提交（upgrade_from_ref，最近一个正式版本标签；0.1.x 实验标签不作为升级来源；首个正式版本没有前一正式基线，传 none，升级门禁记录基线证据 upgrade-baseline.json 而不执行跨版本演练）。调度前提交的更新渠道必须与 release_kind 一致：候选构建第一步即校验 assets/updates/config.json 的 channel，不一致直接失败——渠道切换须先提交配置再调度，避免产生只改说明而渠道不符的候选。候选构建全 Web/CLI tar，合并同一提交的三系统原生桌面归档，校验 13 个 tar 包以及 macOS DMG、Windows 便携 EXE 的版本、来源提交、目标矩阵和 SHA-256；后两者记录在对应桌面 artifact 的 downloads 字段，统一进入 checksums.txt 与来源证明，OTA 清单仍只选择 tar；同时核对该 main 提交的 Dependency security 成功后，要求 GitHub Secret UNICORE_UPDATE_SIGNING_KEY 匹配已提交公钥，签发两份 OTA 清单，再生成 GitHub 构建来源证明，输出 release-bundle artifact。旧运行、PR 构建、不同提交、缺包或校验和不符均拒绝；不创建 tag/Release 或推送镜像。
 
 ### 跨版本升级门禁
 

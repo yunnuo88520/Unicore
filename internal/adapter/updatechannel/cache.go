@@ -65,11 +65,13 @@ func renameOverSharingViolation(name, path string) error {
 		return os.Rename(name, path)
 	}
 	var err error
-	for attempt := 0; attempt < 5; attempt++ {
+	for attempt := 0; attempt < 12; attempt++ {
 		if err = os.Rename(name, path); err == nil {
 			return nil
 		}
-		time.Sleep(time.Duration(25*(attempt+1)) * time.Millisecond)
+		// Real-time scanners hold freshly written files for seconds, not
+		// milliseconds: the backoff spreads ~7.5s across twelve attempts.
+		time.Sleep(time.Duration(min(100*(attempt+1), 1000)) * time.Millisecond)
 	}
 	return err
 }

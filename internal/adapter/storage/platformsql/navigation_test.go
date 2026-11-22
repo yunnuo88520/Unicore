@@ -1,5 +1,5 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Versioned navigation saves, one-time legacy materialization and independent role grant boundaries.
+// Description: Versioned navigation saves, forward-compatible top-ups and independent role grant boundaries.
 package platformsql
 
 import (
@@ -7,8 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"sort"
-	"strconv"
+	"slices"
 	"testing"
 	"time"
 
@@ -19,7 +18,6 @@ import (
 	notesmodule "github.com/yunnuo/unicore/internal/modules/notes"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/migrations/runner"
-	apispec "github.com/yunnuo/unicore/packages/contracts"
 	"strings"
 )
 
@@ -266,512 +264,12 @@ func TestNavigationParentTypesAndBounds(t *testing.T) {
 	}
 }
 
-// legacyDualTreeNavigation mirrors internal/platform DefaultNavigation at the
-// pre-ADR-0039 seed (commit 93fdd75): surface-scalar sections with
-// user:/administrator: prefixed ids, the personal directory under
-// admin:system, top-level personal pages on the user side and realm-matched
-// action nodes without surfaces.
-func legacyDualTreeNavigation() contracts.Navigation {
-	pages := platform.NavigationPages()
-	result := contracts.Navigation{
-		Version: 1,
-		Sections: []contracts.NavigationSection{
-			{ID: "user:business", Sort: 10, Visible: true, ShowTitle: true},
-			{ID: "user:personal", Sort: 20, Visible: true, ShowTitle: true},
-			{ID: "admin:business", Sort: 10, Visible: true, ShowTitle: true},
-			{ID: "admin:system", Sort: 20, Visible: true, ShowTitle: true},
-		},
-		Nodes: []contracts.NavigationNode{},
-	}
-	result.Nodes = append(result.Nodes,
-		contracts.NavigationNode{ID: "administration", SectionID: "admin:business", Type: "directory", Icon: "Users", Sort: 20, Visible: true, OpenMode: "same_tab", OperationIds: []string{}},
-		contracts.NavigationNode{ID: "settings", SectionID: "admin:system", Type: "directory", Icon: "Settings2", Sort: 20, Visible: true, OpenMode: "same_tab", OperationIds: []string{}},
-		contracts.NavigationNode{ID: "personal", SectionID: "admin:system", Type: "directory", Icon: "UserRound", Sort: 30, Visible: true, OpenMode: "same_tab", OperationIds: []string{}},
-	)
-	sortCounter := 0
-	for _, page := range pages {
-		for _, surface := range page.Surfaces {
-			if surface == "user" && page.Group == "administration" {
-				continue
-			}
-			prefix := "admin"
-			if surface == "user" {
-				prefix = "user"
-			}
-			section := prefix + ":business"
-			var parent string
-			switch page.Group {
-			case "personal":
-				if surface == "administrator" {
-					section = "admin:system"
-					parent = "personal"
-				} else {
-					section = prefix + ":personal"
-				}
-			case "system", "administration":
-				if surface == "administrator" {
-					if page.Group == "administration" {
-						parent = "administration"
-					} else {
-						section = "admin:system"
-						parent = "settings"
-					}
-				}
-			}
-			sortCounter++
-			node := contracts.NavigationNode{
-				ID: page.ID, SectionID: section, Type: "page", RouteID: &page.ID,
-				Sort: sortCounter * 10, Visible: true, OpenMode: "same_tab", OperationIds: []string{},
-			}
-			if parent != "" {
-				node.ParentID = &parent
-			}
-			result.Nodes = append(result.Nodes, node)
-		}
-	}
-	surfaceOf := map[string]string{
-		"user:business": "user", "user:personal": "user",
-		"admin:business": "administrator", "admin:system": "administrator",
-	}
-	for i := range result.Nodes {
-		node := &result.Nodes[i]
-		prefix := surfaceOf[node.SectionID] + ":"
-		node.ID = prefix + node.ID
-		if node.ParentID != nil {
-			parent := prefix + *node.ParentID
-			node.ParentID = &parent
-		}
-	}
-	result.Nodes = append(result.Nodes, legacyDualActions(result, surfaceOf)...)
-	return result
-}
-
-// legacyDualActions mirrors DefaultActions at the pre-ADR-0039 seed:
-// realm-matched page binding, prefixed ids, no surfaces field.
-func legacyDualActions(n contracts.Navigation, surfaceOf map[string]string) []contracts.NavigationNode {
-	sections := map[string]string{}
-	for _, s := range n.Sections {
-		sections[s.ID] = surfaceOf[s.ID]
-	}
-	ops := apispec.Operations()
-	keys := []string{}
-	for k := range ops {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	result := []contracts.NavigationNode{}
-	for _, key := range keys {
-		op := ops[key]
-		if op.Policy.UIPage == "" || op.Policy.SuperAdmin || len(op.Policy.Permissions) == 0 {
-			continue
-		}
-		for _, page := range n.Nodes {
-			if page.Type != "page" || page.RouteID == nil || *page.RouteID != op.Policy.UIPage || sections[page.SectionID] != op.Policy.IdentityRealm {
-				continue
-			}
-			permissions := op.Policy.Permissions
-			if op.Policy.PermissionMode != "any" {
-				for _, permission := range permissions {
-					if permission != "admin:access" {
-						permissions = []string{permission}
-						break
-					}
-				}
-			}
-			for i, permission := range permissions {
-				id := op.Policy.IdentityRealm + ":op:" + op.ID
-				if i > 0 {
-					id += ":alt" + strconv.Itoa(i)
-				}
-				parent := page.ID
-				p := permission
-				result = append(result, contracts.NavigationNode{ID: id, SectionID: page.SectionID, Type: "action", ParentID: &parent, Permission: &p, Label: op.Summary, OperationIds: []string{op.ID}, Visible: true, OpenMode: "same_tab"})
-			}
-		}
-	}
-	return result
-}
-
-// TestLegacyRegionFoldAndActionPrune pins the one-time repair of instances
-// upgraded from the pre-collapse dual tree: the converted three-region tree
-// folds into the two-region shape, actions the catalogue no longer accepts
-// are pruned with their grant rows, and the healed tree saves cleanly without
-// widening any role beyond the folded container row.
-func TestLegacyRegionFoldAndActionPrune(t *testing.T) {
-	ctx := context.Background()
-	store, repo, admin := navigationFixture(t, ctx)
-
-	legacy := legacyDualTreeNavigation()
-	// A stale action payload: unknown permission and an operation that left
-	// the contract. The upgrade must prune it and its grant row.
-	stale := contracts.NavigationNode{ID: "user:op:ghost", SectionID: "user:business", Type: "action", ParentID: strPtr("user:overview"), Permission: strPtr("ghost:missing"), OperationIds: []string{"removedOperation"}, Visible: true, OpenMode: "same_tab"}
-	legacy.Nodes = append(legacy.Nodes, stale)
-	tx, err := store.DB.BeginTx(ctx, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err = repo.writeNavigation(ctx, tx, legacy); err != nil {
-		t.Fatal(err)
-	}
-	// A user-realm role holding the legacy personal-page grants plus one live
-	// and one stale action grant, mirroring pre-upgrade rows.
-	if _, err = store.Exec(ctx, tx, "INSERT INTO unicore_roles(id,name,realm,data_scope) VALUES('member','成员','user','self')"); err != nil {
-		t.Fatal(err)
-	}
-	for _, grant := range []struct{ table, column, id string }{
-		{"unicore_role_menus", "menu_id", "user:account"},
-		{"unicore_role_menus", "menu_id", "user:account-security"},
-		{"unicore_role_actions", "action_id", "user:op:ghost"},
-		{"unicore_role_actions", "action_id", "user:op:listNotes"},
-		{"unicore_role_operations", "operation_id", "listNotes"},
-	} {
-		if _, err = store.Exec(ctx, tx, "INSERT INTO "+grant.table+"(role_id,"+grant.column+") VALUES('member',?)", grant.id); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if _, err = store.Exec(ctx, tx, "UPDATE unicore_navigation_state SET initialized=1, version=1 WHERE id=1"); err != nil {
-		t.Fatal(err)
-	}
-	if err = tx.Commit(); err != nil {
-		t.Fatal(err)
-	}
-
-	if err = repo.EnsureNavigation(ctx); err != nil {
-		t.Fatal("upgrade", err)
-	}
-	listed, err := repo.ListMenuConfig(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	sectionIDs := map[string]bool{}
-	for _, section := range listed.Sections {
-		sectionIDs[section.ID] = true
-	}
-	if len(listed.Sections) != 2 || !sectionIDs["business"] || !sectionIDs["system"] {
-		t.Fatal("folded sections", listed.Sections)
-	}
-	nodes := map[string]contracts.NavigationNode{}
-	for _, node := range listed.Nodes {
-		if node.SectionID == "personal" {
-			t.Fatal("personal section survivors", node)
-		}
-		nodes[node.ID] = node
-	}
-	// The fold lands the legacy personal region in business, and the startup
-	// retirement heal then removes the region entirely: the pages live in the
-	// account menus' settings modal now, so neither the directory nor the
-	// account pages survive the same EnsureNavigation pass.
-	for _, id := range []string{"personal", "account", "account-security", "account-sessions"} {
-		if node, ok := nodes[id]; ok {
-			t.Fatal("retired personal region survived", id, node)
-		}
-	}
-	if _, ok := nodes["op:ghost"]; ok {
-		t.Fatal("stale action survived")
-	}
-	if _, ok := nodes["op:listNotes"]; !ok {
-		t.Fatal("live action pruned")
-	}
-
-	// The healed tree saves: validateNavigation accepts the whole payload and
-	// a second upgrade pass finds nothing left to repair.
-	if _, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: listed.Version, Sections: listed.Sections, Nodes: listed.Nodes}, admin.ID); err != nil {
-		t.Fatal("healed tree refused", err)
-	}
-	version := listed.Version + 1
-	if err = repo.EnsureNavigation(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if again, err := repo.ListMenuConfig(ctx); err != nil || again.Version != version {
-		t.Fatal("upgrade not idempotent", version, again.Version, err)
-	}
-
-	// Grants: the stale action row is gone, the live rows survive, and the
-	// folded personal rows are deleted together with their nodes — the modal
-	// needs no menu grants.
-	role, err := repo.role(ctx, store.DB, "member")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(role.MenuIds) != 0 {
-		t.Fatal("retired member menus", role.MenuIds)
-	}
-	if len(role.ActionIds) != 1 || role.ActionIds[0] != "op:listNotes" {
-		t.Fatal("member action grants", role.ActionIds)
-	}
-	if len(role.OperationIds) != 1 || role.OperationIds[0] != "listNotes" {
-		t.Fatal("member operation grants", role.OperationIds)
-	}
-}
-
-func TestRoleGrantMaterializationAndBoundaries(t *testing.T) {
-	ctx := context.Background()
-	store, repo, admin := navigationFixture(t, ctx)
-	_ = store
-
-	// The one-time conversion runs on first read: the builtin user role
-	// materializes the user surface items and exactly the operations its
-	// permission points already unlocked.
-	if _, err := repo.ListMenuConfig(ctx); err != nil {
-		t.Fatal(err)
-	}
-	user, err := repo.role(ctx, repo.Store.DB, "user")
-	if err != nil || !user.AuthorizationInitialized || len(user.MenuIds) == 0 || len(user.OperationIds) == 0 || len(user.ActionIds) == 0 {
-		t.Fatal("builtin materialization", user.AuthorizationInitialized, len(user.MenuIds), len(user.OperationIds), err)
-	}
-	for _, id := range user.OperationIds {
-		op, ok := platform.Operation(id)
-		if !ok || !platform.PermissionsAllow(user.Permissions, op.Permissions, op.PermissionMode) {
-			t.Fatal("materialized operation exceeded permissions", id)
-		}
-	}
-
-	// Roles created after the upgrade are explicit from the start: exactly the
-	// submitted menus and operations, empty when omitted. Equivalence
-	// materialization is a one-time upgrade fact, never a creation default.
-	realm := "user"
-	files, err := repo.CreateRole(ctx, contracts.RoleSaveInput{Name: "记录员", Realm: &realm, ActionIds: &[]string{}, Permissions: []string{"notes:access"}, MenuIds: &[]string{"notes"}, OperationIds: &[]string{"listNotes"}}, admin.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !contains(files.OperationIds, "listNotes") || contains(files.OperationIds, "deleteNote") || contains(files.OperationIds, "createNote") {
-		t.Fatal("custom role grants", files.OperationIds)
-	}
-	if len(files.MenuIds) != 1 || files.MenuIds[0] != "notes" {
-		t.Fatal("custom role menus", files.MenuIds)
-	}
-
-	// Operation grants are bounded by permission points: a notes-reader role
-	// can never take a mutation or a management operation.
-	if _, err = repo.UpdateRole(ctx, files.ID, contracts.RoleSaveInput{Version: currentRoleVersion(t, ctx, repo, files.ID), Name: "记录员", Permissions: []string{"notes:access"}, OperationIds: &[]string{"deleteNote"}}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
-		t.Fatal("operation beyond permission bound", err)
-	}
-	if _, err = repo.UpdateRole(ctx, files.ID, contracts.RoleSaveInput{Version: currentRoleVersion(t, ctx, repo, files.ID), Name: "记录员", Permissions: []string{"notes:access"}, OperationIds: &[]string{"listRoles"}}, admin.ID); !errors.Is(err, platform.ErrForbidden) {
-		t.Fatal("operation beyond permission bound", err)
-	}
-
-	// Menus never grant API capability: the projection filters visibility only.
-	member, err := repo.CreateUser(ctx, contracts.UserCreate{Username: "navmember", Email: "navmember@example.test", Password: "test-password-strong", Role: files.ID}, "hash-unused", admin.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	listed, listErr := repo.ListMenuConfig(ctx)
-	if listErr != nil {
-		t.Fatal(listErr)
-	}
-	projected := platform.NavigationFor(contracts.Navigation{Version: listed.Version, Sections: listed.Sections, Nodes: listed.Nodes}, member, "user")
-	// An API grant never restores an explicitly absent action grant.
-	if len(projected.Nodes) != 1 || projected.Nodes[0].ID != "notes" {
-		t.Fatal("projection filter", projected.Nodes)
-	}
-
-	// Role assignment through the menu editor is super+roles:write only.
-	super := admin
-	if _, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: listed.Version, Sections: listed.Sections, Nodes: listed.Nodes, RoleAssignments: &[]contracts.NavigationRoleAssignment{{RoleID: files.ID, MenuIds: []string{"overview"}, ActionIds: []string{}}}}, super.ID); err != nil {
-		t.Fatal("super assignment refused", err)
-	}
-	after, err := repo.role(ctx, repo.Store.DB, files.ID)
-	if err != nil || len(after.MenuIds) != 1 || after.MenuIds[0] != "overview" {
-		t.Fatal("assignment echo", after.MenuIds, err)
-	}
-
-	// An explicit empty authorization is a real state: the member loses every
-	// navigation item, and the operation gate denies them too.
-	if _, err = repo.UpdateRole(ctx, files.ID, contracts.RoleSaveInput{Version: currentRoleVersion(t, ctx, repo, files.ID), Name: "文件员", Permissions: []string{"files:access"}, MenuIds: &[]string{}, OperationIds: &[]string{}}, admin.ID); err != nil {
-		t.Fatal("clear grants", err)
-	}
-	emptied, err := repo.role(ctx, repo.Store.DB, files.ID)
-	if err != nil || len(emptied.MenuIds) != 0 || len(emptied.OperationIds) != 0 || !emptied.AuthorizationInitialized {
-		t.Fatal("empty authorization", emptied.MenuIds, emptied.OperationIds, err)
-	}
-	refreshed, err := repo.FindAccount(ctx, member.Username)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if projected = platform.NavigationFor(contracts.Navigation{Version: listed.Version, Sections: listed.Sections, Nodes: listed.Nodes}, refreshed.User, "user"); len(projected.Nodes) != 0 {
-		t.Fatal("cleared member still sees items", projected.Nodes)
-	}
-	if platform.OperationAllowed(refreshed.User, "fileAccess") {
-		t.Fatal("cleared member keeps operation grant")
-	}
-}
-
 func strPtr(v string) *string { return &v }
 func boolPtr(v bool) *bool    { return &v }
 
 // TestLegacyOverrideMergesOnce pins the unified-tree semantics: a legacy
 // user-workspace override merges onto the single shared notes node, which
 // carries both surfaces after the conversion (ADR-0039).
-func TestLegacyOverrideMergesOnce(t *testing.T) {
-	ctx := context.Background()
-	store, repo, admin := navigationFixture(t, ctx)
-
-	// A user-side override written before the normalized upgrade: renamed and
-	// hidden notes page, still present in unicore_menus.
-	if _, err := store.Exec(ctx, store.DB, "INSERT INTO unicore_menus(menu_key,label,group_key,sort,visible,type,updated_at) VALUES('notes','随手记','一级导航',50,0,'page',1)"); err != nil {
-		t.Fatal(err)
-	}
-	listed, err := repo.ListMenuConfig(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	notes := []contracts.NavigationNode{}
-	for _, node := range listed.Nodes {
-		if node.RouteID != nil && *node.RouteID == "notes" {
-			notes = append(notes, node)
-		}
-	}
-	if len(notes) != 1 {
-		t.Fatal("the shared tree keeps exactly one notes node", len(notes))
-	}
-	if notes[0].Label != "随手记" || notes[0].Visible {
-		t.Fatal("legacy override not merged", notes[0])
-	}
-	// notes registers the user workspace only now: a legacy merged record that
-	// carried the administrator surface clamps back to the registration on read.
-	if len(notes[0].Surfaces) != 1 || notes[0].Surfaces[0] != "user" {
-		t.Fatal("shared node did not clamp to its registration", notes[0].Surfaces)
-	}
-	_ = admin
-}
-
-// TestSharedNavigationUpgrade pins the ADR-0039 one-time conversion: a stored
-// workspace-prefixed dual tree collapses into the shared single tree, both
-// variants of one page merge into a node carrying both surfaces, and the role
-// grant rows lose their prefixes with duplicates removed.
-func TestSharedNavigationUpgrade(t *testing.T) {
-	ctx := context.Background()
-	store, repo, admin := navigationFixture(t, ctx)
-	_ = admin
-
-	// A legacy tree serialized exactly the way the pre-ADR-0039 storage wrote
-	// it: prefixed ids and scalar surfaces, with duplicated grants on both
-	// workspace variants of the personal-center pages.
-	legacySections := []struct{ id, surface string }{
-		{"user:business", "user"}, {"user:personal", "user"},
-		{"admin:business", "administrator"}, {"admin:system", "administrator"},
-	}
-	legacyNodes := []string{"overview", "account-sessions", "notes", "account", "account-security"}
-	if err := func() error {
-		tx, err := store.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
-		for _, section := range legacySections {
-			payload := fmt.Sprintf(`{"id":%q,"surface":%q,"name":"","sort":10,"visible":true,"show_title":true}`, section.id, section.surface)
-			if _, err := store.Exec(ctx, tx, "INSERT INTO unicore_navigation_sections(id,surface,payload) VALUES(?,?,?)", section.id, section.surface, payload); err != nil {
-				return err
-			}
-		}
-		// The legacy layout kept the administrator account pages inside the
-		// admin:system region while members had their own personal region.
-		sectionOf := map[string]map[string]string{
-			"user":  {"overview": "business", "account-sessions": "business", "notes": "business", "account": "personal", "account-security": "personal"},
-			"admin": {"overview": "business", "account-sessions": "business", "notes": "business", "account": "system", "account-security": "system"},
-		}
-		for _, surface := range []string{"user", "admin"} {
-			for _, page := range legacyNodes {
-				id := surface + ":" + page
-				payload := fmt.Sprintf(`{"id":%q,"section_id":%q,"surfaces":[],"type":"page","route_id":%q,"label":"","icon":"Circle","sort":100,"visible":true,"open_mode":"same_tab","badge_text":"","badge_color":"","badge_dot":false,"operation_ids":[],"disabled":false}`, id, surface+":"+sectionOf[surface][page], page)
-				if _, err := store.Exec(ctx, tx, "INSERT INTO unicore_navigation_nodes(id,section_id,node_type,payload) VALUES(?,?,?,?)", id, surface+":"+sectionOf[surface][page], "page", payload); err != nil {
-					return err
-				}
-			}
-		}
-		if _, err := store.Exec(ctx, tx, "UPDATE unicore_navigation_state SET version=4, initialized=1 WHERE id=1"); err != nil {
-			return err
-		}
-		if _, err := store.Exec(ctx, tx, "INSERT INTO unicore_role_menus(role_id,menu_id) VALUES('user','user:notes'),('user','administrator:notes'),('user','user:account')"); err != nil {
-			return err
-		}
-		if _, err := store.Exec(ctx, tx, "INSERT INTO unicore_role_actions(role_id,action_id) VALUES('user','user:op:createNote'),('user','administrator:op:createNote')"); err != nil {
-			return err
-		}
-		return tx.Commit()
-	}(); err != nil {
-		t.Fatal(err)
-	}
-
-	// The startup conversion collapses the dual tree, folds the pre-collapse
-	// personal region into business and rewrites the grants.
-	if err := repo.EnsureNavigation(ctx); err != nil {
-		t.Fatal(err)
-	}
-	listed, err := repo.ListMenuConfig(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := len(listed.Sections); got != 2 {
-		t.Fatal("sections collapsed", listed.Sections)
-	}
-	surfaces := map[string][]string{}
-	for _, section := range listed.Sections {
-		surfaces[section.ID] = section.Surfaces
-	}
-	for id, want := range map[string]int{"business": 2, "system": 1} {
-		if len(surfaces[id]) != want {
-			t.Fatal("section surfaces", id, surfaces[id])
-		}
-	}
-	for _, node := range listed.Nodes {
-		if node.ID == "account" {
-			t.Fatal("retired account page survived the upgrade", node)
-		}
-	}
-	notes := []contracts.NavigationNode{}
-	for _, node := range listed.Nodes {
-		if node.RouteID != nil && *node.RouteID == "notes" {
-			notes = append(notes, node)
-		}
-	}
-	// Both legacy variants merge into one node; the administrator reach predates
-	// the user-only registration and clamps away on read.
-	if len(notes) != 1 || len(notes[0].Surfaces) != 1 || notes[0].Surfaces[0] != "user" {
-		t.Fatal("notes variants merged", notes)
-	}
-	// Grant rows: deduplicated onto the shared ids.
-	menuIDs, err := store.Rows(ctx, store.DB, "SELECT menu_id FROM unicore_role_menus WHERE role_id='user' ORDER BY menu_id")
-	if err != nil {
-		t.Fatal(err)
-	}
-	ids := []string{}
-	for menuIDs.Next() {
-		var id string
-		if err := menuIDs.Scan(&id); err != nil {
-			t.Fatal(err)
-		}
-		ids = append(ids, id)
-	}
-	menuIDs.Close()
-	// The retired personal-center rows are gone with their nodes; notes keeps
-	// the one deduplicated grant.
-	if len(ids) != 1 || ids[0] != "notes" {
-		t.Fatal("menu grants rewritten", ids)
-	}
-	actionRows, err := store.Rows(ctx, store.DB, "SELECT action_id FROM unicore_role_actions WHERE role_id='user'")
-	if err != nil {
-		t.Fatal(err)
-	}
-	actionIDs := []string{}
-	for actionRows.Next() {
-		var id string
-		if err := actionRows.Scan(&id); err != nil {
-			t.Fatal(err)
-		}
-		actionIDs = append(actionIDs, id)
-	}
-	actionRows.Close()
-	if len(actionIDs) != 1 || actionIDs[0] != "op:createNote" {
-		t.Fatal("action grants rewritten", actionIDs)
-	}
-}
-
-// TestEnsureMonitorNavigationUpgradeBoundaries covers the runtime-monitor
-// introduction on persisted trees: fresh seeds only record the marker,
-// repeated restarts stay idempotent, post-upgrade operator deletions are
-// never resurrected, and a legacy tree receives the monitor directory with
-// every other customization intact.
 func TestEnsureMonitorNavigationUpgradeBoundaries(t *testing.T) {
 	ctx := context.Background()
 	store, repo, admin := navigationFixture(t, ctx)
@@ -940,227 +438,57 @@ func TestEnsureMonitorNavigationUpgradeBoundaries(t *testing.T) {
 	}
 }
 
-func TestRetiredDemoNavigationPreservesBusinessChildren(t *testing.T) {
-	ctx := t.Context()
-	store, repo, _ := navigationFixture(t, ctx)
-	listed, err := repo.ListMenuConfig(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	n := contracts.Navigation{Version: listed.Version, Sections: listed.Sections, Nodes: listed.Nodes}
-	n.Nodes = append(n.Nodes,
-		contracts.NavigationNode{ID: "old-api-catalogue", SectionID: "system", Type: "page", RouteID: strPtr("api-operations"), Visible: true, Surfaces: []string{"administrator"}},
-		contracts.NavigationNode{ID: "old-lab", SectionID: "business", Type: "page", RouteID: strPtr("lab"), Visible: true, Surfaces: []string{"user", "administrator"}},
-		contracts.NavigationNode{ID: "old-files", SectionID: "business", Type: "page", RouteID: strPtr("files"), ParentID: strPtr("old-lab"), Visible: true, Surfaces: []string{"administrator"}},
-		contracts.NavigationNode{ID: "custom-help", SectionID: "business", Type: "link", ParentID: strPtr("old-files"), ActiveMenu: strPtr("old-files"), Url: strPtr("https://example.test/help"), Label: "Business help", Visible: true, Surfaces: []string{"administrator"}, OpenMode: "same_tab"},
-		contracts.NavigationNode{ID: "old-link", SectionID: "business", Type: "link", Url: strPtr("/files?tab=ready#top"), Visible: true, Surfaces: []string{"administrator"}},
-		contracts.NavigationNode{ID: "old-upload", SectionID: "business", Type: "action", ParentID: strPtr("old-files"), Permission: strPtr("files:upload"), OperationIds: []string{"createFileUpload"}, Surfaces: []string{"administrator"}},
-	)
-	tx, err := store.DB.BeginTx(ctx, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err = repo.writeNavigation(ctx, tx, n); err != nil {
-		t.Fatal(err)
-	}
-	for _, id := range []string{"old-lab", "old-files", "custom-help"} {
-		if _, err = store.Exec(ctx, tx, "INSERT INTO unicore_role_menus(role_id,menu_id) VALUES(?,?)", "user", id); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if _, err = store.Exec(ctx, tx, "INSERT INTO unicore_role_actions(role_id,action_id) VALUES(?,?)", "user", "old-upload"); err != nil {
-		t.Fatal(err)
-	}
-	if _, err = store.Exec(ctx, tx, "UPDATE unicore_navigation_state SET version=version+1 WHERE id=1"); err != nil {
-		t.Fatal(err)
-	}
-	if err = tx.Commit(); err != nil {
-		t.Fatal(err)
-	}
-	if err = repo.EnsureNavigation(ctx); err != nil {
-		t.Fatal(err)
-	}
-	after, err := repo.ListMenuConfig(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	found := false
-	for _, node := range after.Nodes {
-		if node.ID == "old-api-catalogue" || node.ID == "old-lab" || node.ID == "old-files" || node.ID == "old-upload" || node.ID == "old-link" {
-			t.Fatal("retired node survived", node)
-		}
-		if node.ID == "custom-help" {
-			found = true
-			if node.ParentID != nil || node.ActiveMenu != nil || node.Label != "Business help" {
-				t.Fatal("custom child changed", node)
-			}
-		}
-	}
-	if !found {
-		t.Fatal("custom child was deleted")
-	}
-	if err = validateNavigation(contracts.Navigation{Sections: after.Sections, Nodes: after.Nodes}); err != nil {
-		t.Fatal("retired tree is not editable", err)
-	}
-	var count int
-	if err = store.Row(ctx, store.DB, "SELECT COUNT(*) FROM unicore_role_menus WHERE menu_id IN (?,?)", "old-lab", "old-files").Scan(&count); err != nil || count != 0 {
-		t.Fatal("dangling menu grant", count, err)
-	}
-	if err = store.Row(ctx, store.DB, "SELECT COUNT(*) FROM unicore_role_actions WHERE action_id=?", "old-upload").Scan(&count); err != nil || count != 0 {
-		t.Fatal("dangling action grant", count, err)
-	}
-	if err = repo.EnsureNavigation(ctx); err != nil {
-		t.Fatal(err)
-	}
-	again, err := repo.ListMenuConfig(ctx)
-	if err != nil || again.Version != after.Version {
-		t.Fatal("retirement is not idempotent", again.Version, after.Version, err)
-	}
-}
-
-// TestRetirePersonalNavigationHealsPersistedTrees pins the retirement of the
-// seeded 个人中心 directory: the directory, its four account pages and their
-// actions leave persisted trees with their grant rows, an operator-hung child
-// survives at the top level, and a second pass finds nothing left to heal.
-func TestRetirePersonalNavigationHealsPersistedTrees(t *testing.T) {
-	ctx := t.Context()
-	store, repo, _ := navigationFixture(t, ctx)
-	listed, err := repo.ListMenuConfig(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	n := contracts.Navigation{Version: listed.Version, Sections: listed.Sections, Nodes: append(append([]contracts.NavigationNode{}, listed.Nodes...),
-		contracts.NavigationNode{ID: "personal", SectionID: "business", Type: "directory", Icon: "UserRound", Sort: 2700, Visible: true, Surfaces: []string{"user", "administrator"}, OpenMode: "same_tab", OperationIds: []string{}},
-		contracts.NavigationNode{ID: "account", SectionID: "business", Type: "page", RouteID: strPtr("account"), ParentID: strPtr("personal"), Icon: "UserRound", Sort: 2100, Visible: true, Surfaces: []string{"user", "administrator"}, OpenMode: "same_tab", OperationIds: []string{}},
-		contracts.NavigationNode{ID: "account-security", SectionID: "business", Type: "page", RouteID: strPtr("account-security"), ParentID: strPtr("personal"), Icon: "ShieldCheck", Sort: 2120, Visible: true, Surfaces: []string{"user", "administrator"}, OpenMode: "same_tab", OperationIds: []string{}},
-		contracts.NavigationNode{ID: "account-sessions", SectionID: "business", Type: "page", RouteID: strPtr("account-sessions"), ParentID: strPtr("personal"), Icon: "Monitor", Sort: 2140, Visible: true, Surfaces: []string{"user", "administrator"}, OpenMode: "same_tab", OperationIds: []string{}},
-		contracts.NavigationNode{ID: "account-tokens", SectionID: "business", Type: "page", RouteID: strPtr("account-tokens"), ParentID: strPtr("personal"), Icon: "ShieldCheck", Sort: 2160, Visible: true, Surfaces: []string{"user", "administrator"}, OpenMode: "same_tab", OperationIds: []string{}},
-		contracts.NavigationNode{ID: "custom-help", SectionID: "business", Type: "link", ParentID: strPtr("account-sessions"), ActiveMenu: strPtr("account"), Url: strPtr("https://example.test/help"), Label: "Business help", Visible: true, Surfaces: []string{"user", "administrator"}, OpenMode: "same_tab", OperationIds: []string{}},
-		contracts.NavigationNode{ID: "op:ghostAccount", SectionID: "business", Type: "action", ParentID: strPtr("account"), Permission: strPtr("notes:update"), OperationIds: []string{"updateNote"}, Surfaces: []string{"user", "administrator"}, Visible: true, OpenMode: "same_tab"},
-	)}
-	tx, err := store.DB.BeginTx(ctx, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err = repo.writeNavigation(ctx, tx, n); err != nil {
-		t.Fatal(err)
-	}
-	for _, id := range []string{"account", "account-sessions", "personal", "custom-help"} {
-		if _, err = store.Exec(ctx, tx, "INSERT INTO unicore_role_menus(role_id,menu_id) VALUES(?,?)", "user", id); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if _, err = store.Exec(ctx, tx, "INSERT INTO unicore_role_actions(role_id,action_id) VALUES(?,?)", "user", "op:ghostAccount"); err != nil {
-		t.Fatal(err)
-	}
-	if _, err = store.Exec(ctx, tx, "UPDATE unicore_navigation_state SET version=version+1 WHERE id=1"); err != nil {
-		t.Fatal(err)
-	}
-	if err = tx.Commit(); err != nil {
-		t.Fatal(err)
-	}
-	if err = repo.EnsureNavigation(ctx); err != nil {
-		t.Fatal(err)
-	}
-	after, err := repo.ListMenuConfig(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	found := false
-	for _, node := range after.Nodes {
-		switch node.ID {
-		case "personal", "account", "account-security", "account-sessions", "account-tokens", "op:ghostAccount":
-			t.Fatal("retired personal node survived", node)
-		case "custom-help":
-			found = true
-			if node.ParentID != nil || node.ActiveMenu != nil || node.Label != "Business help" {
-				t.Fatal("custom child changed", node)
-			}
-		}
-	}
-	if !found {
-		t.Fatal("custom child was deleted")
-	}
-	if err = validateNavigation(contracts.Navigation{Sections: after.Sections, Nodes: after.Nodes}); err != nil {
-		t.Fatal("healed tree is not editable", err)
-	}
-	var count int
-	if err = store.Row(ctx, store.DB, "SELECT COUNT(*) FROM unicore_role_menus WHERE menu_id IN (?,?,?,?)", "personal", "account", "account-security", "account-sessions").Scan(&count); err != nil || count != 0 {
-		t.Fatal("dangling menu grant", count, err)
-	}
-	if err = store.Row(ctx, store.DB, "SELECT COUNT(*) FROM unicore_role_actions WHERE action_id=?", "op:ghostAccount").Scan(&count); err != nil || count != 0 {
-		t.Fatal("dangling action grant", count, err)
-	}
-	if err = store.Row(ctx, store.DB, "SELECT COUNT(*) FROM unicore_role_menus WHERE menu_id=?", "custom-help").Scan(&count); err != nil || count != 1 {
-		t.Fatal("surviving grant was removed", count, err)
-	}
-	if err = repo.EnsureNavigation(ctx); err != nil {
-		t.Fatal(err)
-	}
-	again, err := repo.ListMenuConfig(ctx)
-	if err != nil || again.Version != after.Version {
-		t.Fatal("retirement is not idempotent", again.Version, after.Version, err)
-	}
-}
-
 func TestNavigationRoleSnapshotVersions(t *testing.T) {
 	ctx := t.Context()
 	store, repo, owner := navigationFixture(t, ctx)
-	before, err := repo.role(ctx, store.DB, "user")
+	listed, err := repo.ListMenuConfig(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = repo.initializeNavigation(ctx); err != nil {
-		t.Fatal(err)
+	var page contracts.NavigationNode
+	for _, node := range listed.Nodes {
+		if node.Type == "page" && node.RouteID != nil && *node.RouteID == "users" {
+			page = node
+			break
+		}
 	}
-	initialized, err := repo.role(ctx, store.DB, "user")
-	if err != nil || initialized.Version != before.Version+1 || !initialized.AuthorizationInitialized {
-		t.Fatalf("materialization version: %+v %v", initialized, err)
+	if page.ID == "" {
+		t.Fatal("missing users page")
 	}
-	if err = repo.initializeNavigation(ctx); err != nil {
-		t.Fatal(err)
+	const actionID = "test:snapshot-branch"
+	withAction := append(slices.Clone(listed.Nodes), contracts.NavigationNode{
+		ID: actionID, SectionID: page.SectionID, ParentID: &page.ID,
+		Surfaces: []string{"administrator"}, Type: "action", Label: "Snapshot branch",
+		Visible: true, OpenMode: "same_tab", Permission: strPtr("users:read"),
+		OperationIds: []string{"roleOptions"},
+	})
+	if _, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: listed.Version, Sections: listed.Sections, Nodes: withAction}, owner.ID); err != nil {
+		t.Fatal("save action", err)
 	}
-	if got := *currentRoleVersion(t, ctx, repo, "user"); got != initialized.Version {
-		t.Fatalf("materialization no-op advanced %d", got)
-	}
-	role, err := repo.CreateRole(ctx, contracts.RoleSaveInput{Name: "Retired grants", MenuIds: &[]string{}, ActionIds: &[]string{}, OperationIds: &[]string{}}, owner.ID)
+	role, err := repo.CreateRole(ctx, contracts.RoleSaveInput{
+		Name: "Snapshot holder", Permissions: []string{"users:read"},
+		MenuIds: &[]string{}, ActionIds: &[]string{actionID},
+		OperationIds: &[]string{"roleOptions"}, DataScope: strPtr(platform.ScopeAll),
+	}, owner.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// A grant-only cleanup must stale the editor even after nodes disappeared.
-	if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_role_menus(role_id,menu_id) VALUES(?,?)", role.ID, "account-security"); err != nil {
-		t.Fatal(err)
-	}
-	if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_role_actions(role_id,action_id) VALUES(?,?)", role.ID, "account-security"); err != nil {
-		t.Fatal(err)
-	}
-	if err = repo.retirePersonalNavigation(ctx); err != nil {
-		t.Fatal(err)
+	// Removing the granted node orphans its grant rows: the prune must stale
+	// exactly the affected role editor, and a save that orphans nothing keeps
+	// bumping nothing.
+	withoutAction := slices.DeleteFunc(slices.Clone(withAction), func(node contracts.NavigationNode) bool { return node.ID == actionID })
+	if _, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: listed.Version + 1, Sections: listed.Sections, Nodes: withoutAction}, owner.ID); err != nil {
+		t.Fatal("prune save", err)
 	}
 	after, err := repo.role(ctx, store.DB, role.ID)
-	if err != nil || after.Version != role.Version+1 || len(after.MenuIds) != 0 || len(after.ActionIds) != 0 {
-		t.Fatalf("navigation cleanup version: %+v %v", after, err)
+	if err != nil || after.Version != role.Version+1 || len(after.ActionIds) != 0 {
+		t.Fatalf("orphan prune version: %+v %v", after, err)
 	}
-	if err = repo.retirePersonalNavigation(ctx); err != nil {
-		t.Fatal(err)
+	if _, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: listed.Version + 2, Sections: listed.Sections, Nodes: withoutAction}, owner.ID); err != nil {
+		t.Fatal("no-op save", err)
 	}
 	if got := *currentRoleVersion(t, ctx, repo, role.ID); got != after.Version {
-		t.Fatalf("cleanup no-op advanced %d", got)
-	}
-	if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_role_menus(role_id,menu_id) VALUES(?,?)", role.ID, "files"); err != nil {
-		t.Fatal(err)
-	}
-	if err = repo.retireDemoNavigation(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if got := *currentRoleVersion(t, ctx, repo, role.ID); got != after.Version+1 {
-		t.Fatalf("demo cleanup did not advance %d", got)
-	}
-	if err = repo.retireDemoNavigation(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if got := *currentRoleVersion(t, ctx, repo, role.ID); got != after.Version+1 {
-		t.Fatalf("demo cleanup no-op advanced %d", got)
+		t.Fatalf("grant-free save advanced %d", got)
 	}
 }
 
@@ -1202,31 +530,4 @@ func TestNavigationSurfacesStayWithinRegistration(t *testing.T) {
 		t.Fatal("administrator-only declaration for a user page accepted", err)
 	}
 
-}
-
-func TestClampPageSurfacesKeepsRegistrationCeiling(t *testing.T) {
-	route := "notes"
-	merged := contracts.Navigation{Nodes: []contracts.NavigationNode{
-		// A legacy record widened beyond registration: reading clamps it back to
-		// the registered user surface instead of serving the widened reach.
-		{ID: "notes", SectionID: "business", Surfaces: []string{"user", "administrator"}, Type: "page", RouteID: &route},
-		// An explicitly disabled node keeps its surfaces: operators repair or
-		// drop it deliberately instead of losing the stored configuration.
-		{ID: "disabled", SectionID: "business", Surfaces: []string{"user", "administrator"}, Type: "page", RouteID: &route, Disabled: true},
-	}}
-	clampPageSurfaces(&merged)
-	if got := merged.Nodes[0].Surfaces; len(got) != 1 || got[0] != "user" {
-		t.Fatalf("enabled page not clamped to its registration: %v", got)
-	}
-	if got := merged.Nodes[1].Surfaces; len(got) != 2 {
-		t.Fatalf("disabled page must keep its stored surfaces: %v", got)
-	}
-	// A record whose surfaces all fall outside registration returns to the
-	// registered set instead of disappearing from every workspace.
-	orphan := "notes"
-	merged.Nodes[0] = contracts.NavigationNode{ID: "notes", SectionID: "business", Surfaces: []string{"administrator"}, Type: "page", RouteID: &orphan}
-	clampPageSurfaces(&merged)
-	if got := merged.Nodes[0].Surfaces; len(got) != 1 || got[0] != "user" {
-		t.Fatalf("out-of-registration page did not return to its registered surface: %v", got)
-	}
 }

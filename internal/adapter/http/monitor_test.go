@@ -85,6 +85,7 @@ func TestMonitorEndpointPolicy(t *testing.T) {
 	}
 	localRequest := func(handler http.Handler, path string) *httptest.ResponseRecorder {
 		r := httptest.NewRequest(http.MethodGet, "http://localhost/api/v1"+path, nil)
+		r.RemoteAddr = "127.0.0.1:1234"
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, r)
 		return w
@@ -98,4 +99,22 @@ func TestMonitorEndpointPolicy(t *testing.T) {
 	installed := buildRouter(monitor.New(monitor.Options{Profile: "web-standalone", StartedAt: time.Now(), DB: func() *sql.DB { return localStore.DB }}))
 	check(localRequest(installed, "/monitor"), 200)
 	check(localRequest(installed, "/admin/monitor"), 404)
+	// Revised decision D3: a non-loopback TCP peer is rejected even from a
+	// loopback Host, and a non-loopback Host is rejected from the machine.
+	remotePeer := func(handler http.Handler, path, host string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(http.MethodGet, "http://"+host+"/api/v1"+path, nil)
+		r.RemoteAddr = "10.0.0.2:1234"
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		return w
+	}
+	remoteHost := func(handler http.Handler, path string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(http.MethodGet, "http://monitor.example/api/v1"+path, nil)
+		r.RemoteAddr = "127.0.0.1:1234"
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		return w
+	}
+	check(remotePeer(installed, "/monitor", "localhost"), 403)
+	check(remoteHost(installed, "/monitor"), 403)
 }

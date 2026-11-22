@@ -53,7 +53,6 @@ export interface Bootstrap {
   maintenance_message?: string;
   mfa_pending?: boolean;
   mfa_enrollment_required?: boolean;
-  menus?: Array<MenuEntry>;
   navigation?: Navigation;
 }
 
@@ -458,6 +457,7 @@ export interface PermissionDefinition {
   description: string;
   group: string;
   assignable: boolean;
+  governance: boolean;
   super_admin: boolean;
 }
 
@@ -473,7 +473,6 @@ export interface Role {
   menu_ids: Array<string>;
   action_ids: Array<string>;
   operation_ids: Array<string>;
-  authorization_initialized: boolean;
   version: number;
 }
 
@@ -792,6 +791,60 @@ export interface NoteList {
   total: number;
   page: number;
   page_size: number;
+}
+
+export interface ManagedNoteEditInput {
+  title: string;
+  body: string;
+  version: number;
+}
+
+export interface ManagedNoteDetail {
+  title: string;
+  body: string;
+  status: "open" | "done";
+  version: number;
+}
+
+export interface ManagedNoteDetailResponse {
+  code: string;
+  message: string;
+  request_id: string;
+  data: ManagedNoteDetail;
+}
+
+export interface NoteManagementStatusInput {
+  status: "open" | "done";
+  version: number;
+}
+
+export interface NoteManagementEntry {
+  id: string;
+  owner_id: string;
+  owner_name: string;
+  owner_username: string;
+  title: string;
+  version: number;
+  can_preview: boolean;
+  can_edit: boolean;
+  can_update: boolean;
+  can_delete: boolean;
+  status: "open" | "done";
+  updated_at: number;
+}
+
+export interface NoteManagementList {
+  items: Array<NoteManagementEntry>;
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface NoteManagementListResponse {
+  code: string;
+  message: string;
+  data: NoteManagementList;
+  request_id: string;
 }
 
 export interface NoteResponse {
@@ -1286,19 +1339,7 @@ export interface RoleSaveInput {
   operation_ids?: Array<string>;
 }
 
-export interface MenuEntry {
-  menu_key: string;
-  label: string;
-  group_key: string;
-  sort: number;
-  visible: boolean;
-  parent_key?: string;
-  type: "page" | "link";
-  url?: string;
-}
-
 export interface MenuList {
-  items: Array<MenuEntry>;
   version: number;
   sections: Array<NavigationSection>;
   nodes: Array<NavigationNode>;
@@ -1306,7 +1347,6 @@ export interface MenuList {
 }
 
 export interface MenuSaveInput {
-  items?: Array<MenuEntry>;
   version: number;
   sections: Array<NavigationSection>;
   nodes: Array<NavigationNode>;

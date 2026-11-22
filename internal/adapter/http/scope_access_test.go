@@ -122,7 +122,7 @@ func TestUserRealmScopeReadsAndSigns(t *testing.T) {
 	}
 	// Widen the member to an all-scope role; assignment revokes earlier
 	// sessions, so the cookie is re-issued afterwards.
-	if w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "scope-all", "permissions": []string{"notes:access", "notes:update", "notes:delete", "files:access", "files:delete"}, "data_scope": "all"}, adminCookie, adminCSRF); w.Code != 200 {
+	if w := request("POST", "/api/v1/admin/roles", map[string]any{"name": "scope-all", "permissions": []string{"notes:access", "notes:update", "notes:delete", "files:access", "files:delete"}, "operation_ids": []string{"adminFileAccess", "deleteFile", "deleteNote", "fileAccess", "listFiles", "listNotes", "notesCompleteMultipartUpload", "notesCreateMultipartUpload", "notesDeleteFile", "notesFileAccess", "notesFileUploadPolicy", "notesListFiles", "notesMultipartUpload", "notesSignUploadPart", "notesUploadLocalPart", "updateNote"}, "data_scope": "all"}, adminCookie, adminCSRF); w.Code != 200 {
 		t.Fatal("role create", w.Code, w.Body.String())
 	}
 	var roles contracts.RoleListResponse

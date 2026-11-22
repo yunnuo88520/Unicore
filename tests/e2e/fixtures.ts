@@ -44,7 +44,14 @@ async function spawnInstance({ playwright }: Pick<PlaywrightWorkerArgs, 'playwri
   // between the allocator close and the child bind), so every spawned server
   // must prove its identity with its own bootstrap token before the fixture
   // hands the URL out; a collision retries on a fresh port.
-  const stop0 = (child: ReturnType<typeof spawn>) => { if (child.exitCode === null) child.kill('SIGTERM'); };
+  const stopChild = async (child: ReturnType<typeof spawn>) => {
+    if (!child.pid || child.exitCode !== null || child.signalCode !== null) return;
+    await new Promise<void>(resolve => {
+      const deadline = setTimeout(() => child.kill('SIGKILL'), 6000);
+      child.once('exit', () => { clearTimeout(deadline); resolve(); });
+      child.kill('SIGTERM');
+    });
+  };
   let process: ReturnType<typeof spawn>;
   let url = '';
   let listenPort = 0;
@@ -68,15 +75,15 @@ async function spawnInstance({ playwright }: Pick<PlaywrightWorkerArgs, 'playwri
       } catch {}
       await new Promise<void>(resolve => setTimeout(resolve, 500));
     }
-    if (!live) { stop0(process); continue; }
-    const probe = await request.post('/api/v1/install/verify-db', { headers: { 'X-Bootstrap-Token': token }, data: { driver: 'sqlite', dsn: '' } });
+    if (!live) { await stopChild(process); continue; }
+    const probe = await request.post('/api/v1/install/verify-db', { headers: { 'X-Bootstrap-Token': token }, data: { driver: 'sqlite', dsn: '' } }).catch(() => undefined);
     // Identity proof: only our own token passes authorization (fresh foreign
     // instance -> 401, installed foreign instance -> 409 before token check),
     // so an accepted probe means the URL belongs to this fixture's server.
-    if (probe.status() === 200 || probe.status() === 400) break;
-    stop0(process);
+    if (probe?.status() === 200 || probe?.status() === 400) break;
+    await stopChild(process);
   }
-  const stop = async () => { if (process.exitCode !== null) return; process.kill('SIGTERM'); await new Promise<void>(resolve => process.once('exit', () => resolve())); };
+  const stop = () => stopChild(process);
   try {
     await use({ url, token: fixtureToken, request, directory,
       restart: async () => { await stop(); process = start(listenPort); await expect.poll(async () => { try { return (await request.get('/api/v1/health/ready')).status(); } catch { return 0; } }, { timeout: 15000 }).toBe(200); },
@@ -271,6 +278,20 @@ export function menuChain(config: MenuList, routeId: string, surface?: 'user' | 
   let parent = node.parent_id ? byId.get(node.parent_id) : undefined;
   while (parent) { chain.unshift(parent.id); parent = parent.parent_id ? byId.get(parent.id) : undefined; }
   return chain;
+}
+
+// Action nodes the role can explicitly hold: children of the granted pages
+// whose permission point is in the set and whose operations are all granted —
+// the same bound the role editor and the server enforce on save.
+export function chainActions(config: MenuList, menuIds: string[], permissions: string[], operationIds: string[]): string[] {
+  const grantedPages = new Set(menuIds);
+  const ops = new Set(operationIds);
+  const points = new Set(permissions);
+  return config.nodes
+    .filter(node => node.type === 'action' && node.parent_id && grantedPages.has(node.parent_id)
+      && !!node.permission && points.has(node.permission)
+      && node.operation_ids.length > 0 && node.operation_ids.every(op => ops.has(op)))
+    .map(node => node.id).sort();
 }
 
 // Follow the shared control's semantic presentation, keeping option names visible in tests.

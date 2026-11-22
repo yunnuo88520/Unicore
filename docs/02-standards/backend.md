@@ -22,7 +22,9 @@ Go 采用组合：可变业务实体嵌入 `internal/domain/entity.go` 的 BaseE
 
 ## 身份与授权
 
-平台采用统一账号、多角色与共享会话；user/administrator 是工作台与 API 面，角色 realm 仅作分类，不是账号或会话隔离边界。所有管理资源（包含只读）位于 `/api/v1/admin/*`，其 x-unicore 契约策略由策略中间件 fail-closed 强制（未声明路由 500），handler 内仍实际调用 require 补充 2FA/审计；写请求还需 CSRF/Origin。在安装锁内重查操作者以防请求鉴权后的停用竞争，参考 platformsql.AuthorizeAdministrator 和 announcementsql.transaction。用户路径只返回本人或业务明确开放的最小投影，不提供管理 DTO；公告用户读取不包含内部备注、草稿、版本及管理员 ID。真实 Chi 路由与契约的双向遍历比对、身份域/CSRF 矩阵、响应信封形状与错误码/状态一致性测试纳入 make test。
+平台采用统一账号、多角色与共享会话；user/administrator 是工作台与 API 面，角色 realm 仅作分类，不是账号或会话隔离边界。所有管理资源（包含只读）位于 `/api/v1/admin/*`，其 x-unicore 契约策略由策略中间件 fail-closed 强制（未声明路由 500），handler 内仍实际调用 require 补充 2FA/审计；写请求还需 CSRF/Origin。在安装锁内重查操作者以防请求鉴权后的停用竞争，参考 platformsql.AuthorizeAdministrator 和 announcementsql.transaction。新增写 `unicore_role_permissions` 的入口必须复用 `platform.SuperOnlyPermission` 校验，super_admin 保留权限点不得进入存储角色行（保留点仅由 super_admin 隐式持有，`validateGrants` 是唯一授权边界）。用户路径只返回本人或业务明确开放的最小投影，不提供管理 DTO；公告用户读取不包含内部备注、草稿、版本及管理员 ID。真实 Chi 路由与契约的双向遍历比对、身份域/CSRF 矩阵、响应信封形状与错误码/状态一致性测试纳入 make test。
+
+API 子路由必须通过 `policyRouter` 注册；`With`、`Route`、`Group` 返回值继续携带策略包装，策略在最终叶子匹配后、业务执行前运行。需要独立子树时使用 `newPolicyRouter` 创建，并通过受控 `Mount` 挂载；原始 Chi router、inline router 与任意 `http.Handler` 不允许挂入该 API 注册面，装配期直接拒绝。不能在父挂载通配路径提前匹配 operation，也不能在业务执行后补鉴权；未知路径及错误方法保留 404/405。新增注册方式须覆盖未声明叶子不执行、权限拒绝及嵌套错误响应测试。
 
 ## DTO、存储与生命周期
 
@@ -40,7 +42,7 @@ Go 采用组合：可变业务实体嵌入 `internal/domain/entity.go` 的 BaseE
 | 文件元数据/位置/清理任务、邮件队列、企业绑定 | 沿用已发布的专门状态机、引用完整性、清理/重试语义；不可绕过生命周期改成普通 CRUD |
 | Analysis 等纯值对象 | 不持久化，无实体身份和删除状态 |
 
-新增模块若属于上述专门类别，必须在设计/ADR 说明原因并验证对应撤销/清理约束；其余可变业务聚合必须使用 BaseEntity。不要修改历史迁移 checksum，不在已有安全表上进行无关重构。
+新增模块若属于上述专门类别，必须在设计/ADR 说明原因并验证对应撤销/清理约束；其余可变业务聚合必须使用 BaseEntity。笔记、公告的业务删除使用 `deleted_at` 与版本校验；角色、部门、岗位、字典等按各自引用规则物理删除，账号只有停用，文件按清理状态机处理。不存在跨模块的运行时删除模式开关。同一实体的个人端和管理端应共享仓储层删除策略，授权、范围和审计仍由各入口分别处理；切换删除模式须先评估该实体的引用、历史数据和恢复/清理语义。不要修改历史迁移 checksum，不在已有安全表上进行无关重构。
 
 ## 审计与验证
 

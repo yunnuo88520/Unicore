@@ -32,7 +32,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 | 发行包 | release 产物（web-platform / web-standalone / cli 归档、桌面安装包）；Web 包以 ldflags 注入默认 profile，部署期可覆盖属有意设计（[D15 已裁决](pending-decisions.md)） |
 | 实例 | 一次安装形成的数据目录 + 数据库 + 配置整体；安装后 profile 固化（`installation.json`） |
 | 实例运维面 | Web 发行包内 `unicore` 子命令与 `unicore-ops` 工具的总称；操作实例但不属于任何产品形态 |
-| 工作台（surface / realm） | Platform 的两个前端工作台与 API 面：user（工作区）与 administrator（管理后台），由路径选择，共用统一账号和会话；角色 realm 仅作分类 |
+| 工作台 | Platform 内置 `user`（工作区）和 `administrator`（管理后台），另允许应用在用户 Web 入口注册 `/workspaces/<id>` 业务控制台。控制台不新增 API realm 或身份域；共用统一账号、会话和权限，角色 realm 仍仅作分类。 |
 | 本地作用域（local scope） | 非平台形态无账号主体时的数据归属方式（`scope="local"`、`actor="local"`） |
 
 ## 2. 能力状态语义
@@ -61,7 +61,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 | 权限控制 | 已实现：权限点 + 菜单/动作 + operation 三层授权，super_admin 保留集，部门数据范围 | 不装配角色模型；服务端仍 fail-closed，本地可达即边界 | 不适用 |
 | 数据持久化 | 已实现：SQLite/PostgreSQL/MySQL，core+platform+module.notes 命名空间 | 已实现：web 三方言、desktop 仅 SQLite；当前 core+platform+module.notes，共享 schema 不开放身份治理 | 不装配：无数据库 |
 | 配置 | 已实现：全局设置（仅管理端）+ 设备偏好 | 设备偏好；无实例级设置页面或可写设置项 | 不适用（仅进程日志环境变量） |
-| UI / 菜单 / 页面 | 已实现：用户工作区 + 管理后台双 SPA，服务端投影导航 | 已实现：单工作区，客户端默认导航，两载体同一套页面 | 不适用 |
+| UI / 菜单 / 页面 | 用户工作区 + 管理后台双 SPA，服务端投影导航；业务控制台可用独立外壳和导航 | 已实现：单工作区，客户端默认导航，两载体同一套页面 | 不适用 |
 | API 适配 | 已实现：HTTP `/api/v1` 全量 + admin 镜像 | 受限：HTTP 仅本地面（bootstrap/settings/updates/notes/core 与本地业务附件），admin API 一律 404；desktop 走 Wails 桥 | 已实现：进程内 Cobra 命令 |
 | 生命周期 | 已实现：lifecycle.Stack + 优雅排水 + 可选 loopback 指标 | 已实现：web 同左；desktop 用 Wails 回调，无指标面 | 不适用：无组件栈 |
 | 后台任务与调度 | 已实现：平台调度器 + 任务管理 API | 受限：两载体均有文件清理与本地告警；web 另有日志保留定时器，无平台任务管理 | 不装配 |
@@ -89,7 +89,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
    - **装配省略**（源码强制）：identity/branding/mailer 与云存储仅在 web-platform 装配；Standalone 的 files 仅为本地业务附件，不暴露平台存储管理接口。
    - **handler 自查**（维护约定）：**`x-unicore.profiles` 声明不被中间件执行**——形态隔离的最后一环是各 handler 的 profile 自查（如 `notes.go`、`announcements.go`、`updates.go`）。新增非全形态接口必须写 handler 自查，不得只声明 profiles 字段。
    前端隐藏菜单或按钮不构成权限控制。Standalone 页面只呈现已装配的本机能力；平台专属功能与载体不具备的能力不显示占位、标签或权限引导，直达地址按不存在处理。
-5. [源码强制] 菜单授权不授予 API：menu_ids、action_ids、operation_ids 三个命名空间相互独立，服务端授权是唯一执行点（权限派生明确排除菜单行，`internal/adapter/storage/platformsql/repository.go`）。
+5. [源码强制] 菜单授权不授予 API：menu_ids、action_ids、operation_ids 三个命名空间相互独立，服务端授权是唯一执行点（会话投影只读存储权限点，无运行时派生，`internal/adapter/storage/platformsql/repository.go`、[ADR-0050](../adr/ADR-0050-explicit-authorization-baseline.md)）。
 6. [源码强制] profile 在安装后不可变（`internal/install/manager.go`）；不得提供运行期形态切换。发行包默认 profile 的部署期覆盖属有意设计（[D15 已裁决](pending-decisions.md)）。
 7. [源码强制] 业务模块不得在 desktop/CLI 装配路径引入平台模块；依赖向内规则见 [后端规范](../02-standards/backend.md)。
 8. [维护约定] 矩阵与清单的状态以源码为准：不得把未实现写成已实现，不得用文档表述替代装配证据。
@@ -109,6 +109,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 | 管理后台资产 | 包内含 admin 资产但对 standalone 请求 404 | 不含 admin 入口 |
 | API 文档页 | 条件支持（`api_docs` 配置开启时可见） | 不适用（无契约 HTTP 端点；见 [决策 D2](pending-decisions.md)） |
 | 进程监控 | 可选 loopback `/metrics` | 无 |
+| 本地面暴露强度 | 统一 loopback（2026-11 决策 D3，2026-11-20 修订）：`/updates*`、`/settings`、`/monitor*` 与 `platform-session` 本地面（`core/execute`、`inbox`、`events`）均要求 Host 与 TCP 对端为本机回环（`httpadapter.localLoopback`），远程直连一律 403，不再依赖外层访问控制 | 不适用（无 HTTP 面） |
 | 窗口关闭行为 | 不适用（浏览器标签关闭只断开会话，服务进程不受影响） | 关闭即隐藏到后台运行：macOS 应用级隐藏（点 Dock 图标或菜单栏托盘「打开」恢复，Cmd+Q / 托盘「退出」真正退出；内容全尺寸自绘标题条）；Windows/Linux 隐藏窗口（托盘图标恢复，「退出」菜单真正退出）。见 [ADR-0048](../adr/ADR-0048-desktop-close-background-tray.md) |
 
 除上述清单外，同一功能在两个载体上呈现或行为不一致的，按实现缺失处理：或修复对齐，或作为 [待决策](pending-decisions.md) 提交维护者裁决。

@@ -35,6 +35,16 @@ it('offers retry when bootstrap fails', async () => {
   expect(await screen.findByRole('button', { name: '重新连接' }, { timeout: 5000 })).toBeVisible();
 });
 
+it('redirects a completed installation away from /install', async () => {
+  const api = client();
+  window.history.replaceState(null, '', '/install');
+  render(<Workspace client={api} />);
+  // The shell normalizes /install to overview, so without the installed
+  // redirect the wizard would render inside the workspace chrome.
+  await screen.findByRole('heading', { name: '工作台概览', level: 1 }, { timeout: 5000 });
+  expect(window.location.pathname).toBe('/');
+});
+
 it('renders catalogue role names in both account menus', { timeout: 20000 }, async () => {
   const memberMetadata: Bootstrap = {
     ...metadata,

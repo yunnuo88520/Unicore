@@ -9,7 +9,7 @@ for (const change of ['role save', 'menu assignment'] as const) {
     await installPlatform(instance);
     const owner = sdkClient(instance.url);
     await loginClient(owner, 'admin', 'administrator-password-strong');
-    const role = await owner.createRole({ name: 'Snapshot reader', permissions: ['notes:access'], menu_ids: [], action_ids: [], operation_ids: ['listNotes'] });
+    const role = await owner.createRole({ name: 'Snapshot reader', permissions: ['notes:access', 'users:read'], menu_ids: [], action_ids: [], operation_ids: ['listNotes', 'listUsers'] });
     expect(role.version).toBeGreaterThan(0);
     // The shared create/update input allows omission for creates only.
     await expect(owner.updateRole(role.id, { name: role.name, permissions: role.permissions })).rejects.toMatchObject({ code: 'INVALID_INPUT' });
@@ -79,6 +79,9 @@ test('builtin user scope is read-only while its copy can select a custom scope',
   expect(roles.items.find(item => item.id === 'user')?.data_scope).toBe('self');
   expect(roles.items.find(item => item.name === 'Custom user copy')).toMatchObject({ builtin: false, data_scope: 'all' });
   await page.goto(`${instance.url}/admin/menus`);
+  // The menus console defaults to the administrator surface; the personal
+  // notes node is a user-surface entry and appears under that filter.
+  await chooseOption(page, '按工作台筛选', '用户工作台');
   await page.getByRole('button', { name: '展开全部', exact: true }).click();
   await page.getByRole('button', { name: '分配角色：我的笔记', exact: true }).click();
   const assignment = page.getByRole('dialog', { name: '分配角色：我的笔记', exact: true });
@@ -156,13 +159,17 @@ test('explicit button revocation survives session reload while its independent A
 test('menu rows assign roles atomically and preserve unrelated role edits and sessions', async ({ page, instance }, info) => {
   await installPlatform(instance);
   const owner = sdkClient(instance.url); await loginClient(owner, 'admin', 'administrator-password-strong');
-  const role = await owner.createRole({ name: 'Menu reader', permissions: [], menu_ids: [], action_ids: [], operation_ids: [] });
+  const role = await owner.createRole({ name: 'Menu reader', permissions: ['users:read'], menu_ids: [], action_ids: [], operation_ids: ['listUsers', 'roleOptions'] });
   const member = await owner.createUser({ username: 'menu-reader', email: 'reader@example.test', password: memberPassword, role_ids: [role.id] });
   const reader = sdkClient(instance.url); await loginClient(reader, member.username, memberPassword);
   await adminLogin(page, instance.url, 'admin', 'administrator-password-strong');
   await page.goto(`${instance.url}/admin/menus`);
   await page.getByRole('button', { name: '展开全部', exact: true }).click();
   await expect(page.getByRole('link', { name: 'API 操作目录', exact: true })).toHaveCount(0);
+  // Menu assignment configures visibility only: a role without the page's
+  // permission point is refused instead of silently granted.
+  const posts = await owner.menuConfig();
+  await expect(owner.assignMenuRoles('posts', { version: posts.version, expected_role_ids: [], role_ids: [role.id] })).rejects.toMatchObject({ code: 'MENU_ROLE_PERMISSION_MISSING' });
   await page.getByRole('button', { name: '分配角色：用户列表', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '分配角色：用户列表', exact: true });
   await expect(dialog.getByRole('checkbox', { name: '用户', exact: true })).toBeDisabled();
@@ -171,7 +178,7 @@ test('menu rows assign roles atomically and preserve unrelated role edits and se
   await expect(dialog.getByRole('checkbox', { name: 'user', exact: true })).toHaveCount(0);
   await dialog.getByRole('checkbox', { name: 'Menu reader', exact: true }).check();
   // This save occurs after the dialog loaded: the menu patch must preserve it.
-  await owner.updateRole(role.id, { version: role.version, name: 'Renamed reader', permissions: ['notes:access'], operation_ids: ['listNotes'], data_scope: 'all' });
+  await owner.updateRole(role.id, { version: role.version, name: 'Renamed reader', permissions: ['users:read', 'notes:access'], operation_ids: ['listUsers', 'roleOptions', 'listNotes'], data_scope: 'all' });
   await loginClient(reader, member.username, memberPassword);
   await page.screenshot({ path: info.outputPath('menu-roles.png'), fullPage: true });
   await dialog.getByRole('button', { name: '保存', exact: true }).click();

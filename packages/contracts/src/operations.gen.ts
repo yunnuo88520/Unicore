@@ -1948,6 +1948,116 @@ export const operations = {
     "identityRealm": "administrator",
     "uiPage": "notes"
   },
+  "listNoteManagement": {
+    "method": "GET",
+    "path": "/api/v1/admin/notes/management",
+    "requestSchema": null,
+    "responseSchema": "NoteManagementListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "notes:manage:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "csrf": false,
+    "identityRealm": "administrator",
+    "uiPage": "note-management"
+  },
+  "previewManagedNote": {
+    "method": "GET",
+    "path": "/api/v1/admin/notes/management/{owner}/{id}",
+    "requestSchema": null,
+    "responseSchema": "ManagedNoteDetailResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "identityRealm": "administrator",
+    "permissionMode": "all",
+    "permissions": [
+      "notes:manage:preview",
+      "notes:manage:read"
+    ],
+    "superAdmin": false,
+    "csrf": false,
+    "uiPage": "note-management"
+  },
+  "editManagedNote": {
+    "method": "PUT",
+    "path": "/api/v1/admin/notes/management/{owner}/{id}",
+    "requestSchema": "ManagedNoteEditInput",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "identityRealm": "administrator",
+    "permissionMode": "all",
+    "permissions": [
+      "notes:manage:edit",
+      "notes:manage:preview",
+      "notes:manage:read"
+    ],
+    "superAdmin": false,
+    "csrf": true,
+    "uiPage": "note-management"
+  },
+  "updateNoteManagementStatus": {
+    "method": "PATCH",
+    "path": "/api/v1/admin/notes/management/{owner}/{id}",
+    "requestSchema": "NoteManagementStatusInput",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "identityRealm": "administrator",
+    "csrf": true,
+    "permissions": [
+      "notes:manage:update",
+      "notes:manage:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "uiPage": "note-management"
+  },
+  "deleteManagedNote": {
+    "method": "DELETE",
+    "path": "/api/v1/admin/notes/management/{owner}/{id}",
+    "requestSchema": "NoteVersion",
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "identityRealm": "administrator",
+    "csrf": true,
+    "permissions": [
+      "notes:manage:delete",
+      "notes:manage:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": false,
+    "uiPage": "note-management"
+  },
   "adminUpdateNote": {
     "method": "PUT",
     "path": "/api/v1/admin/notes/{id}",
@@ -5457,6 +5567,11 @@ export interface OperationInputs {
   deleteNote: Models.NoteVersion;
   adminListNotes: undefined;
   adminCreateNote: Models.NoteInput;
+  listNoteManagement: undefined;
+  previewManagedNote: undefined;
+  editManagedNote: Models.ManagedNoteEditInput;
+  updateNoteManagementStatus: Models.NoteManagementStatusInput;
+  deleteManagedNote: Models.NoteVersion;
   adminUpdateNote: Models.NoteUpdate;
   adminDeleteNote: Models.NoteVersion;
   updateOverview: undefined;
@@ -5734,6 +5849,11 @@ export interface OperationData {
   deleteNote: Models.ActionResultResponse['data'];
   adminListNotes: Models.NoteListResponse['data'];
   adminCreateNote: Models.NoteResponse['data'];
+  listNoteManagement: Models.NoteManagementListResponse['data'];
+  previewManagedNote: Models.ManagedNoteDetailResponse['data'];
+  editManagedNote: Models.ActionResultResponse['data'];
+  updateNoteManagementStatus: Models.ActionResultResponse['data'];
+  deleteManagedNote: Models.ActionResultResponse['data'];
   adminUpdateNote: Models.NoteResponse['data'];
   adminDeleteNote: Models.ActionResultResponse['data'];
   updateOverview: Models.UpdateOverviewResponse['data'];

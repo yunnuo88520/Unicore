@@ -1,7 +1,7 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Explicit named Lucide imports resolved from the curated navigation catalog; the product's registered names ride the same map and unknown persisted names fall back to Circle.
 import { useMemo, useState } from 'react';
-import { Button, Input } from '@unicore/ui';
+import { Button, Input, Popover, PopoverContent, PopoverTrigger } from '@unicore/ui';
 import { useI18n } from './i18n';
 import { navigationIconCatalog } from './navigation-icon-catalog';
 import iconKeywords from './navigation-icon-keywords.json';
@@ -1260,28 +1260,39 @@ const catalogEntries = navigationIconCatalog.map(name => ({ name, zh: keywordOf[
 // falls back to the workspace's own default icon resolution.
 export function NavigationIconPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const { t } = useI18n();
+  const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const query = search.trim().toLowerCase();
   const matches = useMemo(() => (
     query ? catalogEntries.filter(entry => entry.name.toLowerCase().includes(query) || entry.zh.toLowerCase().includes(query)) : catalogEntries
   ), [query]);
   const Current = resolveNavigationIcon(value);
-  return <div className="flex min-w-0 flex-col gap-2">
-    <span className="text-xs text-muted">{t('图标')}</span>
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="flex min-w-0 items-center gap-1.5 text-sm"><Current size={18} aria-hidden="true" /><span className="truncate">{value || t('默认图标')}</span></span>
-      {value && <Button type="button" variant="ghost" size="sm" onClick={() => { onChange(''); setSearch(''); }}>{t('使用默认图标')}</Button>}
-    </div>
-    <Input aria-label={t('搜索图标名称或用途')} placeholder={t('搜索图标名称或用途')} value={search} autoComplete="off" onChange={event => setSearch(event.target.value)} />
-    <div role="group" aria-label={t('图标选择器')} className="grid max-h-64 grid-cols-6 gap-1 overflow-y-auto rounded-md border border-line p-2 sm:grid-cols-10">
-      {matches.map(({ name, Icon }) => (
-        <Button key={name} type="button" size="icon" variant={name === value ? 'primary' : 'ghost'}
-          aria-label={name} aria-pressed={name === value} title={name} onClick={() => onChange(name)}>
-          <Icon size={16} aria-hidden="true" />
+  const select = (icon: string) => { onChange(icon); setOpen(false); };
+  return <Popover open={open} onOpenChange={next => { setOpen(next); if (next) setSearch(''); }}>
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <span className="text-sm font-medium text-ink">{t('图标')}</span>
+      <PopoverTrigger asChild>
+        <Button type="button" variant="secondary" aria-label={t('选择图标')} className="w-full justify-start">
+          <Current size={16} aria-hidden="true" />
+          <span className="min-w-0 flex-1 truncate text-start">{value || t('默认图标')}</span>
+          <ChevronDown size={14} aria-hidden="true" />
         </Button>
-      ))}
-      {!matches.length && <p className="col-span-full py-4 text-center text-2xs text-subtle">{t('没有匹配的图标')}</p>}
+      </PopoverTrigger>
     </div>
-    <small className="text-muted">{t('共 {{count}} 个图标，支持名称与中文用途搜索。', { count: matches.length })}</small>
-  </div>;
+    <PopoverContent aria-label={t('图标选择器')} className="w-[min(22rem,calc(100vw-2rem))]">
+      <div className="flex flex-col gap-2">
+        <Input aria-label={t('搜索图标名称或用途')} placeholder={t('搜索图标名称或用途')} value={search} autoComplete="off" onChange={event => setSearch(event.target.value)} />
+        <div role="group" aria-label={t('图标选择器')} className="grid max-h-[min(12rem,30dvh)] grid-cols-[repeat(auto-fill,minmax(2.25rem,1fr))] justify-items-center gap-1 overflow-y-auto rounded-lg border border-line p-1">
+          {matches.map(({ name, Icon }) => (
+            <Button key={name} type="button" size="icon" variant={name === value ? 'primary' : 'ghost'}
+              aria-label={name} aria-pressed={name === value} title={name} onClick={() => select(name)}>
+              <Icon size={16} aria-hidden="true" />
+            </Button>
+          ))}
+          {!matches.length && <p className="col-span-full py-4 text-center text-sm text-muted">{t('没有匹配的图标')}</p>}
+        </div>
+        {value && <Button type="button" variant="ghost" size="sm" className="self-start" onClick={() => select('')}>{t('使用默认图标')}</Button>}
+      </div>
+    </PopoverContent>
+  </Popover>;
 }

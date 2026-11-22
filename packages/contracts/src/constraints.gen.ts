@@ -195,12 +195,6 @@ export const constraints = {
       "mfa_enrollment_required": {
         "type": "boolean"
       },
-      "menus": {
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/MenuEntry"
-        }
-      },
       "navigation": {
         "$ref": "#/components/schemas/Navigation"
       }
@@ -1705,6 +1699,7 @@ export const constraints = {
       "description",
       "group",
       "assignable",
+      "governance",
       "super_admin"
     ],
     "properties": {
@@ -1721,6 +1716,9 @@ export const constraints = {
         "type": "string"
       },
       "assignable": {
+        "type": "boolean"
+      },
+      "governance": {
         "type": "boolean"
       },
       "super_admin": {
@@ -1743,7 +1741,6 @@ export const constraints = {
       "menu_ids",
       "action_ids",
       "operation_ids",
-      "authorization_initialized",
       "version"
     ],
     "properties": {
@@ -1816,9 +1813,6 @@ export const constraints = {
         },
         "maxItems": 2048,
         "uniqueItems": true
-      },
-      "authorization_initialized": {
-        "type": "boolean"
       },
       "version": {
         "type": "integer",
@@ -3127,6 +3121,230 @@ export const constraints = {
         "type": "integer",
         "minimum": 1,
         "maximum": 50
+      }
+    }
+  },
+  "ManagedNoteEditInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "title",
+      "body",
+      "version"
+    ],
+    "properties": {
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120
+      },
+      "body": {
+        "type": "string",
+        "maxLength": 5000
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      }
+    }
+  },
+  "ManagedNoteDetail": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "title",
+      "body",
+      "status",
+      "version"
+    ],
+    "properties": {
+      "title": {
+        "type": "string"
+      },
+      "body": {
+        "type": "string"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "open",
+          "done"
+        ]
+      },
+      "version": {
+        "type": "integer"
+      }
+    }
+  },
+  "ManagedNoteDetailResponse": {
+    "type": "object",
+    "required": [
+      "code",
+      "message",
+      "request_id",
+      "data"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "request_id": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/ManagedNoteDetail"
+      }
+    }
+  },
+  "NoteManagementStatusInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "status",
+      "version"
+    ],
+    "properties": {
+      "status": {
+        "type": "string",
+        "enum": [
+          "open",
+          "done"
+        ]
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 2147483647
+      }
+    }
+  },
+  "NoteManagementEntry": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "owner_id",
+      "owner_name",
+      "owner_username",
+      "title",
+      "version",
+      "can_preview",
+      "can_edit",
+      "can_update",
+      "can_delete",
+      "status",
+      "updated_at"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "owner_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "owner_name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "owner_username": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "title": {
+        "type": "string",
+        "maxLength": 120
+      },
+      "version": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 2147483647
+      },
+      "can_preview": {
+        "type": "boolean"
+      },
+      "can_edit": {
+        "type": "boolean"
+      },
+      "can_update": {
+        "type": "boolean"
+      },
+      "can_delete": {
+        "type": "boolean"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "open",
+          "done"
+        ]
+      },
+      "updated_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      }
+    }
+  },
+  "NoteManagementList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "total",
+      "page",
+      "page_size"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NoteManagementEntry"
+        }
+      },
+      "total": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "page": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "page_size": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 50
+      }
+    }
+  },
+  "NoteManagementListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "message",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "data": {
+        "$ref": "#/components/schemas/NoteManagementList"
+      },
+      "request_id": {
+        "type": "string"
       }
     }
   },
@@ -5245,70 +5463,16 @@ export const constraints = {
       }
     }
   },
-  "MenuEntry": {
-    "type": "object",
-    "additionalProperties": false,
-    "required": [
-      "menu_key",
-      "label",
-      "group_key",
-      "sort",
-      "visible",
-      "type"
-    ],
-    "properties": {
-      "menu_key": {
-        "type": "string",
-        "maxLength": 64
-      },
-      "label": {
-        "type": "string",
-        "maxLength": 80
-      },
-      "group_key": {
-        "type": "string",
-        "maxLength": 32
-      },
-      "sort": {
-        "type": "integer"
-      },
-      "visible": {
-        "type": "boolean"
-      },
-      "parent_key": {
-        "type": "string",
-        "maxLength": 64
-      },
-      "type": {
-        "type": "string",
-        "enum": [
-          "page",
-          "link"
-        ]
-      },
-      "url": {
-        "type": "string",
-        "maxLength": 2048
-      }
-    }
-  },
   "MenuList": {
     "type": "object",
     "additionalProperties": false,
     "required": [
-      "items",
       "version",
       "sections",
       "nodes",
       "pages"
     ],
     "properties": {
-      "items": {
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/MenuEntry"
-        }
-      },
       "version": {
         "type": "integer",
         "minimum": 0
@@ -5342,13 +5506,6 @@ export const constraints = {
       "nodes"
     ],
     "properties": {
-      "items": {
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/MenuEntry"
-        },
-        "maxItems": 256
-      },
       "version": {
         "type": "integer",
         "minimum": 0

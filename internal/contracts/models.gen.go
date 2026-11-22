@@ -55,7 +55,6 @@ type Bootstrap struct {
 	MaintenanceMessage    *string      `json:"maintenance_message,omitempty"`
 	MfaPending            *bool        `json:"mfa_pending,omitempty"`
 	MfaEnrollmentRequired *bool        `json:"mfa_enrollment_required,omitempty"`
-	Menus                 *[]MenuEntry `json:"menus,omitempty"`
 	Navigation            *Navigation  `json:"navigation,omitempty"`
 }
 
@@ -460,23 +459,23 @@ type PermissionDefinition struct {
 	Description string `json:"description"`
 	Group       string `json:"group"`
 	Assignable  bool   `json:"assignable"`
+	Governance  bool   `json:"governance"`
 	SuperAdmin  bool   `json:"super_admin"`
 }
 
 type Role struct {
-	ID                       string   `json:"id"`
-	Name                     string   `json:"name"`
-	Builtin                  bool     `json:"builtin"`
-	Permissions              []string `json:"permissions"`
-	UserCount                int      `json:"user_count"`
-	Realm                    string   `json:"realm"`
-	DataScope                string   `json:"data_scope"`
-	DepartmentIds            []string `json:"department_ids"`
-	MenuIds                  []string `json:"menu_ids"`
-	ActionIds                []string `json:"action_ids"`
-	OperationIds             []string `json:"operation_ids"`
-	AuthorizationInitialized bool     `json:"authorization_initialized"`
-	Version                  int      `json:"version"`
+	ID            string   `json:"id"`
+	Name          string   `json:"name"`
+	Builtin       bool     `json:"builtin"`
+	Permissions   []string `json:"permissions"`
+	UserCount     int      `json:"user_count"`
+	Realm         string   `json:"realm"`
+	DataScope     string   `json:"data_scope"`
+	DepartmentIds []string `json:"department_ids"`
+	MenuIds       []string `json:"menu_ids"`
+	ActionIds     []string `json:"action_ids"`
+	OperationIds  []string `json:"operation_ids"`
+	Version       int      `json:"version"`
 }
 
 type RoleList struct {
@@ -794,6 +793,60 @@ type NoteList struct {
 	Total    int         `json:"total"`
 	Page     int         `json:"page"`
 	PageSize int         `json:"page_size"`
+}
+
+type ManagedNoteEditInput struct {
+	Title   string `json:"title"`
+	Body    string `json:"body"`
+	Version int    `json:"version"`
+}
+
+type ManagedNoteDetail struct {
+	Title   string `json:"title"`
+	Body    string `json:"body"`
+	Status  string `json:"status"`
+	Version int    `json:"version"`
+}
+
+type ManagedNoteDetailResponse struct {
+	Code      string            `json:"code"`
+	Message   string            `json:"message"`
+	RequestID string            `json:"request_id"`
+	Data      ManagedNoteDetail `json:"data"`
+}
+
+type NoteManagementStatusInput struct {
+	Status  string `json:"status"`
+	Version int    `json:"version"`
+}
+
+type NoteManagementEntry struct {
+	ID            string `json:"id"`
+	OwnerID       string `json:"owner_id"`
+	OwnerName     string `json:"owner_name"`
+	OwnerUsername string `json:"owner_username"`
+	Title         string `json:"title"`
+	Version       int    `json:"version"`
+	CanPreview    bool   `json:"can_preview"`
+	CanEdit       bool   `json:"can_edit"`
+	CanUpdate     bool   `json:"can_update"`
+	CanDelete     bool   `json:"can_delete"`
+	Status        string `json:"status"`
+	UpdatedAt     int    `json:"updated_at"`
+}
+
+type NoteManagementList struct {
+	Items    []NoteManagementEntry `json:"items"`
+	Total    int                   `json:"total"`
+	Page     int                   `json:"page"`
+	PageSize int                   `json:"page_size"`
+}
+
+type NoteManagementListResponse struct {
+	Code      string             `json:"code"`
+	Message   string             `json:"message"`
+	Data      NoteManagementList `json:"data"`
+	RequestID string             `json:"request_id"`
 }
 
 type NoteResponse struct {
@@ -1288,19 +1341,7 @@ type RoleSaveInput struct {
 	OperationIds  *[]string `json:"operation_ids,omitempty"`
 }
 
-type MenuEntry struct {
-	MenuKey   string  `json:"menu_key"`
-	Label     string  `json:"label"`
-	GroupKey  string  `json:"group_key"`
-	Sort      int     `json:"sort"`
-	Visible   bool    `json:"visible"`
-	ParentKey *string `json:"parent_key,omitempty"`
-	Type      string  `json:"type"`
-	Url       *string `json:"url,omitempty"`
-}
-
 type MenuList struct {
-	Items    []MenuEntry         `json:"items"`
 	Version  int                 `json:"version"`
 	Sections []NavigationSection `json:"sections"`
 	Nodes    []NavigationNode    `json:"nodes"`
@@ -1308,7 +1349,6 @@ type MenuList struct {
 }
 
 type MenuSaveInput struct {
-	Items           *[]MenuEntry                `json:"items,omitempty"`
 	Version         int                         `json:"version"`
 	Sections        []NavigationSection         `json:"sections"`
 	Nodes           []NavigationNode            `json:"nodes"`

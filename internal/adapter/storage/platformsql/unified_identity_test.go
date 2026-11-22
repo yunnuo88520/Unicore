@@ -16,7 +16,7 @@ func TestUnifiedIdentityMultipleRoles(t *testing.T) {
 	if _, err := repo.UpdateRole(ctx, "user", contracts.RoleSaveInput{Version: currentRoleVersion(t, ctx, repo, "user"), Name: "user", Permissions: []string{"users:read"}}, owner.ID); !errors.Is(err, platform.ErrForbidden) {
 		t.Fatalf("public registration role received management permissions: %v", err)
 	}
-	operator, err := repo.CreateRole(ctx, contracts.RoleSaveInput{Name: "operator", DataScope: strPtr(platform.ScopeAll), Permissions: []string{"users:read", "users:update", "users:create", "logs:read"}}, owner.ID)
+	operator, err := repo.CreateRole(ctx, contracts.RoleSaveInput{Name: "operator", DataScope: strPtr(platform.ScopeAll), Permissions: []string{"users:read", "users:update", "users:create", "logs:read"}, OperationIds: &[]string{"listUsers", "createUser", "updateUser"}}, owner.ID)
 	if err != nil {
 		t.Fatal(err)
 	}

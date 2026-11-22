@@ -11,14 +11,16 @@ import (
 	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/platform"
-	apispec "github.com/yunnuo/unicore/packages/contracts"
 )
 
 // AssignMenuRoles patches one menu membership, never a stale role snapshot.
 // The installation lock serializes role/tree writes. The caller compares both
 // the navigation version and the observed role membership of this node.
-// Adding a page includes ancestors and read APIs; removing it only revokes the
-// menu. API/action grants remain independent and are edited in the role editor.
+// Adding a page includes its ancestors as visibility only; removing it only
+// revokes the menu. Permission points and API/action grants are authorization
+// and change exclusively in the role editor: assigning a page to a role that
+// does not hold the page's permission point is refused, so a menu edit can
+// never widen what the role's members may actually call (ADR-0050).
 func (r *Repository) AssignMenuRoles(ctx context.Context, nodeID string, input contracts.MenuRoleAssignmentInput, actor string) (contracts.RoleList, error) {
 	if err := r.initializeNavigation(ctx); err != nil {
 		return contracts.RoleList{}, err
@@ -121,30 +123,18 @@ func (r *Repository) AssignMenuRoles(ctx context.Context, nodeID string, input c
 				}
 				cursor = parent
 			}
+			// Visibility stays decoupled from authorization: the assigned page's
+			// permission point must already be held, and no point or API grant is
+			// written from a menu edit.
 			if node.Type == "page" && node.RouteID != nil {
-				surface := "administrator"
-				if contains(node.Surfaces, "user") {
-					surface = "user"
-				}
 				for _, page := range platform.NavigationPages() {
 					if page.ID == *node.RouteID && page.Permission != "" {
 						if platform.SuperOnlyPermission(page.Permission) {
 							return contracts.RoleList{}, platform.ErrForbidden
 						}
 						if !contains(role.Permissions, page.Permission) {
-							role.Permissions = append(role.Permissions, page.Permission)
+							return contracts.RoleList{}, platform.ErrMenuRolePermissionMissing
 						}
-					}
-				}
-				for _, op := range apispec.Operations() {
-					meta, ok := platform.Operation(op.ID)
-					if !ok || !meta.Grantable || meta.Method != "GET" || op.Policy.UIPage != *node.RouteID || meta.Realm != surface {
-						continue
-					}
-					// Read helpers must fit existing points plus the page point; a GET
-					// import template must not introduce users:create, for example.
-					if platform.ValidOperationGrant(role.Realm, role.Permissions, op.ID) && !contains(role.OperationIds, op.ID) {
-						role.OperationIds = append(role.OperationIds, op.ID)
 					}
 				}
 			}

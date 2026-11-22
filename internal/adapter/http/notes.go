@@ -6,15 +6,17 @@ package httpadapter
 
 import (
 	"context"
+	"database/sql"
 	"errors"
-	notesdomain "github.com/yunnuo/unicore/internal/modules/notes/domain"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/yunnuo/unicore/internal/adapter/storage/platformsql"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/files"
+	notesdomain "github.com/yunnuo/unicore/internal/modules/notes/domain"
 	notesnotessql "github.com/yunnuo/unicore/internal/modules/notes/storage/notessql"
 	notesusecase "github.com/yunnuo/unicore/internal/modules/notes/usecase"
 	"github.com/yunnuo/unicore/internal/platform"
@@ -68,14 +70,16 @@ func mountNotes(api chi.Router, config Config) {
 				// Super administrators manage every user-realm note from the
 				// management surface, mirroring the files module Admin rule.
 				manageAll = administratorRequest(r) && platform.IsSuper(session.User)
-				// Row-level data scopes widen the user-realm list only; the
-				// administrator list and local profiles keep their behaviour.
-				filter, err := identity.Store.DataScope(r.Context(), session.User, "notes:access")
-				if err != nil {
-					webError(w, err)
-					return
+				// The personal screen opts into an owner-scoped view; the
+				// default list resolves the caller's notes:access data scope.
+				if r.Method == http.MethodGet && r.URL.Query().Get("view") != "mine" {
+					filter, err := identity.Store.DataScope(r.Context(), session.User, "notes:access")
+					if err != nil {
+						webError(w, err)
+						return
+					}
+					visibility = notesusecase.VisibilityFor("user", filter.All, filter.UserIDs)
 				}
-				visibility = notesusecase.VisibilityFor("user", filter.All, filter.UserIDs)
 			}
 			service := &notesusecase.Notes{Repo: &notesnotessql.Repository{Store: store, ManageAll: manageAll}}
 			if fs := config.Install.Files(); fs != nil {
@@ -142,6 +146,125 @@ func mountNotes(api chi.Router, config Config) {
 			success(w, contracts.ActionResult{Success: true})
 		}))
 	}
+	api.Get("/admin/notes/management", func(w http.ResponseWriter, r *http.Request) {
+		store, _, _, _ := config.Install.Services()
+		session, ok := require(config.Install, w, r, "notes:manage:read")
+		if !ok {
+			return
+		}
+		identity := config.Install.Identity(true)
+		filter, err := identity.Store.DataScope(r.Context(), session.User, "notes:manage:read")
+		if err != nil {
+			webError(w, err)
+			return
+		}
+		q := r.URL.Query()
+		page := 1
+		if raw := q.Get("page"); raw != "" {
+			page, _ = strconv.Atoi(raw)
+		}
+		repo := &notesnotessql.Repository{Store: store}
+		result, err := repo.Management(r.Context(), "user/"+session.User.ID, q.Get("owner_id"), q.Get("search"), q.Get("status"), page, notesusecase.VisibilityFor("user", filter.All, filter.UserIDs))
+		if err != nil {
+			webError(w, err)
+			return
+		}
+		for _, action := range []struct {
+			point, operation string
+			grant            func(*contracts.NoteManagementEntry, bool)
+		}{
+			{"notes:manage:preview", "previewManagedNote", func(item *contracts.NoteManagementEntry, allowed bool) { item.CanPreview = allowed }},
+			{"notes:manage:edit", "editManagedNote", func(item *contracts.NoteManagementEntry, allowed bool) { item.CanEdit = allowed && item.CanPreview }},
+			{"notes:manage:update", "updateNoteManagementStatus", func(item *contracts.NoteManagementEntry, allowed bool) { item.CanUpdate = allowed }},
+			{"notes:manage:delete", "deleteManagedNote", func(item *contracts.NoteManagementEntry, allowed bool) { item.CanDelete = allowed }},
+		} {
+			if !platform.Has(session.User, action.point) || !platform.OperationAllowed(session.User, action.operation) {
+				continue
+			}
+			scope, err := identity.Store.DataScope(r.Context(), session.User, action.point)
+			if err != nil {
+				webError(w, err)
+				return
+			}
+			for i := range result.Items {
+				item := &result.Items[i]
+				action.grant(item, scope.Contains(item.OwnerID))
+			}
+		}
+		success(w, result)
+	})
+	const managementPath = "/admin/notes/management/{owner}/{id}"
+	api.Get(managementPath, func(w http.ResponseWriter, r *http.Request) {
+		session, ok := require(config.Install, w, r, "notes:manage:preview")
+		if !ok {
+			return
+		}
+		owner := chi.URLParam(r, "owner")
+		identity := config.Install.Identity(true)
+		for _, point := range []string{"notes:manage:read", "notes:manage:preview"} {
+			scope, err := identity.Store.DataScope(r.Context(), session.User, point)
+			if err != nil {
+				webError(w, err)
+				return
+			}
+			if !scope.Contains(owner) {
+				webError(w, notesusecase.ErrNoteNotFound)
+				return
+			}
+		}
+		store, _, _, _ := config.Install.Services()
+		repo := &notesnotessql.Repository{Store: store}
+		note, err := repo.ReadManaged(r.Context(), owner, chi.URLParam(r, "id"))
+		if err != nil {
+			webError(w, err)
+			return
+		}
+		w.Header().Set("Cache-Control", "no-store")
+		success(w, note)
+	})
+	type managedWrite func(*notesnotessql.Repository, string, string, string, func(*sql.Tx) error) error
+	mutate := func(w http.ResponseWriter, r *http.Request, point, operation string, write managedWrite, additionalPoints ...string) {
+		session, ok := require(config.Install, w, r, point)
+		if !ok {
+			return
+		}
+		store, _, _, _ := config.Install.Services()
+		repo := &notesnotessql.Repository{Store: store}
+		auth := &platformsql.Repository{Store: store}
+		owner := chi.URLParam(r, "owner")
+		err := write(repo, session.User.ID, owner, chi.URLParam(r, "id"), func(tx *sql.Tx) error {
+			return auth.AuthorizeScopedMutation(r.Context(), tx, session.User.ID, owner, point, operation, append([]string{"notes:manage:read"}, additionalPoints...)...)
+		})
+		if err != nil {
+			webError(w, err)
+			return
+		}
+		success(w, contracts.ActionResult{Success: true})
+	}
+	api.Put(managementPath, func(w http.ResponseWriter, r *http.Request) {
+		var in contracts.ManagedNoteEditInput
+		if decode(w, r, &in) {
+			mutate(w, r, "notes:manage:edit", "editManagedNote", func(repo *notesnotessql.Repository, actor, owner, id string, authorize func(*sql.Tx) error) error {
+				return repo.EditManaged(r.Context(), actor, owner, id, in, authorize)
+			}, "notes:manage:preview")
+		}
+	})
+	api.Patch(managementPath, func(w http.ResponseWriter, r *http.Request) {
+		var in contracts.NoteManagementStatusInput
+		if decode(w, r, &in) {
+			mutate(w, r, "notes:manage:update", "updateNoteManagementStatus", func(repo *notesnotessql.Repository, actor, owner, id string, authorize func(*sql.Tx) error) error {
+				return repo.UpdateManagedStatus(r.Context(), actor, owner, id, in, authorize)
+			})
+		}
+	})
+	api.Delete(managementPath, func(w http.ResponseWriter, r *http.Request) {
+		var in contracts.NoteVersion
+		if decode(w, r, &in) {
+			mutate(w, r, "notes:manage:delete", "deleteManagedNote", func(repo *notesnotessql.Repository, actor, owner, id string, authorize func(*sql.Tx) error) error {
+				return repo.DeleteManaged(r.Context(), actor, owner, id, in.Version, authorize)
+			})
+		}
+	})
 }
 
 func noteErrorCode(err error) string {

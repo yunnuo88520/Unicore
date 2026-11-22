@@ -106,7 +106,7 @@ func TestLogStreamAccessAndFrames(t *testing.T) {
 		t.Fatalf("bootstrap payload: %s", data)
 	}
 	csrf := *boot.Data.CsrfToken
-	data, resp = jsonRequest("POST", "/api/v1/admin/roles", map[string]any{"name": "受限管理员", "realm": "administrator", "permissions": []string{"users:read"}}, adminCookie, csrf)
+	data, resp = jsonRequest("POST", "/api/v1/admin/roles", map[string]any{"name": "受限管理员", "realm": "administrator", "permissions": []string{"users:read"}, "operation_ids": []string{"exportUsers", "listUsers", "roleOptions"}}, adminCookie, csrf)
 	if resp.StatusCode != 200 {
 		t.Fatalf("role create: %d %s", resp.StatusCode, data)
 	}

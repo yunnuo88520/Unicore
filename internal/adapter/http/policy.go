@@ -31,6 +31,20 @@ type policySessionKey struct{}
 type policyRouter struct {
 	chi.Router
 	config Config
+	// mountMux is set only for independently created, controlled submuxes.
+	// Inline With/Group routers share a tree and must never be mounted.
+	mountMux *chi.Mux
+}
+
+// newPolicyRouter creates a mountable submux whose leaves enforce policy.
+// Mounting its raw mux preserves chi's error-handler inheritance and traversal.
+func newPolicyRouter(config Config) policyRouter {
+	raw := chi.NewRouter()
+	return policyRouter{Router: raw, config: config, mountMux: raw}
+}
+
+func (p policyRouter) With(middlewares ...func(http.Handler) http.Handler) chi.Router {
+	return policyRouter{Router: p.Router.With(middlewares...), config: p.config}
 }
 
 func (p policyRouter) Get(pattern string, h http.HandlerFunc) {
@@ -55,6 +69,77 @@ func (p policyRouter) Delete(pattern string, h http.HandlerFunc) {
 
 func (p policyRouter) Head(pattern string, h http.HandlerFunc) {
 	p.Router.With(policyHandler(p.config)).Head(pattern, h)
+}
+
+// The remaining registration surfaces are wrapped as well: Method and
+// MethodFunc used to bypass the policy middleware entirely (the branding and
+// storage mounts registered through them), and Route/Group/Mount would hand
+// callers an unwrapped subrouter. Handle and HandleFunc have no caller today
+// but stay wrapped so a future mount cannot register around the middleware.
+// NotFound/MethodNotAllowed stay unwrapped on purpose: unmatched requests have
+// no operation policy and the root router already answers them with JSON
+// errors.
+func (p policyRouter) Handle(pattern string, h http.Handler) {
+	p.Router.With(policyHandler(p.config)).Handle(pattern, h)
+}
+
+func (p policyRouter) HandleFunc(pattern string, h http.HandlerFunc) {
+	p.Router.With(policyHandler(p.config)).HandleFunc(pattern, h)
+}
+
+func (p policyRouter) Connect(pattern string, h http.HandlerFunc) {
+	p.Router.With(policyHandler(p.config)).Connect(pattern, h)
+}
+
+func (p policyRouter) Options(pattern string, h http.HandlerFunc) {
+	p.Router.With(policyHandler(p.config)).Options(pattern, h)
+}
+
+func (p policyRouter) Trace(pattern string, h http.HandlerFunc) {
+	p.Router.With(policyHandler(p.config)).Trace(pattern, h)
+}
+
+func (p policyRouter) Method(method, pattern string, h http.Handler) {
+	p.Router.With(policyHandler(p.config)).Method(method, pattern, h)
+}
+
+func (p policyRouter) MethodFunc(method, pattern string, h http.HandlerFunc) {
+	p.Router.With(policyHandler(p.config)).MethodFunc(method, pattern, h)
+}
+
+func (p policyRouter) Query(pattern string, h http.HandlerFunc) {
+	p.Router.With(policyHandler(p.config)).Query(pattern, h)
+}
+
+func (p policyRouter) Route(pattern string, fn func(chi.Router)) chi.Router {
+	if fn == nil {
+		// Delegate the nil callback to chi so it panics before mounting anything.
+		return p.Router.Route(pattern, nil)
+	}
+	// Call the raw Route: its internal Mount must not go through our controlled
+	// Mount boundary. Only the callback and returned registration surface wrap.
+	raw := p.Router.Route(pattern, func(r chi.Router) {
+		fn(policyRouter{Router: r, config: p.config})
+	})
+	return policyRouter{Router: raw, config: p.config}
+}
+
+func (p policyRouter) Group(fn func(chi.Router)) chi.Router {
+	group := p.With()
+	if fn != nil {
+		fn(group)
+	}
+	return group
+}
+
+func (p policyRouter) Mount(pattern string, h http.Handler) {
+	child, ok := h.(policyRouter)
+	if !ok || child.mountMux == nil || child.Router != child.mountMux {
+		panic("httpadapter: Mount requires a submux created by newPolicyRouter")
+	}
+	// Never wrap the mount point in policy middleware: the complete operation
+	// pattern exists only at the leaf, and unmatched paths must stay 404/405.
+	p.Router.Mount(pattern, child.mountMux)
 }
 
 // mountAPI registers every versioned API route behind the contract policy middleware.
@@ -181,6 +266,7 @@ func policyHandler(config Config) func(http.Handler) http.Handler {
 						return
 					}
 					if b, ok := bearerFrom(r); ok && !b.Allows(operation.ID, r.URL.Path) {
+						recordDenial(config.Install, r, &session, "authz.denied", "operation="+operation.ID+"; reason=bearer_scope")
 						webError(w, platform.ErrForbidden)
 						return
 					}
@@ -217,6 +303,7 @@ func policyHandler(config Config) func(http.Handler) http.Handler {
 				return
 			}
 			if bearer, present := bearerFrom(r); present && !bearer.Allows(operation.ID, r.URL.Path) {
+				recordDenial(config.Install, r, &session, "authz.denied", "operation="+operation.ID+"; reason=bearer_scope")
 				webError(w, platform.ErrForbidden)
 				return
 			}
@@ -228,17 +315,20 @@ func policyHandler(config Config) func(http.Handler) http.Handler {
 				// Grants are session data resolved from role_permissions; the
 				// declared mode decides all/any, unknown modes fail closed.
 				if !platform.PermissionsAllow(session.User.Permissions, operation.Policy.Permissions, operation.Policy.PermissionMode) {
+					recordDenial(config.Install, r, &session, "authz.denied", "operation="+operation.ID+"; reason=permission")
 					webError(w, platform.ErrForbidden)
 					return
 				}
 				// Operation grants are the explicit refinement layer: new
 				// delegable operations default to denied, super_admin bypasses.
 				if !platform.OperationAllowed(session.User, operation.ID) {
+					recordDenial(config.Install, r, &session, "authz.denied", "operation="+operation.ID+"; reason=operation_grant")
 					webError(w, platform.ErrForbidden)
 					return
 				}
 			}
 			if webPlatform && operation.Policy.SuperAdmin && !platform.IsSuper(session.User) {
+				recordDenial(config.Install, r, &session, "authz.denied", "operation="+operation.ID+"; reason=super_admin")
 				webError(w, platform.ErrForbidden)
 				return
 			}
@@ -284,6 +374,7 @@ func resolveSession(manager *install.Manager, w http.ResponseWriter, r *http.Req
 		return session, false
 	}
 	if r.Method != "GET" && r.Method != "HEAD" && !platform.Equal(r.Header.Get("X-CSRF-Token"), session.CsrfToken) {
+		recordDenial(manager, r, &session, "auth.csrf.invalid", "")
 		failure(w, 403, "CSRF_INVALID", "请求校验已失效，请刷新页面")
 		return session, false
 	}

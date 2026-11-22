@@ -11,6 +11,7 @@ import (
 	"html/template"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,11 +22,14 @@ const ClientID = "unicore-test-client"
 const ClientSecret = "isolated-test-secret"
 
 type Provider struct {
-	URL     string
-	key     *rsa.PrivateKey
-	mu      sync.Mutex
-	codes   map[string]url.Values
-	subject string
+	URL          string
+	key          *rsa.PrivateKey
+	mu           sync.Mutex
+	codes        map[string]url.Values
+	accessTokens map[string]string
+	// Test overrides for security-boundary scenarios.
+	userinfoSubject string
+	AuthMethods     []string
 }
 
 func New() *Provider {
@@ -33,25 +37,50 @@ func New() *Provider {
 	if err != nil {
 		panic(err)
 	}
-	return &Provider{key: key, codes: map[string]url.Values{}}
+	return &Provider{key: key, codes: map[string]url.Values{}, accessTokens: map[string]string{}}
+}
+
+// SetUserinfoSubject overrides the subject the userinfo endpoint reports; the
+// default mirrors the authorized subject.
+func (p *Provider) SetUserinfoSubject(subject string) {
+	p.mu.Lock()
+	p.userinfoSubject = subject
+	p.mu.Unlock()
+}
+
+// SetAuthMethods overrides token_endpoint_auth_methods_supported.
+func (p *Provider) SetAuthMethods(methods []string) {
+	p.mu.Lock()
+	p.AuthMethods = methods
+	p.mu.Unlock()
+}
+
+func (p *Provider) authMethods() []string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.AuthMethods != nil {
+		return p.AuthMethods
+	}
+	return []string{"client_secret_basic"}
 }
 func (p *Provider) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	switch r.URL.Path {
 	case "/.well-known/openid-configuration":
-		p.write(w, map[string]any{"issuer": p.URL, "authorization_endpoint": p.URL + "/authorize", "token_endpoint": p.URL + "/token", "jwks_uri": p.URL + "/jwks", "userinfo_endpoint": p.URL + "/userinfo", "response_types_supported": []string{"code"}, "subject_types_supported": []string{"public"}, "id_token_signing_alg_values_supported": []string{"RS256"}, "code_challenge_methods_supported": []string{"S256"}, "token_endpoint_auth_methods_supported": []string{"client_secret_basic"}})
+		p.write(w, map[string]any{"issuer": p.URL, "authorization_endpoint": p.URL + "/authorize", "token_endpoint": p.URL + "/token", "jwks_uri": p.URL + "/jwks", "userinfo_endpoint": p.URL + "/userinfo", "response_types_supported": []string{"code"}, "subject_types_supported": []string{"public"}, "id_token_signing_alg_values_supported": []string{"RS256"}, "code_challenge_methods_supported": []string{"S256"}, "token_endpoint_auth_methods_supported": p.authMethods()})
 	case "/jwks":
 		p.write(w, jose.JSONWebKeySet{Keys: []jose.JSONWebKey{{Key: &p.key.PublicKey, KeyID: "fixture", Algorithm: "RS256", Use: "sig"}}})
 	case "/userinfo":
-		if r.Header.Get("Authorization") != "Bearer test-only-access-token" {
-			http.Error(w, "invalid bearer", 401)
-			return
-		}
+		token, bearer := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 		p.mu.Lock()
-		subject := p.subject
+		subject, ok := p.accessTokens[token]
+		if p.userinfoSubject != "" {
+			subject = p.userinfoSubject
+		}
 		p.mu.Unlock()
-		if subject == "" {
-			subject = "employee-001"
+		if !bearer || !ok {
+			http.Error(w, "invalid bearer", http.StatusUnauthorized)
+			return
 		}
 		p.write(w, map[string]any{"sub": subject, "email": "userinfo@example.test", "email_verified": true, "name": "测试员工", "preferred_username": "userinfo-employee"})
 	case "/authorize":
@@ -157,7 +186,11 @@ func (p *Provider) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			panic(err)
 		}
-		p.write(w, map[string]any{"access_token": "test-only-access-token", "token_type": "Bearer", "expires_in": 300, "id_token": id})
+		accessToken := random()
+		p.mu.Lock()
+		p.accessTokens[accessToken] = subject
+		p.mu.Unlock()
+		p.write(w, map[string]any{"access_token": accessToken, "token_type": "Bearer", "expires_in": 300, "id_token": id})
 	default:
 		http.NotFound(w, r)
 	}

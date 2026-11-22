@@ -166,7 +166,7 @@ func TestMemberPasswordReset(t *testing.T) {
 	// restricted operators: a credential delegate without the super role may
 	// reset business members but never a management account.
 	realm := "administrator"
-	passwordRole, err := identity.Store.CreateRole(t.Context(), contracts.RoleSaveInput{Name: "密码员", Realm: &realm, Permissions: []string{"users:read", "users:credentials:write"}}, adminUser(t, manager).ID)
+	passwordRole, err := identity.Store.CreateRole(t.Context(), contracts.RoleSaveInput{Name: "密码员", Realm: &realm, Permissions: []string{"users:read", "users:credentials:write"}, OperationIds: &[]string{"exportUsers", "listUsers", "resetUserPassword", "roleOptions"}}, adminUser(t, manager).ID)
 	if err != nil {
 		t.Fatal("role create", err)
 	}
@@ -194,7 +194,7 @@ func TestManagementCredentialHTTPBoundary(t *testing.T) {
 	all := platform.ScopeAll
 	makeActor := func(name string, permissions ...string) (contracts.User, string, string) {
 		t.Helper()
-		role, err := f.identity.Store.CreateRole(ctx, contracts.RoleSaveInput{Name: name, Permissions: permissions, DataScope: &all}, f.admin.ID)
+		role, err := f.identity.Store.CreateRole(ctx, contracts.RoleSaveInput{Name: name, Permissions: permissions, OperationIds: roleOperations(permissions), DataScope: &all}, f.admin.ID)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -267,4 +267,11 @@ func auditContains(t *testing.T, manager *install.Manager, action, fragment stri
 		}
 	}
 	return false
+}
+
+// roleOperations resolves the delegable operations a permission set already
+// unlocks so test roles carry their explicit API grants.
+func roleOperations(permissions []string) *[]string {
+	ops := platform.DefaultOperations("user", permissions)
+	return &ops
 }

@@ -31,20 +31,17 @@ it('denies direct page URLs without menu grants',()=>{
  // API/action grants and menu grants have independent meanings.
  expect(canAction(denied,'createNote')).toBe(true);
 });
-it('shares one tree across workspaces while node surfaces and hidden parents stay isolated',()=>{
+it('shares the overview but keeps the personal notes page out of the administrator workspace',()=>{
  const data=authorized();
- // The requirement explicitly places the notes page in both workspaces; an
- // administrator working there still resolves the shared operation to its
- // mirrored /admin/ endpoint. Business pages without that explicit declaration
- // stay in the user workspace (covered by the routeSurfaces defaults).
+ // Simulate a stale tree that still declared personal notes on both surfaces.
  const widened=defaultNavigation(['administrator']).nodes.map(node=>node.route_id==='notes'||node.parent_id==='notes'?{...node,surfaces:['user','administrator'] as NavigationNode['surfaces']}:node);
  const switched={...data,identity_realm:'administrator',navigation:{version:1,sections:defaultNavigation(['administrator']).sections,nodes:widened}} as Bootstrap;
  // The grant binds the contract operation: in the administrator realm the same
  // operation resolves to its mirrored /admin/ endpoint and stays authorized.
  expect(canAction(switched,'createNote')).toBe(true);
- // The shared tree itself is realm-agnostic: the same menu grant reaches the
- // page from both workspaces.
- expect(canAccess('notes',switched)).toBe(true);
+ expect(canAccess('overview',data)).toBe(true);
+ expect(canAccess('overview',switched)).toBe(true);
+ expect(canAccess('notes',switched)).toBe(false);
  // Hidden parents cut both the page and its actions.
  const hidden={...data,navigation:{...data.navigation!,nodes:data.navigation!.nodes.map(node=>node.id==='notes'?{...node,visible:false}:node)}};
  expect(canAction(hidden,'createNote')).toBe(false);

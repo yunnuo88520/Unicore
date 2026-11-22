@@ -37,6 +37,10 @@ func mountMonitor(api chi.Router, config Config) {
 			failure(w, 409, "INSTALL_REQUIRED", "请先完成安装")
 			return false
 		}
+		if !localLoopback(r) {
+			failure(w, 403, "PERMISSION_DENIED", "本机能力仅允许在本机访问")
+			return false
+		}
 		if config.Monitor == nil {
 			failure(w, 503, "NOT_READY", "监控尚未就绪")
 			return false

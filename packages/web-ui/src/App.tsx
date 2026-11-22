@@ -8,6 +8,8 @@ import { VersionBadge, workspaceLinks } from './shell-tools';
 import { useLocale, t } from './i18n';
 import { productName } from './product.gen';
 import { WorkspaceLayout } from './workspace-layout';
+import { consoleAccess, consoleHref, consoleRoute, ConsoleView, type ConsoleDefinition } from './console-registry';
+export { defineConsoles, type ConsoleDefinition, type ConsoleShellProps, type ConsolePageProps } from './console-registry';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbSeparator, MessageProvider, PageHeader } from '@unicore/ui';
 import { SiteFooter } from './site-footer';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -50,9 +52,10 @@ export type WorkspaceProps = {
   administratorPage?: PageComponent;
   history?: () => RouterHistory;
   basepath?: string;
+  consoles?: readonly ConsoleDefinition[];
 };
 
-export function Workspace({ client, registry, administratorPage, history, basepath }: WorkspaceProps) {
+export function Workspace({ client, registry, administratorPage, history, basepath, consoles }: WorkspaceProps) {
   useLocale();
   const dashboard = useMemo(() => {
     const widgets = new DashboardWidgetRegistry();
@@ -61,18 +64,18 @@ export function Workspace({ client, registry, administratorPage, history, basepa
   }, [client, registry]);
   return <MessageProvider>
     <SessionBoundary client={client}>
-      {notice => <BrandedApp client={client} registry={dashboard} notice={t(notice)} administratorPage={administratorPage} history={history} basepath={basepath} />}
+      {notice => <BrandedApp client={client} registry={dashboard} notice={t(notice)} administratorPage={administratorPage} history={history} basepath={basepath} consoles={consoles} />}
     </SessionBoundary>
   </MessageProvider>;
 }
 
-function BrandedApp({ client, registry, notice, administratorPage, history, basepath }: Omit<WorkspaceProps, 'registry'> & { registry: DashboardWidgetRegistry; notice: string }) {
+function BrandedApp({ client, registry, notice, administratorPage, history, basepath, consoles }: Omit<WorkspaceProps, 'registry'> & { registry: DashboardWidgetRegistry; notice: string }) {
   useLocale();
   const { metadata } = useSession(client);
   const accent = metadata.data?.branding?.accent;
   useEffect(() => { setCustomAccent(accent ?? ''); }, [accent]);
-  const [router] = useState(() => createWorkspaceRouter({ history: history ?? createBrowserHistory, basepath, shell: WorkspaceShell }));
-  return <ShellOptionsProvider value={{ client, registry, administratorPage }}>
+  const [router] = useState(() => createWorkspaceRouter({ history: history ?? createBrowserHistory, basepath, shell: WorkspaceShell, consoles: !!consoles?.length }));
+  return <ShellOptionsProvider value={{ client, registry, administratorPage, consoles }}>
     <NoticeProvider value={notice}>
       <BrandProvider branding={metadata.data?.branding} name={metadata.data?.site_name}>
         <RouterProvider router={router} />
@@ -95,7 +98,7 @@ const pageHeadingOwners = new Set<string>([
 function WorkspaceShell() {
   useLocale();
   const router = useRouter();
-  const { client, registry } = useShellOptions();
+  const { client, registry, consoles } = useShellOptions();
   const notice = useSessionNotice();
   const { metadata } = useSession(client);
   const [theme, setTheme] = useTheme();
@@ -146,6 +149,13 @@ function WorkspaceShell() {
     </div>;
   }
 
+  // A completed installation must not serve the wizard anymore: the server
+  // refuses reinstallation, and pageFromPath normalizes /install to overview,
+  // so without this redirect the shell would render the wizard in chrome.
+  if (data.installed && basename === 'install') {
+    return <Navigate to="/" replace />;
+  }
+
   if (data.capabilities.installation && !data.installed && client.web) {
     const props: PageProps = { page: 'overview', client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
     return <PagePropsProvider value={props}>
@@ -166,11 +176,13 @@ function WorkspaceShell() {
   }
   // Unknown paths render as a standalone 404 for every visitor, before any auth gating.
   // /home and the auth flows are not registered page keys either, so only truly unknown paths qualify.
-  const knownPath = !basename || basename === 'home' || Object.hasOwn(routes, basename)
+  const custom = data.profile === 'web-platform' && !isAdminRealm(data) ? consoleRoute(consoles ?? [], pathname) : null;
+  const knownPath = !!custom || !basename || basename === 'home' || Object.hasOwn(routes, basename)
     || ['login', 'register', 'forgot-password', 'email-login', 'resend-verification', 'registration-success'].includes(basename);
   if (page === 'not-found' && !knownPath) {
     return <main className="min-h-dvh bg-background"><NotFoundPage /></main>;
   }
+
   // A local workspace exposes only its own pages, including direct URLs.
   // Absent capabilities are unknown pages rather than platform permission prompts.
   if (data.profile !== 'web-platform' && (
@@ -206,6 +218,12 @@ function WorkspaceShell() {
         <SiteFooter metadata={data} compact />
       </div>
     </PagePropsProvider>;
+  }
+
+  if (custom) {
+    if (data.mfa_enrollment_required) return <Navigate to="/" replace />;
+    const access = consoleAccess(custom, data);
+    return access ? <ConsoleView selection={custom} access={access} client={client} metadata={data} /> : <ForbiddenPage />;
   }
 
   // The OAuth consent page renders without workspace chrome for signed-in
@@ -335,6 +353,7 @@ function AccountMenuItems({ data, client, avatarURL, administration, onOpenAccou
 }) {
   useLocale();
   const router = useRouter();
+  const { consoles } = useShellOptions();
   const user = data.current_user;
   if (!user) return null;
   const name = displayLabel(user.display_name, user.username) || data.site_name;
@@ -351,6 +370,8 @@ function AccountMenuItems({ data, client, avatarURL, administration, onOpenAccou
       <DropdownMenuGroup>
       {data.admin_path && !administration && <DropdownMenuItem onSelect={() => window.location.assign(data.admin_path!)}><LayoutDashboard size={18} aria-hidden="true" />{t('管理工作台')}</DropdownMenuItem>}
       {administration && <DropdownMenuItem onSelect={() => window.location.assign('/')}><LayoutDashboard size={18} aria-hidden="true" />{t('工作空间')}</DropdownMenuItem>}
+      {consoles?.filter(console => consoleAccess({ console, pageID: '', rest: [] }, data)).map(console =>
+        <DropdownMenuItem key={console.id} onSelect={() => void router.navigate({ to: consoleHref(console.id) })}><LayoutDashboard size={18} aria-hidden="true" />{t(console.title)}</DropdownMenuItem>)}
       <DropdownMenuItem onSelect={onOpenAccount}><UserRound size={18} aria-hidden="true" />{t('个人中心')}</DropdownMenuItem>
       <DropdownMenuItem onSelect={onOpenPassword}><KeyRound size={18} aria-hidden="true" />{t('修改密码')}</DropdownMenuItem>
       {onAbout && <DropdownMenuItem onSelect={onAbout}><Info size={18} aria-hidden="true" />{t('关于 {{name}}', { name: productName })}</DropdownMenuItem>}

@@ -66,15 +66,13 @@ func TestOperationCatalogueBoundaries(t *testing.T) {
 		}
 	}
 
-	// The materialization bound: a files-only user role gains exactly the
-	// file operations, never notes or admin operations.
-	files := MaterializedOperations("user", []string{"files:access"})
-	if len(files) == 0 || !contains(files, "listFiles") || contains(files, "listNotes") || contains(files, "listRoles") {
-		t.Fatal("files materialization", files)
+	// The explicit-grant bound: a files-only user role may hold exactly the
+	// file operations; management operations require their own points.
+	if !ValidOperationGrant("user", []string{"files:access"}, "listFiles") {
+		t.Fatal("files operation grant refused")
 	}
-	// A unified role may explicitly grant management operations when its permission points allow them.
-	if !contains(MaterializedOperations("user", []string{"users:read"}), "listUsers") || !ValidOperationGrant("user", []string{"users:read"}, "listUsers") {
-		t.Fatal("workspace classification restricted unified management role")
+	if ValidOperationGrant("user", []string{"files:access"}, "listUsers") {
+		t.Fatal("management operation granted beyond the points")
 	}
 
 	// The operation gate: super bypasses, unknown ids deny, non-grantable

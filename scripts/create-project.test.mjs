@@ -196,6 +196,27 @@ test('the CLI accepts --author and the application team passes its own checks',(
  assert.throws(()=>execFileSync(process.execPath,[cli,'--directory',join(root,'bad'),'--name','XX','--slug','xx','--module','example.test/x','--bundle','test.example.x','--author','bad!author'],{stdio:'pipe'}),/author is invalid|invalid/);
  rmSync(root,{recursive:true,force:true});
 });
+test('the creator runs when invoked through a symlinked script path',()=>{
+ if(process.platform==='win32') return; // creating the symlink needs privileges there
+ const root=mkdtempSync(join(tmpdir(),'unicore-symlink-')),directory=join(root,'probe-app');
+ const checkoutPath=join(root,'checkout');
+ mkdirSync(checkoutPath,{recursive:true});
+ const ignoredTop=new Set(['.git','node_modules','build','.zcode','test-results']);
+ cpSync(repository,checkoutPath,{recursive:true,filter:path=>{const rel=relative(repository,path);return !rel||!ignoredTop.has(rel.split(sep)[0]);}});
+ const source=realpathSync(checkoutPath);
+ const git=(...args)=>execFileSync('git',['-C',source,...args],{stdio:['ignore','pipe','pipe']});
+ git('init','-q');git('add','-A');git('commit','-qm','Private checkout for the symlinked-entry probe');
+ execFileSync(process.execPath,[join(source,'scripts','framework-template.mjs')],{cwd:source,stdio:['ignore','pipe','pipe']});
+ // Invoke through a symlink: node realpaths the module URL, so a raw resolve()
+ // entry check compares the link path against the real path and silently exits
+ // 0 without creating anything (macOS /var/folders vs /private/var/folders).
+ const linked=join(root,'create-project-link.mjs');
+ symlinkSync(join(source,'scripts','create-project.mjs'),linked);
+ const stdout=execFileSync(process.execPath,[linked,'--directory',directory,'--name','Probe App','--slug','probe-app','--module','example.test/probe/app','--bundle','test.example.probeapp'],{encoding:'utf8',stdio:['ignore','pipe','pipe'],cwd:root});
+ assert.match(stdout,/Created .+probe-app/);
+ assert.equal(existsSync(join(directory,'go.mod')),true);
+ rmSync(root,{recursive:true,force:true});
+});
 test('baseline validation exports the given source, never the caller directory',()=>{
   const root=mkdtempSync(join(tmpdir(),'unicore-baseline-')),source=join(root,'source'),caller=join(root,'caller');
   mkdirSync(source);mkdirSync(caller);

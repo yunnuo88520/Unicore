@@ -19,6 +19,31 @@ import (
 func (r *Repository) DataScope(ctx context.Context, user contracts.User, permission string) (platform.ScopeFilter, error) {
 	return r.dataScope(ctx, r.Store.DB, user, permission)
 }
+
+// AuthorizeScopedMutation must run under LockInstallation. Resolve the current
+// actor and intersect the browse and mutation scopes, preserving PAT role binding.
+func (r *Repository) AuthorizeScopedMutation(ctx context.Context, tx *sql.Tx, actorID, ownerID, writePoint, operation string, prerequisitePoints ...string) error {
+	actor, err := r.actor(ctx, tx, actorID, writePoint)
+	if err != nil {
+		return err
+	}
+	if !platform.OperationAllowed(actor, operation) {
+		return platform.ErrForbidden
+	}
+	for _, point := range append([]string{writePoint}, prerequisitePoints...) {
+		if !platform.Has(actor, point) {
+			return platform.ErrForbidden
+		}
+		filter, err := r.dataScope(ctx, tx, actor, point)
+		if err != nil {
+			return err
+		}
+		if !filter.Contains(ownerID) {
+			return sql.ErrNoRows
+		}
+	}
+	return nil
+}
 func (r *Repository) dataScope(ctx context.Context, q sqlstore.Runner, user contracts.User, permission string) (platform.ScopeFilter, error) {
 	filter := platform.ScopeFilter{UserIDs: []string{user.ID}}
 	if platform.IsSuper(user) {

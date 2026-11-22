@@ -163,8 +163,9 @@ test('menu console edits the persisted tree and one save re-anchors every sessio
   await linkDialog.getByLabel('链接地址', { exact: true }).fill('javascript:alert(1)');
   await linkDialog.getByRole('button', { name: '确定', exact: true }).click();
   await expect(linkDialog.getByText('链接地址需为站内已注册路径或 http(s) 地址', { exact: true })).toBeVisible();
-  // A registered in-site path keeps the new-tab assertion free of external DNS.
-  await linkDialog.getByLabel('链接地址', { exact: true }).fill('/notes');
+  // Use a registered administrator page; personal notes now belong to the member surface.
+  await linkDialog.getByLabel('链接地址', { exact: true }).fill('/announcements');
+  await linkDialog.getByRole('button', { name: '排序与显示选项' }).click();
   await chooseOption(page, '打开方式', '新标签', linkDialog);
   await linkDialog.getByRole('button', { name: '确定', exact: true }).click();
   await expect(linkDialog).toHaveCount(0);
@@ -173,10 +174,9 @@ test('menu console edits the persisted tree and one save re-anchors every sessio
   await openRowMenu(page, rowByTarget(page, 'dictionaries'), labelOf('dictionaries'));
   await page.getByRole('menuitem', { name: '编辑', exact: true }).click();
   const editDialog = page.getByRole('dialog', { name: '编辑节点', exact: true });
+  await editDialog.getByRole('button', { name: '排序与显示选项' }).click();
   await editDialog.getByLabel('角标文字', { exact: true }).fill('新');
-  // The dot switch sits inside a wrapping label whose text shadows the
-  // accessible name, so target the switch inside that label.
-  await editDialog.locator('label').filter({ hasText: '圆点角标' }).getByRole('switch').click();
+  await editDialog.getByRole('switch', { name: '圆点角标', exact: true }).click();
   await editDialog.getByRole('button', { name: '确定', exact: true }).click();
   await expect(editDialog).toHaveCount(0);
 
@@ -217,7 +217,7 @@ test('menu console edits the persisted tree and one save re-anchors every sessio
   await sidebar.getByRole('button', { name: '帮助中心', exact: true }).click();
   const popup = await popupPromise;
   // The admin shell prefixes its basename; the popup target stays the linked page.
-  expect(new URL(popup.url()).pathname).toMatch(/\/notes$/);
+  expect(new URL(popup.url()).pathname).toMatch(/\/announcements$/);
   await popup.close();
 
   await evidence(page, info, '侧栏层级与外链');
@@ -383,6 +383,7 @@ test('visibility toggles persist through save', async ({ page, instance }) => { 
   await page.locator('tr[data-node="administration"]').getByRole('button', { name: /展开或收起/ }).click();
   const tasksRow = rowByTarget(page, 'tasks');
   await expect(tasksRow).toBeVisible();
+  await expect(tasksRow.getByText('当前账号侧栏：已显示', { exact: true })).toBeVisible();
   const tasksSwitch = tasksRow.getByRole('switch');
   await tasksSwitch.click();
   await expect(tasksSwitch).toHaveAttribute('data-state', 'unchecked');
@@ -391,6 +392,7 @@ test('visibility toggles persist through save', async ({ page, instance }) => { 
   await expect(page.getByRole('status').filter({ hasText: '菜单配置已保存' })).toBeVisible();
   const tree = await admin.web!.menuConfig();
   expect(tree.nodes.find(node => node.route_id === 'tasks')?.visible).toBe(false);
+  await expect(tasksRow.getByText('当前账号侧栏：未显示', { exact: true })).toBeVisible();
 });
 
 test('drag reordering and cross-region moves save the whole tree, survive a reload, then restore', async ({ page, instance }, info) => {
@@ -402,17 +404,18 @@ test('drag reordering and cross-region moves save the whole tree, survive a relo
   await page.goto(`${instance.url}/admin/menus`);
   await expect(page.getByRole('heading', { name: '菜单配置', exact: true })).toBeVisible();
 
-  // Seeded sibling order at the top of the business region: overview before notes.
+  // Use the adjacent overview and announcements rows in the business region.
+  const sibling = 'announcements';
+  const siblingRow = `tr[data-node="${sibling}"]`;
   const nodeOrder = () => page.locator('tbody tr[data-node]').evaluateAll(rows => rows.map(row => row.getAttribute('data-node') ?? ''));
-  expect(await nodeOrder()).toEqual(expect.arrayContaining(['overview', 'notes']));
+  expect(await nodeOrder()).toEqual(expect.arrayContaining(['overview', sibling]));
   const indexOf = async (id: string) => (await nodeOrder()).indexOf(id);
-  expect(await indexOf('overview')).toBeLessThan(await indexOf('notes'));
+  expect(await indexOf('overview')).toBeLessThan(await indexOf(sibling));
 
-  // Drag the overview row onto the notes row: the drop lands in the lower third
-  // of the target row, so overview moves after notes within the same sibling list.
-  await dragRow(page, 'tr[data-node="overview"]', 'tr[data-node="notes"]', 'bottom');
+  // A drop in the lower third moves overview after announcements.
+  await dragRow(page, 'tr[data-node="overview"]', siblingRow, 'bottom');
   await expect(page.locator('tr[data-node="overview"]')).toBeVisible();
-  expect(await indexOf('notes')).toBeLessThan(await indexOf('overview'));
+  expect(await indexOf(sibling)).toBeLessThan(await indexOf('overview'));
   await expect(page.getByText('有未保存的更改', { exact: true })).toBeVisible();
 
   // One save submits the whole tree: the toast confirms and the version moves.
@@ -422,12 +425,12 @@ test('drag reordering and cross-region moves save the whole tree, survive a relo
   const after = await admin.web!.menuConfig();
   expect(after.version).toBe(before.version + 1);
   const sortOf = (nodes: typeof after.nodes, id: string) => nodes.find(node => node.id === id)?.sort ?? -1;
-  expect(sortOf(after.nodes, 'notes')).toBeLessThan(sortOf(after.nodes, 'overview'));
+  expect(sortOf(after.nodes, sibling)).toBeLessThan(sortOf(after.nodes, 'overview'));
 
   // The order survives a reload: the server accepted the whole payload.
   await page.reload();
   await expect(page.getByRole('heading', { name: '菜单配置', exact: true })).toBeVisible();
-  expect(await indexOf('notes')).toBeLessThan(await indexOf('overview'));
+  expect(await indexOf(sibling)).toBeLessThan(await indexOf('overview'));
 
   // Full tree drag & drop: releasing the seeded 超级管理员 directory on the
   // middle of the business region's root row means "into that region's top
@@ -473,14 +476,13 @@ test('drag reordering and cross-region moves save the whole tree, survive a relo
   const sortOfNode = (nodes: typeof restored.nodes, id: string) => nodes.find(node => node.id === id)?.sort ?? -1;
   expect(sortOfNode(restored.nodes, 'settings')).toBeLessThan(sortOfNode(restored.nodes, 'administration'));
 
-  // Restore the seeded order: drop the overview row on the upper third of notes,
-  // which inserts overview before notes again.
-  await dragRow(page, 'tr[data-node="overview"]', 'tr[data-node="notes"]', 'top');
-  expect(await indexOf('overview')).toBeLessThan(await indexOf('notes'));
+  // Restore the seeded order by dropping overview on the sibling's upper third.
+  await dragRow(page, 'tr[data-node="overview"]', siblingRow, 'top');
+  expect(await indexOf('overview')).toBeLessThan(await indexOf(sibling));
   await page.getByRole('button', { name: '保存菜单配置', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: '菜单配置已保存' })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading', { name: '菜单配置', exact: true })).toBeVisible();
-  expect(await indexOf('overview')).toBeLessThan(await indexOf('notes'));
+  expect(await indexOf('overview')).toBeLessThan(await indexOf(sibling));
   await evidence(page, info, '拖动排序保存', false);
 });

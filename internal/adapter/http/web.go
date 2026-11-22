@@ -119,6 +119,8 @@ func webError(w http.ResponseWriter, err error) {
 		code = "INVALID_CREDENTIALS"
 	case errors.Is(err, platform.ErrForbidden):
 		code = "PERMISSION_DENIED"
+	case errors.Is(err, platform.ErrMenuRolePermissionMissing):
+		code = "MENU_ROLE_PERMISSION_MISSING"
 	// Bare conflicts (menu version CAS, role name uniqueness races) read as
 	// generic record conflicts; account duplicates keep their dedicated
 	// AccountConflict branch above, and post conflicts map below.
@@ -272,6 +274,9 @@ func require(manager *install.Manager, w http.ResponseWriter, r *http.Request, p
 	}
 	if permission != "" && !platform.Has(session.User, permission) {
 		webError(w, platform.ErrForbidden)
+		// The handler layer re-checks points the policy middleware already
+		// gated; those denials deserve the same audit trail.
+		recordDenial(manager, r, &session, "authz.denied", "reason=permission; point="+permission)
 		return session, false
 	}
 	identity := manager.Identity(administratorRequest(r))
@@ -304,6 +309,13 @@ func coreAccess(manager *install.Manager, w http.ResponseWriter, r *http.Request
 		}
 		_, ok := require(manager, w, r, permission)
 		return ok
+	}
+	// Revised decision D3: every standalone local surface, session or not,
+	// demands a loopback Host and TCP peer, so LAN deployment cannot reach
+	// core execution, inbox or events.
+	if !localLoopback(r) {
+		failure(w, 403, "PERMISSION_DENIED", "本机能力仅允许在本机访问")
+		return false
 	}
 	return true
 }
@@ -377,11 +389,8 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 			}
 			data.CsrfToken = &session.CsrfToken
 			if entries, err := identity.Store.ListMenuConfig(r.Context()); err == nil {
-				if len(entries.Items) != 0 {
-					data.Menus = &entries.Items
-				}
-				// The normalized navigation is projected per surface and per
-				// member grants; the legacy items above stay as a compat echo.
+				// The shared navigation is projected per surface and per member
+				// grants; the frontend renders only this projected tree.
 				surface := "user"
 				if administratorRequest(r) {
 					surface = "administrator"
@@ -428,6 +437,21 @@ func ip(r *http.Request) string {
 		return r.RemoteAddr
 	}
 	return host
+}
+
+// localLoopback is the shared standalone local-surface boundary: the request
+// Host and the TCP peer must both be loopback (literal address or localhost),
+// mirroring the /updates transport rule for settings, monitor, core execution,
+// inbox and events.
+func localLoopback(r *http.Request) bool {
+	host, _, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		host = r.Host
+	}
+	remote, _, _ := net.SplitHostPort(r.RemoteAddr)
+	ip := net.ParseIP(host)
+	peer := net.ParseIP(remote)
+	return (host == "localhost" || (ip != nil && ip.IsLoopback())) && peer != nil && peer.IsLoopback()
 }
 func super(user contracts.User) bool {
 	return platform.IsSuper(user)
@@ -629,6 +653,10 @@ func mountWeb(api chi.Router, config Config) {
 			}
 			if profile == runtime.WebPlatform {
 				failure(w, 404, "NOT_FOUND", "请使用受保护的平台设置接口")
+				return nil, "", false
+			}
+			if !localLoopback(r) {
+				failure(w, 403, "PERMISSION_DENIED", "本机能力仅允许在本机访问")
 				return nil, "", false
 			}
 			return service, "local", true

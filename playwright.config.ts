@@ -2,7 +2,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './tests/e2e', fullyParallel: true, forbidOnly: !!process.env.CI, retries: process.env.CI ? 1 : 0, workers: 4,
+  // Per-test retries stay at zero: a retried test would hide its original failure;
+  // environmental reruns happen at the job level and preserve the first run's output.
+  testDir: './tests/e2e', fullyParallel: true, forbidOnly: !!process.env.CI, retries: 0, workers: 4,
   reporter: 'list',
   // The DEV-only catalog starts its own Vite proxy and runs through its dedicated configuration.
   testIgnore: ['**/ui-system.spec.ts', '**/ui-system.production.spec.ts'],

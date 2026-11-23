@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 产品范围
 
-Unicore 是 MIT 开源的 Go + React 跨形态应用开发框架，当前为开发预览。此文描述产品约束；具体使用见 [指南](../product/index.md)，实现与验证限制见 [支持范围](../support.md)。早期设计背景见 [design-v1.1.md](design-v1.1.md)，与当前范围冲突时以本页及后续 ADR 为准。
+Unicore 是 MIT 开源的 Go + React 跨形态应用开发框架，已发布首个正式版本 0.2.0（stable），0.x 阶段仍按快速迭代交付。此文描述产品约束；具体使用见 [指南](../product/index.md)，实现与验证限制见 [支持范围](../support.md)。早期设计背景见 [design-v1.1.md](design-v1.1.md)，与当前范围冲突时以本页及后续 ADR 为准。
 
 | 能力 | web-platform | web-standalone | desktop | cli |
 | --- | --- | --- | --- | --- |

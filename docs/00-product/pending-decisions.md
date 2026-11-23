@@ -202,3 +202,15 @@
 - 裁决（2026-11-19）：**选 C**——维持现有派生与存储范围解析逻辑，不做启动期物化改写，也不新增重绑定授权策略；本条为口径说明，不扩展安全保证。
 - 状态：**已裁决（C），授权逻辑不变。** 2026-11-20 纠正适用范围与派生规则说明，并补充相同 action ID 重绑定的回归测试。同日维护者改判重绑定授权：已持有角色授权行的 action 在菜单保存中重绑定 `Permission` 或 operations 时视为授权变更，非 super 提交者必须持有 `roles:write`（纯布局编辑与新增 action 不受影响，授权行也不会被放宽以满足提交者）；本条“不新增重绑定授权策略”的表述自此不再适用，派生与数据范围口径（C）本身不变。
 - 改判（2026-11-21，首发基线）：**撤销 C，采纳"删除运行时派生"**。按 [ADR-0050](../adr/ADR-0050-explicit-authorization-baseline.md)，会话投影只读存储权限点，`deriveGrantedPermissions` 移除；保存期校验保证 grants ⊆ points，菜单分配只写可见性并拒绝未持有页面权限点的角色；会话与 DataScope 使用同一存储依据，本条所述分叉自首发起不复存在。
+
+## D26. Echo 开发依赖通告（GHSA-99jh-6h7p-pp36、GHSA-246p-cpwv-v3jq）的处置口径与复核期限
+
+- 来源：0.2.0 首发候选的依赖安全审查（2026-11-22，Dependabot 两项 medium：反代默认转发攻击者 X-Real-IP；Rate Limiter 默认配置可被伪造 X-Forwarded-For 绕过）。
+- 现状：`github.com/labstack/echo/v4` 由 wails v2.17.1（当前最新 v2）间接引入，唯一使用方是 wails 开发服务器（`internal/frontend/devserver`，受 `//go:build dev` 标签门控）。修复只发布在 echo/v5（GHSA-99jh-6h7p-pp36 修复 5.4.0；GHSA-246p-cpwv-v3jq 修复 5.1.0），echo/v4 受影响区间 `>=4.0.0,<=4.16.2` 无修复版本；wails v2 全系不依赖 v5，我方无法在兼容范围内升级。
+- 可达性证据（2026-11-22，`go list -deps` 按构建标签解析的编译包集，见 build/acceptance/echo-reachability/）：生产桌面编译集不含任何 echo 包；`wails dev` 开发编译集含 echo（开发者本机 localhost devserver 暴露）；server/ops/cli 依赖图完全不含 echo。生产形态（Platform/Standalone Web/CLI/生产桌面）均不可达。
+- 处置（有期限，待复核）：
+  1. echo/v4 发布修复版本后，在我方 go.mod 显式 require 提升该间接依赖并运行桌面全量测试；
+  2. wails 升级或 v3 迁移落地时随之消除该依赖；
+  3. **复核期限：2027-02-20（90 天）**。到期仍未修复则在发布说明中记录，并评估替换 wails 开发服务器方案。
+- 状态：**待复核（2027-02-20）。不影响 0.2.0 首发：生产构建不可达，开发面限于开发者本机。**
+

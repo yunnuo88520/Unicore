@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 import { featureBuild } from './scripts/build-features.mjs';
 
 export default defineConfig({ plugins: [react()], define: featureBuild().define, test: { environment: 'jsdom', environmentOptions: { jsdom: { url: 'http://localhost/' } }, include: ['packages/**/*.test.{ts,tsx}'], setupFiles: ['tests/setup.ts'], restoreMocks: true,
-    // The 80+-file jsdom suite hits vite chunk-download failures under CI load
-    // (an environmental fetch error, not an assertion): retry once before failing.
-    retry: process.env.CI ? 1 : 0 } });
+    // Per-test retries stay at zero in CI and locally: a retried test would hide its
+    // original failure, so reruns for environmental breakage happen at the job level
+    // where the first run's output is preserved.
+    retry: 0 } });

@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 支持与兼容性
 
-Unicore 当前为 0.x 开发预览。选择安装包时，请以对应 [Release](https://github.com/yunnuo88520/Unicore/releases) 列出的操作系统、架构、数据库版本和已知问题为准。源码的自动化结果可查看 [CI](https://github.com/yunnuo88520/Unicore/actions/workflows/ci.yml)。
+Unicore 0.2.0 是首个正式版本（stable）；0.x 阶段仍按快速迭代交付，后续补丁与版本的兼容范围以各版本发行说明为准。选择安装包时，请以对应 [Release](https://github.com/yunnuo88520/Unicore/releases) 列出的操作系统、架构、数据库版本和已知问题为准。源码的自动化结果可查看 [CI](https://github.com/yunnuo88520/Unicore/actions/workflows/ci.yml)。
 
 ## 产品形态
 

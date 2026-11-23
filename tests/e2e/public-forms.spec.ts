@@ -47,10 +47,18 @@ for (const locale of ['zh-CN', 'en'] as const) for (const theme of ['light', 'da
     const capture = async (name: string) => {
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      const title = (await page.getByRole('heading', { level: 1 }).boundingBox())!;
-      const controls = (await button('切换语言').boundingBox())!;
-      const overlap = title.y < controls.y + controls.height && controls.y < title.y + title.height
-        && title.x < controls.x + controls.width && controls.x < title.x + title.width;
+      // Both rects must come from the same layout pass: two separate locator round-trips
+      // can straddle a font-swap reflow and report an overlap that never existed on the
+      // page (CI run 45084557823 failed this way once). A genuine overlap still fails.
+      const overlap = await page.evaluate(label => {
+        const title = document.querySelector('h1')?.getBoundingClientRect();
+        const trigger = Array.from(document.querySelectorAll('button'))
+          .find(node => (node.getAttribute('aria-label') ?? node.textContent ?? '').trim() === label);
+        const controls = trigger?.getBoundingClientRect();
+        if (!title || !controls) return null;
+        return title.top < controls.bottom && controls.top < title.bottom
+          && title.left < controls.right && controls.left < title.right;
+      }, t('切换语言'));
       expect(overlap, 'Public controls must not cover the page title after step focus or scrolling.').toBe(false);
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.screenshot({ path: `${directory}/${name}.png`, fullPage: true, animations: 'disabled' });

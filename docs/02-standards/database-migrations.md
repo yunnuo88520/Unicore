@@ -11,6 +11,8 @@ core 面向所有有数据库的产品；业务模块使用 `module.<slug>`，No
 
 运行 Go descriptor、发行/OTA/ops JSON 与账本引导 DDL 从 catalog/原 SQL 生成，检查再生一致性；生成物不可手改，不能反向成为第二份定义。应用 VERSION 与数据库命名空间版本独立，不能靠应用版本相同判断 DB 兼容。
 
+新增迁移 SQL 和随框架交付的回归测试须显式登记 `distribution/manifest.json` 的 `template_files`；源仓库校验通过不代表派生模板完整。分发测试从真实导出目录检查完整 Catalog 的全部方言文件、原字节 checksum 和生成元数据，再通过派生应用构建与打包验证使用链路。
+
 ## SQL 与 Seed
 
 SQL 负责最终结构、索引/约束、固定字段默认值和必要静态基础记录；Go Seed 负责默认角色/权限、管理员、设置、实例标记/审计及运行期身份。密码、hash、密钥、DSN、SMTP/云凭据、演示用户、笔记/公告/邮件内容禁止写 baseline。当前 storage_locations 的 local/legacy-brand 两行有运行代码依赖，变更要连同文件/品牌用例论证。

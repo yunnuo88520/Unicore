@@ -67,7 +67,7 @@ FEATURE_NOTES=false make build-web
 FEATURE_NOTES=false FEATURE_UPDATER=false make build-web
 ```
 
-关闭后不装配笔记页面、API、权限、导航或业务实现，新库不执行笔记迁移。开发模式须给前后端设置相同开关；已有实例保留数据和迁移历史。完整说明见 [功能裁剪](docs/product/features.md)。
+关闭后不装配笔记页面、API、权限、导航或业务实现，新库不执行笔记迁移。开发模式须给前后端设置相同开关；已有实例保留数据和迁移历史。Platform 既有菜单配置与授权也会保留，其他菜单仍可正常保存，重新启用后沿用原配置。完整说明见 [功能裁剪](docs/product/features.md)。
 
 ## 快速开始
 

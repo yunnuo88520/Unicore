@@ -11,11 +11,13 @@ const directory=mkdtempSync(join(tmpdir(),'unicore-notes-'));
 function run(command,args,env,capture=false){return execFileSync(command,args,{env,encoding:'utf8',stdio:capture?['ignore','pipe','inherit']:'inherit',maxBuffer:16*1024*1024});}
 const targets=['./internal/modules/notes','./internal/modules/notes/desktop','./migrations/runner','./internal/adapter/http'];
 try{
- // The same actual SQLite files survive three differently compiled processes.
+ // Each isolated database survives three differently compiled processes.
+ // PostgreSQL/MySQL use explicit UNICORE_NOTES_TEST_<DRIVER>_DSN and
+ // _FRESH_DSN values; the fresh-disabled stage must use a different empty DB.
  for(const [enabled,stage] of [[false,'fresh'],[true,'seed'],[false,'disabled'],[true,'restored']]){
   const env={...process.env,FEATURE_NOTES:String(enabled),UNICORE_NOTES_TEST_DIR:directory,UNICORE_NOTES_TEST_STAGE:stage};
   const {tags}=readFeatures(env);
-  run('go',['test','-tags',tags,...targets,'-run','TestNotesEdition|TestAPIRoutesMatchContract','-count=1'],env);
+  run('go',['test','-race','-v','-tags',tags,...targets,'-run','TestNotesEdition|TestAPIRoutesMatchContract','-count=1'],env);
  }
  for(const enabled of [false,true]){
   const env={...process.env,FEATURE_NOTES:String(enabled)};

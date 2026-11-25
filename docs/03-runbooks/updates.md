@@ -95,6 +95,6 @@ macOS 使用临时 keychain，codesign hardened runtime + timestamp，notarytool
 
 自动安装仅接受相同世代和指纹。追加迁移、重写开发基线或增减模块均会拒绝自动安装，即使应用版本更高、签名有效。此时停服、完整备份，在隔离副本验证后人工更换 tar 或 Docker 镜像；新程序启动时由 runner 执行缺失尾部。失败使用升级前快照与匹配旧程序恢复，不能仅回退 binary。详见 [迁移规范](../02-standards/database-migrations.md)。
 
-当前 Catalog 为 core@1、platform@1、module.notes@1：platform 基线终态融合收件箱 actions、角色 version 与 MCP 治理/OAuth 存储（ADR-0042 整合），追加迁移不改写既有版本。三个 UI profile 均保留 platform 成员，因此 Standalone/desktop 同步迁移，但不装配身份治理；数据库隔离另行决策，见 [ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md)。只有匹配世代/checksum 和合法前缀的库可以追加缺失尾部；旧双身份或不匹配开发基线仍不原地转换。首个 stable 后只能追加下一版本。旧签名清单的两个整数迁移等级不被新验签格式接受；保留历史发行物，不重新签写旧 tag。
+当前 Catalog 为 core@1、platform@1–@2、module.notes@1：platform 基线终态融合收件箱 actions、角色 version 与 MCP 治理/OAuth 存储（ADR-0042 整合）；@2 统一 MySQL 个人安全关联键的排序规则，SQLite/PostgreSQL 对应版本不改变结构或数据。追加迁移不改写既有版本。三个 UI profile 均保留 platform 成员，因此 Standalone/desktop 同步迁移，但不装配身份治理；数据库隔离另行决策，见 [ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md)。只有匹配世代/checksum 和合法前缀的库可以追加缺失尾部；旧双身份或不匹配开发基线仍不原地转换。首个 stable 后只能追加下一版本。旧签名清单的两个整数迁移等级不被新验签格式接受；保留历史发行物，不重新签写旧 tag。
 
 追加迁移失败时不要将基线幂等误当 ADD COLUMN 可盲重试：MySQL DDL 可能提交而账本未登记，单列存在也不能证明迁移成功。停止实例，保留诊断；不补造/删改账本、checksum，不用旧 binary 打开新库。将升级前完整快照与匹配旧程序恢复到新目录/空专用库，再核验和处理。恢复工具本身不执行迁移，后续正常启动才向前执行；desktop 须先退出，使用完整原生包，不能用 HTTP 服务模拟。

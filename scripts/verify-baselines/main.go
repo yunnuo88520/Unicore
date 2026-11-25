@@ -404,8 +404,8 @@ func main() {
 			businessResult := business(s, profile, dir, admin)
 			expected := 9
 			if slices.Contains(catalogdata.Catalog.Profiles[profile].Namespaces, "platform") {
-				// Unified accounts: 7 core + 47 platform (incl. MCP governance/OAuth) + 1 notes + 1 ledger.
-				expected = 56
+				// Frozen catalog: 7 core + 45 platform (incl. MCP governance/OAuth) + 1 notes + 1 ledger.
+				expected = 54
 			}
 			check(len(tables(s)) == expected, "table count changed: got %d want %d", len(tables(s)), expected)
 			write(filepath.Join(c.Output, id+".json"), map[string]any{"author": "yunnuo <ymz@ebox.vip>", "generated_evidence": true, "source_commit": c.Commit, "combination": id, "passed": true, "scope": "new SQL empty-fixture/real Seed/business validation on the catalog single track", "schema": schema, "sql_only_data": sqlOnly, "go_seed": seed, "post_seed_data": afterSeed, "all_text_and_composite_pk_null_checks": nulls, "behavior_probes": behavior, "install_state_semantics": install, "business": businessResult, "upgrade": upgradeFixture(s, profile)})

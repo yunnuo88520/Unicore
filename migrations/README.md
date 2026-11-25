@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 数据库迁移目录：Catalog 单轨
 
-安装与启动统一调用 migrations/runner.Apply，唯一预期集合在 [catalog.json](catalog.json)。当前包含 core / module.notes 的 @1 基线与 platform 的 @1–@2（@2 为收件箱去重唯一约束），共十二份三方言 SQL；platform 基线按 ADR-0042 终态融合收件箱 actions、角色 version 与 MCP 治理/OAuth 存储。正式版前整合与冻结政策见 [ADR-0042](../docs/adr/ADR-0042-release-baseline-update-compatibility.md)。
+安装与启动统一调用 migrations/runner.Apply，唯一预期集合在 [catalog.json](catalog.json)。当前包含 core / module.notes 的 @1 基线与 platform 的 @1–@2，共十二份三方言 SQL；platform 基线按 ADR-0042 终态融合收件箱去重/actions、角色 version 与 MCP 治理/OAuth 存储。@2 统一 MySQL 个人安全表的关联键排序规则；SQLite/PostgreSQL 对应版本不改变结构或数据。正式版前整合与冻结政策见 [ADR-0042](../docs/adr/ADR-0042-release-baseline-update-compatibility.md)。
 
 | Namespace | 当前 Catalog Profile 成员 | 当前版本 |
 | --- | --- | --- |
@@ -26,6 +26,8 @@ python3 scripts/verify-baselines.py --output build/verification-migrations
 基线 CREATE TABLE/INDEX 幂等，MySQL 索引内联，必要静态记录用 WHERE NOT EXISTS 守护。SQLite 不声明外键（运行时连接开启 foreign_keys，但基线无 FK 子句，引用与级联由业务事务负责）；PG/MySQL 保留现有外键、排序规则与约束。正式版后 SQL 冻结，只追加下一个版本，遵循 [迁移规范](../docs/02-standards/database-migrations.md)。
 
 platform 基线包含 `unicore_roles.version BIGINT NOT NULL DEFAULT 1`，已有及新建角色从 1 起。基线重放幂等不代表正式版后追加的 ADD COLUMN 可以盲重试；MySQL DDL 可能已提交但账本未登记。失败停止业务，不能只看列存在就补造账本、改 checksum 或删除版本行；使用匹配程序与升级前完整快照恢复到新目录/空专用库，再核验并处理。新角色权限不在 SQL 自动授给旧角色。
+
+platform@2 将 `unicore_personal_accounts.user_id`、`unicore_session_details.token_hash/user_id`、`unicore_email_changes.id/user_id/session_hash/parent_id` 显式设为 `utf8mb4_0900_ai_ci`，与关联的账号、会话和邮件键一致。历史 @1 中这些表继承库默认排序规则；例如 `utf8mb4_unicode_ci` 会导致会话清理、设备列表或邮箱验证邮件关联返回 MySQL 1267。迁移保留字段值、主键及其他字段排序规则，不改变用户名/邮箱登录匹配。现有数据规模决定 ALTER 锁表时间，需预留停机窗口；失败后按匹配快照恢复，不直接用旧程序打开升级后的库。
 
 验收脚本只使用新建的随机本地 Docker 容器/tmpfs、loopback 端口和临时凭据，需要缓存 postgres:15、mysql:8.0 及满足 go.mod 的本地 Go。它验证七组合空库/Seed/业务、基线重放、带数据追加和旧 Catalog 拒绝未来库，以及安装配置到原生备份恢复。不会接管已有库，不自动拉镜像；输出目录必须不存在，结束清理本次资源。追加迁移还须验证匹配旧 Catalog 到新版本的数据保留和快照回退，不能以空库检查代替真实升级演练；结果只放会话或 build/、CI artifact。
 

@@ -82,4 +82,4 @@ Web 与桌面复用 React 页面和 Go 用例，分别通过 HTTP 与 Wails 调�
 
 笔记以 `module.notes` 命名空间接入统一 Catalog 和迁移执行器。自己的模块使用独立命名空间，后续追加连续版本，并提供各方言 SQL、兼容与恢复说明。已交付的 SQL 保持原字节和 checksum。
 
-裁剪回归使用 `pnpm test:notes`，覆盖前后端装配、API 404、页面产物和 SQLite 数据保留；PostgreSQL/MySQL 的真实数据库执行需另行验证。具体关闭和永久移除步骤见 [裁剪示例与可选能力](../product/features.md)。
+裁剪回归使用 `pnpm test:notes`，覆盖前后端装配、API 404、页面产物和 SQLite 数据保留。已有实例的菜单回归还会验证同一会话跨构建保存配置、角色授权保留与版本冲突；可通过 `UNICORE_NOTES_TEST_POSTGRES_DSN`、`UNICORE_NOTES_TEST_MYSQL_DSN` 接入各自独占的空测试库。另为关闭模块的全新安装阶段提供 `UNICORE_NOTES_TEST_POSTGRES_FRESH_DSN`、`UNICORE_NOTES_TEST_MYSQL_FRESH_DSN`，须与已有实例回归使用不同的空库；脚本只清理临时数据目录，外部测试库由调用者创建和清理。未提供对应 DSN 时跳过该方言，SQLite 结果不代表外部数据库。具体关闭和永久移除步骤见 [裁剪示例与可选能力](../product/features.md)。

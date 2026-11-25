@@ -42,10 +42,10 @@ jobs:
       - uses: actions/setup-node@v7
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - name: Prepare dedicated backup, announcement and file databases
+      - name: Prepare dedicated backup, announcement, file and collation databases
         run: |
           docker exec ${{ job.services.postgres.id }} psql -U unicore -d unicore_test -c 'CREATE DATABASE backup_source' -c 'CREATE DATABASE backup_target' -c 'CREATE DATABASE announcement_test' -c 'CREATE DATABASE file_test' -c 'CREATE DATABASE prefix_core' -c 'CREATE DATABASE prefix_platform' -c 'CREATE DATABASE installer_test' -c 'CREATE DATABASE api_token_test'
-          docker exec -e MYSQL_PWD=unicore_ci_root ${{ job.services.mysql.id }} mysql -u root -e "CREATE DATABASE backup_source; CREATE DATABASE backup_target; CREATE DATABASE announcement_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE DATABASE file_test; CREATE DATABASE prefix_core; CREATE DATABASE prefix_platform; CREATE DATABASE installer_test; CREATE DATABASE api_token_test; GRANT ALL ON backup_source.* TO 'unicore'@'%'; GRANT ALL ON backup_target.* TO 'unicore'@'%'; GRANT ALL ON announcement_test.* TO 'unicore'@'%'; GRANT ALL ON file_test.* TO 'unicore'@'%'; GRANT ALL ON prefix_core.* TO 'unicore'@'%'; GRANT ALL ON prefix_platform.* TO 'unicore'@'%'; GRANT ALL ON installer_test.* TO 'unicore'@'%'; GRANT ALL ON api_token_test.* TO 'unicore'@'%';"
+          docker exec -e MYSQL_PWD=unicore_ci_root ${{ job.services.mysql.id }} mysql -u root -e "CREATE DATABASE backup_source; CREATE DATABASE backup_target; CREATE DATABASE announcement_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE DATABASE file_test; CREATE DATABASE prefix_core; CREATE DATABASE prefix_platform; CREATE DATABASE installer_test; CREATE DATABASE api_token_test; CREATE DATABASE identity_collation_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL ON backup_source.* TO 'unicore'@'%'; GRANT ALL ON backup_target.* TO 'unicore'@'%'; GRANT ALL ON announcement_test.* TO 'unicore'@'%'; GRANT ALL ON file_test.* TO 'unicore'@'%'; GRANT ALL ON prefix_core.* TO 'unicore'@'%'; GRANT ALL ON prefix_platform.* TO 'unicore'@'%'; GRANT ALL ON installer_test.* TO 'unicore'@'%'; GRANT ALL ON api_token_test.* TO 'unicore'@'%'; GRANT ALL ON identity_collation_test.* TO 'unicore'@'%';"
       - name: Verify optional notes builds and retained data
         run: pnpm test:notes
       - run: make test
@@ -67,6 +67,7 @@ jobs:
           UNICORE_TOKEN_TEST_POSTGRES_DSN: postgres://unicore:unicore_ci_test@127.0.0.1:5432/api_token_test?sslmode=disable
           UNICORE_TOKEN_TEST_MYSQL_DSN: unicore:unicore_ci_test@tcp(127.0.0.1:3306)/api_token_test
           UNICORE_TEST_POSTGRES_DSN: postgres://unicore:unicore_ci_test@127.0.0.1:5432/unicore_test?sslmode=disable
+          UNICORE_COLLATION_TEST_MYSQL_DSN: unicore:unicore_ci_test@tcp(127.0.0.1:3306)/identity_collation_test
           UNICORE_TEST_MYSQL_DSN: unicore:unicore_ci_test@tcp(127.0.0.1:3306)/unicore_test
           UNICORE_ANNOUNCEMENT_POSTGRES_DSN: postgres://unicore:unicore_ci_test@127.0.0.1:5432/announcement_test?sslmode=disable
           UNICORE_ANNOUNCEMENT_MYSQL_DSN: unicore:unicore_ci_test@tcp(127.0.0.1:3306)/announcement_test

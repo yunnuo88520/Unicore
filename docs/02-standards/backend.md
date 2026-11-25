@@ -55,3 +55,7 @@ API 子路由必须通过 `policyRouter` 注册；`With`、`Route`、`Group` 返
 Platform PAT 按 [ADR-0044](../adr/ADR-0044-role-bound-personal-tokens.md) 仅绑定一个已分配角色。HTTP 主体与事务中的 actor 复核保持同一角色约束，platformsql 使用 principalUser 重新加载操作者；user 是完整账号资源投影，不能替代 actor 复核，也不能被令牌角色裁剪，否则本人编辑和超管目标保护会遗漏其他角色。读写数据范围均只从当前主体的角色集合计算；Cookie 会话继续使用多角色并集。
 
 数据库安装与启动通过 `migrations/runner.Apply` 执行 Catalog 声明的版本，详见 [迁移规范](database-migrations.md)。
+
+MySQL 跨表关联的文本键必须采用相同排序规则，不能只依赖连接或库默认值。platform@2 为历史个人安全表的账号、会话与邮箱验证关联键显式统一 `utf8mb4_0900_ai_ci`；升级保留数据及原用户名/邮箱比较语义。真实回归使用独占空库 `UNICORE_COLLATION_TEST_MYSQL_DSN`（库默认 `utf8mb4_unicode_ci`），覆盖旧基线复现、带数据增量迁移、登录/设备/邮箱验证关联及重复启动。
+
+Platform 导航整树保存的目录兼容校验在安装锁事务内对照当前持久化绑定执行：可选模块停用后允许原样保留缺失目录的旧绑定，不能凭客户端提交的 ID 新建或改绑不可用目标。当前注册项的 surface、operation 可委派性与权限点约束仍严格校验；布局保存保留原授权及角色版本，显式删除节点仍走孤儿裁剪。

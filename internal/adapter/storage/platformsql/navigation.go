@@ -520,8 +520,17 @@ func (r *Repository) ListMenuConfig(ctx context.Context) (contracts.MenuList, er
 // declared surface, link targets, action grants bound to catalogue
 // permissions and real operations, acyclic nesting and the depth limit.
 // Parents are type-aware: actions hang under pages only and every other
-// node nests under any non-action node.
-func validateNavigation(n contracts.Navigation) error {
+// node nests under any non-action node. Missing catalogue entries may survive
+// only through an unchanged binding already persisted by an earlier build.
+func validateNavigation(n, previous contracts.Navigation) error {
+	previousNodes := make(map[string]contracts.NavigationNode, len(previous.Nodes))
+	for _, node := range previous.Nodes {
+		previousNodes[node.ID] = node
+	}
+	pages := map[string]bool{}
+	for _, page := range platform.NavigationPages() {
+		pages[page.ID] = true
+	}
 	sections := map[string]bool{}
 	for _, s := range n.Sections {
 		if s.ID == "" || len(s.ID) > 64 || len(s.Name) > 240 || s.Sort < 0 || len(s.Surfaces) == 0 {
@@ -559,6 +568,8 @@ func validateNavigation(n contracts.Navigation) error {
 		if node.OpenMode != "same_tab" && node.OpenMode != "new_tab" {
 			return platform.ErrInput
 		}
+		old, exists := previousNodes[node.ID]
+		preserved := exists && sameNavigationBinding(old, node)
 		switch node.Type {
 		case "directory":
 			if text(node.RouteID) != "" || text(node.Url) != "" || text(node.Permission) != "" {
@@ -577,7 +588,10 @@ func validateNavigation(n contracts.Navigation) error {
 			// administrator console) refuses the whole payload. An explicitly
 			// disabled node may reference any page so operators can repair or
 			// drop it instead of losing configuration.
-			if registered != len(node.Surfaces) && !node.Disabled {
+			// A removed module can leave stored routes absent from this build.
+			// Keep their original binding, but never widen a registered page's
+			// declared surfaces or introduce an unavailable active route.
+			if registered != len(node.Surfaces) && !node.Disabled && (pages[text(node.RouteID)] || !preserved || old.Disabled) {
 				return platform.ErrInput
 			}
 			if text(node.Url) != "" {
@@ -589,11 +603,14 @@ func validateNavigation(n contracts.Navigation) error {
 			}
 		case "action":
 			permission := text(node.Permission)
-			if !platform.CatalogPermission(permission) || node.ParentID == nil || *node.ParentID == "" || len(node.OperationIds) == 0 {
+			if (!platform.CatalogPermission(permission) && !preserved) || permission == "" || node.ParentID == nil || *node.ParentID == "" || len(node.OperationIds) == 0 {
 				return platform.ErrInput
 			}
 			for _, id := range node.OperationIds {
 				op, ok := platform.Operation(id)
+				if !ok && preserved {
+					continue
+				}
 				if !ok || !op.Grantable || !contains(op.Permissions, permission) {
 					return platform.ErrInput
 				}
@@ -635,6 +652,15 @@ func validateNavigation(n contracts.Navigation) error {
 	return nil
 }
 
+// sameNavigationBinding identifies retained catalogue references. Layout fields
+// may change, but node type, route, surfaces and action authorization targets
+// must stay the same; an unavailable action also keeps its original parent.
+func sameNavigationBinding(a, b contracts.NavigationNode) bool {
+	return a.Type == b.Type && text(a.RouteID) == text(b.RouteID) &&
+		slices.Equal(slices.Sorted(slices.Values(a.Surfaces)), slices.Sorted(slices.Values(b.Surfaces))) &&
+		sameActionBinding(a, b) && (a.Type != "action" || text(a.ParentID) == text(b.ParentID))
+}
+
 // SaveNavigation replaces the tree under optimistic version control. The
 // cascade of guards: menu editing needs menus:write; restoring defaults or
 // touching role assignments needs super_admin (assignments additionally
@@ -650,9 +676,6 @@ func (r *Repository) SaveNavigation(ctx context.Context, input contracts.MenuSav
 	if reset {
 		n = platform.DefaultNavigation()
 	}
-	if err := validateNavigation(n); err != nil {
-		return contracts.MenuList{}, err
-	}
 	tx, err := r.Store.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return contracts.MenuList{}, err
@@ -667,6 +690,15 @@ func (r *Repository) SaveNavigation(ctx context.Context, input contracts.MenuSav
 	}
 	admin, err := r.actor(ctx, tx, actor, "menus:write")
 	if err != nil {
+		return contracts.MenuList{}, err
+	}
+	// Compare against trusted persisted state under the same installation lock
+	// as the replacement; caller-supplied ids never establish a legacy binding.
+	previous, err := r.readNavigation(ctx, tx)
+	if err != nil {
+		return contracts.MenuList{}, err
+	}
+	if err = validateNavigation(n, previous); err != nil {
 		return contracts.MenuList{}, err
 	}
 	if reset && !platform.IsSuper(admin) {

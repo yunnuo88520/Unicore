@@ -140,6 +140,8 @@ Environment=APP_CONFIG=/etc/unicore/config.yaml
 
 SQLite 不填写上述外部连接字段/DSN，固定使用 data 目录中的 `unicore.db`。应用不创建外部数据库本身，账号需要专用库内的迁移/表/索引/约束权限；不要用真实共享库做连接测试或试装。
 
+MySQL 个人安全关联键由 platform@2 显式采用 `utf8mb4_0900_ai_ci`，避免库默认 `utf8mb4_unicode_ci` 时登录、设备和邮箱验证关联报错。已有实例通过正常启动边界执行追加迁移，保留原数据；部署前停服并备份，失败恢复到新空目标并使用匹配程序和完整快照，见 [更新指南](updates.md) 与 [备份恢复](backup.md)。不需要手改历史迁移、账本或全库默认排序规则。
+
 安装 origin 自动取浏览器实际地址，影响 Secure Cookie 与 OIDC callback；`site.base_url` 只覆盖邮件生成链接。需变更正式域名时先评估安装 origin 的迁移/恢复方案，不能只改邮件地址后宣称站点迁移完成。
 
 安装配置保存后优先恢复原配置，环境变量不用于改数据库或更换形态。换 profile 应部署新实例/新数据目录，数据库迁移或跨引擎转换不由修改启动配置实现。

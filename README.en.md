@@ -67,7 +67,7 @@ FEATURE_NOTES=false make build-web
 FEATURE_NOTES=false FEATURE_UPDATER=false make build-web
 ```
 
-This omits notes pages, APIs, permissions, navigation, and business implementation. New databases skip notes migrations; existing data and migration history are retained. Development frontend and backend processes must use matching flags. Read [feature trimming](docs/product/features.md) for details.
+This omits notes pages, APIs, permissions, navigation, and business implementation. New databases skip notes migrations; existing data and migration history are retained. Development frontend and backend processes must use matching flags. Existing Platform menu configuration and grants are also retained; other menus remain editable, and re-enabling Notes uses the saved configuration. Read [feature trimming](docs/product/features.md) for details.
 
 ## Quick start
 

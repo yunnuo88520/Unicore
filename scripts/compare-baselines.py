@@ -27,7 +27,8 @@ for combo in ['sqlite-web-platform', 'sqlite-web-standalone', 'sqlite-desktop', 
     assert new['passed']
     after = new['schema']['tables']
     has_platform = 'platform' in metadata['profiles'][profile]['namespaces']
-    expected_tables = 56 if has_platform else 9
+    # The frozen @1 SQL declares 7 core + 45 platform + 1 notes tables; add the ledger.
+    expected_tables = 54 if has_platform else 9
     assert len(after) == expected_tables, (combo, 'table count', len(after))
     apps = set(after) - {'schema_migrations'}
     unprefixed = sorted(name for name in apps if not name.startswith('unicore_'))

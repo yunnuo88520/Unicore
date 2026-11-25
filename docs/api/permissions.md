@@ -91,6 +91,8 @@ PUT 角色必须携带读取到的正整数 version；缺失/非法拒绝输入�
 
 ## 角色编辑与菜单反向分配
 
+`PUT /admin/menus` 在安装锁事务内对照当前持久化树校验整树替换。停用模块导致目录项缺失时，只允许同 ID 节点保留原类型、路由、surface、权限点、operation 集合及动作父页面绑定；布局字段可编辑，角色授权不因目录缺失自动删除或扩大。新增或修改的失效绑定返回 400；已注册页面的 surface、可委派 operation 与权限点匹配、树结构及导航 version 校验仍执行。显式删除节点继续裁剪孤儿授权，并递增实际变化的角色版本。
+
 以 [ADR-0040](../adr/ADR-0040-explicit-role-grants.md) 为准：页面选择只补浏览接口，且 GET 接口的权限不得超出当前角色与页面路由点（导入模板等 GET 不隐含新增写权限）。角色 realm 不用于过滤可委派 API。高级区由 `GET /admin/api-operations` 提供完整可委派集合，包含无 uiPage 的业务 API；独立目录页面已退役。all 模式选择 API 补齐所需点；any 模式保留显式分支，不派生全部兄弟点。`PermissionDefinition.super_admin` 来自服务端保留策略，前端不再维护另一份名单。
 
 `PUT /admin/menus/{id}/roles` 输入 `{version, expected_role_ids, role_ids}`。role_ids 与 expected_role_ids 不包括 super_admin（弹窗固定勾选且不可修改；默认访问仍受 surface、区域/节点隐藏禁用及祖先约束，并非始终可达）。服务端在安装锁事务内复核超管、roles:write、menus:write，检查导航版本及当前菜单角色集合，冲突返回 409。新增页面合并祖先菜单、路由点与已满足上界的 GET 操作，目录/链接只改当前节点；取消只移除当前菜单，不删除独立 API/动作。内置 user 不能借此取得管理权限。其他角色属性及授权按事务中的最新值保留，实际改变的角色同时递增 Role.version，只撤销发生变动角色成员的会话。菜单行标签只代表显式分配，不代表最终可达；加载中、加载失败和未分配分别呈现，不能把错误当空集提交。内置 user 的 self 范围只读，复制为自定义角色后才可调整。旧整树 `role_assignments` 仍保留兼容，只替换所列角色菜单/动作并保留点/API，新界面不再使用它；它同样仅撤销所列角色成员会话。

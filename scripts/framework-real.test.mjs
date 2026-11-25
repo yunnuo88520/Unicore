@@ -13,11 +13,22 @@ import {checkTemplate,syncTemplate} from './framework-sync.mjs';
 import {applyIdentity,loadIdentity} from './product-identity.mjs';
 import {scanResiduals} from './check-product-residuals.mjs';
 import {renderAIContext} from './ai-context.mjs';
+import {generateMigrations} from './generate-migrations.mjs';
 
 const repository=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const derived=existsSync(join(repository,'project.provenance.json'));
 const env={...process.env,GIT_AUTHOR_NAME:'Template regression',GIT_AUTHOR_EMAIL:'template@example.test',GIT_COMMITTER_NAME:'Template regression',GIT_COMMITTER_EMAIL:'template@example.test'};
 const git=(root,...args)=>execFileSync('git',['-C',root,...args],{env,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
+
+test('the real exported template retains the complete migration catalog and generated metadata', {skip:derived?'Framework publisher regression runs in the upstream/template source checkout':false},()=>{
+ const {directory,source}=snapshotFramework(repository);
+ try{
+  // Validate the exported bytes, not the source checkout. Packaging and fresh
+  // application startup need every dialect referenced by the framework catalog.
+  // Downstream business modules are application-owned, outside this whitelist.
+  generateMigrations(source,true);
+ }finally{rmSync(directory,{recursive:true,force:true});}
+});
 
 // Application checkouts consume the template; publishing a new framework is a
 // maintainer operation. Their normal contract, Go, frontend and tooling checks still run.

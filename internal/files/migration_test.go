@@ -366,13 +366,16 @@ func TestMigrationTerminalStatesNotifyCreator(t *testing.T) {
 	if err := s.Repo.SaveLocation(ctx, files.Location{StorageLocation: contracts.StorageLocation{ID: "ghost", Name: "Ghost", Provider: "local", Tested: true}}, true, admin.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.CreateMigration(ctx, admin, contracts.StorageMigrationCreateInput{SourceLocationID: ptr("local"), TargetLocationID: "ghost"}); err != nil {
+	ghost, err := s.CreateMigration(ctx, admin, contracts.StorageMigrationCreateInput{SourceLocationID: ptr("local"), TargetLocationID: "ghost"})
+	if err != nil {
 		t.Fatal("create against ghost target", err)
 	}
 	if err := s.Repo.SaveLocation(ctx, files.Location{StorageLocation: contracts.StorageLocation{ID: "ghost", Name: "Ghost", Provider: "local", Tested: false}}, false, admin.ID); err != nil {
 		t.Fatal(err)
 	}
-	failed := runMigrationSteps(t, s, 5)
+	runMigrationSteps(t, s, 5)
+	// Fetch by id: several jobs share one created_at second, so ordering is random.
+	failed := migrationJob(t, s, ghost.ID)
 	if failed.Status != files.MigrationFailed {
 		t.Fatal("failed run expected", failed)
 	}

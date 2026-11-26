@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -64,6 +65,53 @@ func tableExists(t *testing.T, db *sql.DB, name string) bool {
 		t.Fatal(err)
 	}
 	return count == 1
+}
+
+func TestExplicitMigrationBlocks(t *testing.T) {
+	ctx := context.Background()
+	db := openSQLite(t)
+	if _, err := db.Exec(`CREATE TABLE schema_migrations(namespace TEXT, version INTEGER, checksum TEXT, applied_at INTEGER)`); err != nil {
+		t.Fatal(err)
+	}
+	body := []byte(`-- unicore:statements explicit
+CREATE TABLE events(id INTEGER PRIMARY KEY);
+-- unicore:statement-break
+CREATE TRIGGER events_no_update BEFORE UPDATE ON events
+BEGIN SELECT RAISE(ABORT, 'immutable; event'); END;
+-- unicore:statement-break
+INSERT INTO events(id) VALUES(1);`)
+	migration := plannedMigration{namespace: "module.events", version: 1, file: catalogdata.SQLFile{Checksum: checksum(body)}}
+	if err := runMigration(ctx, db, "sqlite", "schema_migrations", migration, body, fixedStamp); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`UPDATE events SET id=2`); err == nil {
+		t.Fatal("trigger did not reject update")
+	}
+	if got := ledgerRows(t, db)["module.events@1"]; got != checksum(body)+"@"+fmt.Sprint(fixedStamp) {
+		t.Fatalf("ledger mismatch: %s", got)
+	}
+	bad := []byte("-- unicore:statements explicit\nCREATE TABLE rollback_probe(id INTEGER);\n-- unicore:statement-break\nINVALID SQL;")
+	if err := runMigration(ctx, db, "sqlite", "schema_migrations", plannedMigration{namespace: "bad", version: 1}, bad, fixedStamp); err == nil {
+		t.Fatal("invalid migration succeeded")
+	}
+	if tableExists(t, db, "rollback_probe") || ledgerRows(t, db)["bad@1"] != "" {
+		t.Fatal("failed migration left data or ledger behind")
+	}
+}
+
+func TestMigrationStatementModes(t *testing.T) {
+	legacy := splitStatements([]byte("-- header\nSELECT 1;\nSELECT 2;"))
+	if len(legacy) != 2 {
+		t.Fatalf("legacy: %#v", legacy)
+	}
+	for _, body := range []string{
+		"-- unicore:statements explicit\nCREATE FUNCTION f() RETURNS void AS $$ BEGIN PERFORM 1; PERFORM 2; END; $$ LANGUAGE plpgsql;",
+		"-- unicore:statements explicit\nCREATE TRIGGER t BEFORE UPDATE ON events FOR EACH ROW BEGIN SET @x=1; SET @y=2; END;",
+	} {
+		if got := splitStatements([]byte(body)); len(got) != 1 || !strings.Contains(got[0], ";") {
+			t.Fatalf("compound statement split: %#v", got)
+		}
+	}
 }
 
 func TestApplyCreatesBaselineAndIsIdempotent(t *testing.T) {

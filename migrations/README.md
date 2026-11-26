@@ -1,6 +1,10 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 数据库迁移目录：Catalog 单轨
 
+### 包含复合语句的迁移
+
+默认迁移沿用分号拆分规则。触发器或函数体包含内部 `;` 时，在 SQL 文件开头的注释区加入 `-- unicore:statements explicit`，用独占一行的 `-- unicore:statement-break` 分隔完整 SQL 语句；每一块交给数据库驱动执行。不要在复合语句内部使用该分隔行，也不要使用客户端专用的 `DELIMITER` 命令。未声明的文件保持原有行为，已发布 SQL 原字节及校验和不能修改。MySQL DDL 失败仍可能部分提交，须按迁移恢复流程处理。
+
 安装与启动统一调用 migrations/runner.Apply，唯一预期集合在 [catalog.json](catalog.json)。当前包含 core / module.notes 的 @1 基线与 platform 的 @1–@2，共十二份三方言 SQL；platform 基线按 ADR-0042 终态融合收件箱去重/actions、角色 version 与 MCP 治理/OAuth 存储。@2 统一 MySQL 个人安全表的关联键排序规则；SQLite/PostgreSQL 对应版本不改变结构或数据。正式版前整合与冻结政策见 [ADR-0042](../docs/adr/ADR-0042-release-baseline-update-compatibility.md)。
 
 | Namespace | 当前 Catalog Profile 成员 | 当前版本 |

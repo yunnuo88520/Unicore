@@ -2,7 +2,7 @@
 // Description: One ordered shared tree drives the menu editor and every workspace navigation presentation.
 import { operations } from '@unicore/sdk';
 import './modules';
-import { uiModules, type UiRoute } from './module-registry';
+import { uiModules, pageSurfaces, type UiRoute } from './module-registry';
 import type { Bootstrap, MenuList, NavigationNode, NavigationSection } from '@unicore/sdk';
 import { Circle, type LucideIcon } from 'lucide-react';
 import { defineMessages, t } from './i18n';
@@ -37,7 +37,7 @@ export function validNavigationUrl(value: string): boolean {
 }
 const builtinPageOrder: string[] = [
   'overview', 'users', 'roles', 'departments', 'posts', 'menus', 'dictionaries',
-  'announcements', 'tasks', 'api-docs', 'site', 'storage', 'account-policy', 'mail', 'mail-templates',
+  'announcements', 'tasks', 'api-docs', 'site', 'storage', 'files', 'account-policy', 'mail', 'mail-templates',
   'notification-channels', 'notification-templates', 'system-notifications', 'logs', 'edition', 'access-tokens',
   'monitor', 'monitor-services', 'monitor-resources', 'monitor-events',
   'ai-access', 'ai-tools', 'ai-calls', 'ai-oauth',
@@ -66,17 +66,11 @@ const adminOnly: NavigationSection['surfaces'] = ['administrator'];
 // standalone and desktop keep their single-surface console entries. The
 // monitor group is administrator-only on the platform and collapses to one
 // tabbed page on the local profiles.
-const platformAdminOnly = new Set(['announcements', 'site', 'api-docs']);
 
 /** Route registration alone decides which workspaces a page reaches, mirroring the Go seed: console and management groups plus the platform admin-only pages stay administrator-only. Business pages (module pages and any route without a governance group) belong to the user workspace by default — a business page reaches the administrator console only when its route explicitly declares `surfaces`, matching the backend registration the menu validator enforces. */
 export function routeSurfaces(id: string): NavigationSection['surfaces'] {
   const route = isRegisteredPage(id) ? (routes[id] as Partial<UiRoute>) : undefined;
-  const group = route?.group ? String(route.group) : '';
-  if (group === 'system' || group === 'administration' || group === 'monitor' || group === 'ai' || platformAdminOnly.has(id)) return ['administrator'];
-  // The workspace overview is registered for both workspaces in the Go seed.
-  if (id === 'overview') return ['user', 'administrator'];
-  const declared = route?.surfaces;
-  return declared && declared.length ? [...declared] : ['user'];
+  return pageSurfaces(id, route);
 }
 
 /** Seeded directory surfaces aggregate their subtree: the union of the route-derived page surfaces keeps a directory reachable wherever its pages are. */
@@ -116,14 +110,14 @@ export function defaultNavigation(_surface: NavigationSection['surfaces'], profi
     if (!platform && (id === 'note-management' || group === 'administration' || (group === 'monitor' && id !== 'monitor') || (group === 'system' && id !== 'edition'))) continue;
     // API 文档 is a top-level page at the tail of the system region on the
     // platform profile, after the settings and administration directories.
-    const systemTopLevel = platform && id === 'api-docs';
+    const systemTopLevel = platform && (id === 'api-docs' || id === 'files');
     const surfaces: NavigationSection['surfaces'] = platform ? routeSurfaces(id) : bothSurfaces;
     const sectionId = platform && (systemTopLevel || group === 'system' || group === 'administration' || group === 'monitor' || group === 'ai') ? 'system' : 'business';
     const parent = platform ? systemTopLevel ? undefined : group === 'administration' ? 'administration' : group === 'system' ? 'settings' : group === 'monitor' ? 'monitor-center' : group === 'ai' ? 'ai-management' : undefined : undefined;
     nodes.push({ ...newNavigationNode(id, sectionId, 'page', surfaces), parent_id: parent, route_id: id,
       // Local profiles use the directory-style monitor name.
       label: !platform && id === 'monitor' ? titles.monitor : '',
-      icon: defaultIcons[id] ?? 'Circle', sort: systemTopLevel ? 30 : defaultRank(id) * 10 });
+      icon: defaultIcons[id] ?? 'Circle', sort: platform && id === 'files' ? 27 : systemTopLevel ? 30 : !platform && id === 'edition' ? (defaultPageOrder.length + 1) * 10 : defaultRank(id) * 10 });
   }
   if (platform) {
     for (const [id, raw] of Object.entries(operations)) {
@@ -144,7 +138,7 @@ export function defaultNavigation(_surface: NavigationSection['surfaces'], profi
   return { version: 0, sections, nodes };
 }
 const builtinIcons: Record<string, string> = {
-  overview: 'LayoutDashboard', notes: 'NotebookPen', site: 'Settings2', storage: 'Cloud',
+  overview: 'LayoutDashboard', notes: 'NotebookPen', site: 'Settings2', storage: 'Cloud', files: 'Files',
   users: 'UserRound', administrators: 'UserCog', announcements: 'Megaphone', 'account-policy': 'ShieldCheck', mail: 'Mail', 'mail-templates': 'Mail',
   'notification-channels': 'Webhook', 'notification-templates': 'FileText', 'system-notifications': 'Bell', logs: 'ScrollText', edition: 'PackageCheck',
   roles: 'ShieldCheck', departments: 'Network', tasks: 'ListChecks', menus: 'LayoutDashboard', dictionaries: 'FileText', posts: 'UserCog',

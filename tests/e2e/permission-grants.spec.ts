@@ -87,9 +87,9 @@ test('builtin user scope is read-only while its copy can select a custom scope',
   const assignment = page.getByRole('dialog', { name: '分配角色：我的笔记', exact: true });
   await expect(assignment.getByRole('checkbox', { name: '用户', exact: true })).toBeChecked();
   await expect(assignment.getByRole('checkbox', { name: '用户', exact: true })).toBeEnabled();
-  await expect(assignment.getByRole('checkbox', { name: 'super_admin', exact: true })).toBeChecked();
-  await expect(assignment.getByRole('checkbox', { name: 'super_admin', exact: true })).toBeDisabled();
-  await expect(assignment.getByRole('checkbox', { name: 'user', exact: true })).toHaveCount(0);
+  await expect(assignment.getByRole('checkbox', { name: '超级管理员', exact: true })).toBeChecked();
+  await expect(assignment.getByRole('checkbox', { name: '超级管理员', exact: true })).toBeDisabled();
+  await expect(assignment.getByRole('checkbox', { name: '用户', exact: true })).toBeChecked();
   await page.screenshot({ path: info.outputPath('builtin-user-menu-label.png'), fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
@@ -173,9 +173,10 @@ test('menu rows assign roles atomically and preserve unrelated role edits and se
   await page.getByRole('button', { name: '分配角色：用户列表', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '分配角色：用户列表', exact: true });
   await expect(dialog.getByRole('checkbox', { name: '用户', exact: true })).toBeDisabled();
-  await expect(dialog.getByRole('checkbox', { name: 'super_admin', exact: true })).toBeChecked();
-  await expect(dialog.getByRole('checkbox', { name: 'super_admin', exact: true })).toBeDisabled();
-  await expect(dialog.getByRole('checkbox', { name: 'user', exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole('checkbox', { name: '超级管理员', exact: true })).toBeChecked();
+  await expect(dialog.getByRole('checkbox', { name: '超级管理员', exact: true })).toBeDisabled();
+  // The user list is an admin-surface menu: the user role is not applicable there.
+  await expect(dialog.getByRole('checkbox', { name: '用户', exact: true })).not.toBeChecked();
   await dialog.getByRole('checkbox', { name: 'Menu reader', exact: true }).check();
   // This save occurs after the dialog loaded: the menu patch must preserve it.
   await owner.updateRole(role.id, { version: role.version, name: 'Renamed reader', permissions: ['users:read', 'notes:access'], operation_ids: ['listUsers', 'roleOptions', 'listNotes'], data_scope: 'all' });

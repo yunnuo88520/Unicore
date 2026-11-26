@@ -1,11 +1,25 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Real platform pages exercise local/private uploads and opt-in MinIO browser direct uploads.
-import {chooseOption,test,expect,navigate} from './fixtures';
+import {chooseOption,test,expect,navigate,sdkClient,loginClient} from './fixtures';
 import {openUploadFixture} from './upload-fixture';
 import {execFileSync} from 'node:child_process';
 import {mkdir,readFile} from 'node:fs/promises';
 import type {Page} from '@playwright/test';
 test.use({trace:'off'}); // Configured secrets and signed bearer URLs must not enter persisted traces.
+test.beforeEach(({page})=>{
+ // Keep cloud failures diagnosable without recording signed URLs or credentials.
+ page.on('response',async response=>{
+  const url=new URL(response.url());
+  if(url.hostname==='127.0.0.1'||response.status()<400)return;
+  const code=/<Code>([A-Za-z0-9]+)<\/Code>/.exec(await response.text().catch(()=>''))?.[1];
+  console.log('Cloud response',url.origin,response.status(),code??'');
+ });
+ page.on('console',entry=>{
+  if(entry.type()!=='error')return;
+  const message=entry.text().replace(/https?:\/\/[^\s'"<>]+/g,value=>{try{return new URL(value).origin;}catch{return '[url]';}});
+  if(/CORS|Access-Control|net::ERR|Failed to fetch/i.test(message))console.log('Browser network',message);
+ });
+});
 async function install(instance:{url:string;token:string;request:import('@playwright/test').APIRequestContext}){
  const res=await instance.request.post(`${instance.url}/api/v1/install/complete`,{headers:{'X-Bootstrap-Token':instance.token},data:{profile:'web-platform',database:{driver:'sqlite',dsn:''},site_name:'Unicore',base_url:instance.url,admin_username:'admin',admin_email:'admin@example.test',admin_password:'test-password-strong'}});expect(res.status()).toBe(200);
 }
@@ -62,17 +76,32 @@ test('MinIO configuration, CORS, browser direct upload and migration',async({pag
  test.skip(!process.env.UNICORE_TEST_MINIO_ENDPOINT,'MinIO environment not provided');test.setTimeout(90000);
  const prefix=`unicore-browser-${info.project.name}-${Date.now()}`;execFileSync('build/bin/storagefixture',['prepare']);
  try {
- await install({...instance,request:page.request});await page.goto(`${instance.url}/admin/storage?provider=minio`);const mobile=info.project.name==='mobile';const modal=page.getByRole('form',{name:'存储配置',exact:true});
+ await install({...instance,request:page.request});const api=sdkClient(instance.url);await loginClient(api,'admin','test-password-strong');const localSource=await api.files!.uploadFile(new globalThis.File(['local migration bytes'],'local-for-migration.txt',{type:'text/plain'}));await page.goto(`${instance.url}/admin/storage?provider=minio`);const mobile=info.project.name==='mobile';const modal=page.getByRole('form',{name:'存储配置',exact:true});
  await modal.getByLabel('Endpoint',{exact:true}).fill(process.env.UNICORE_TEST_MINIO_ENDPOINT!);await modal.getByLabel('Bucket',{exact:true}).fill(process.env.UNICORE_TEST_MINIO_BUCKET!);await modal.getByLabel('对象前缀').fill(prefix);await modal.getByLabel('Access Key',{exact:true}).fill(process.env.UNICORE_TEST_MINIO_ACCESS_KEY!);await modal.getByLabel('Secret Key',{exact:true}).fill(process.env.UNICORE_TEST_MINIO_SECRET_KEY!);await modal.getByRole('button',{name:'保存配置',exact:true}).click();await expect(modal.getByLabel('Secret Key',{exact:true})).toHaveValue('');
  await page.getByRole('button',{name:'测试连接',exact:true}).first().click();await expect(page.getByText('读写、复制与删除测试通过',{exact:true})).toBeVisible({timeout:35000});await page.getByRole('button',{name:'配置本站跨域',exact:true}).first().click();await expect(page.getByText('本站跨域已就绪',{exact:true})).toBeVisible({timeout:35000});
  await page.getByRole('button',{name:'设为全局默认',exact:true}).first().click();await expect(page.getByLabel('全局默认',{exact:true})).toContainText('MinIO');await page.goto(`${instance.url}/admin/storage`);await expect(page.getByRole('group',{name:'存储方式',exact:true}).getByRole('button',{name:'MinIO',exact:true})).toHaveAttribute('aria-pressed','true');await expect(page.getByLabel('Bucket',{exact:true})).toHaveValue(process.env.UNICORE_TEST_MINIO_BUCKET!);
  const dir=`build/acceptance/storage/${info.project.name}`;await mkdir(dir,{recursive:true});await page.screenshot({path:`${dir}/minio-config.png`,fullPage:true,animations:'disabled'});
- await nav(page,'基础设置',mobile);await page.getByRole('tab',{name:'品牌图片',exact:true}).click();const brand=page.getByRole('form',{name:'浅色 Logo',exact:true});await brand.locator('input[type="file"]').setInputFiles({name:'brand.png',mimeType:'image/png',buffer:await readFile('assets/brand/icon-64.png')});await brand.getByRole('button',{name:'保存浅色 Logo',exact:true}).click();await expect(page.getByText('图片已保存',{exact:true})).toBeVisible();const brandURL=await brand.locator('img').getAttribute('src');expect(brandURL).toMatch(/^\/brand-assets\//);expect((await page.request.get(instance.url+brandURL)).status()).toBe(200);
+ await nav(page,'基础设置',mobile);await page.getByRole('tab',{name:'品牌图片',exact:true}).click();const brand=page.getByRole('form',{name:'浅色 Logo',exact:true});await brand.locator('input[type="file"]').setInputFiles({name:'brand.png',mimeType:'image/png',buffer:await readFile('assets/brand/icon-64.png')});await brand.getByRole('button',{name:'保存浅色 Logo',exact:true}).click();await expect(page.getByText('图片已保存',{exact:true})).toBeVisible();const brandURL=await brand.getByRole('img',{name:'浅色 Logo当前预览',exact:true}).getAttribute('src');expect(brandURL).toMatch(/^\/brand-assets\//);expect((await page.request.get(instance.url+brandURL)).status()).toBe(200);
  let direct=false;let proxied=false;page.on('request',request=>{if(request.method()==='PUT'&&request.url().startsWith(process.env.UNICORE_TEST_MINIO_ENDPOINT!))direct=true;if(request.method()==='PUT'&&/\/api\/v1\/(admin\/)?files\/multipart\//.test(request.url()))proxied=true;});
+ // The intercepted harness document has no network response address space; grant
+ // the browser's LAN permission only to this isolated test origin for private MinIO.
+ await page.context().grantPermissions(['local-network-access'],{origin:instance.url});
  await openUploadFixture(page,instance.url);await upload(page,'cloud-private.txt',Buffer.alloc(8*1024*1024,97));await expect(page.getByRole('cell').filter({hasText:'8.0 MiB'})).toBeVisible();expect(direct).toBe(true);expect(proxied).toBe(false);
  const download=page.waitForEvent('download');await page.getByRole('button',{name:'下载 cloud-private.txt',exact:true}).click();expect((await download).suggestedFilename()).toBe('cloud-private.txt');
- await page.getByRole('button',{name:'迁移 cloud-private.txt',exact:true}).click();await chooseOption(page,'目标存储位置','local',page.getByRole('dialog'));await page.getByRole('dialog').getByRole('button',{name:'开始迁移',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0,{timeout:60000});await expect(page.getByRole('cell',{name:/local/})).toBeVisible();
+ await page.getByRole('button',{name:'迁移 cloud-private.txt',exact:true}).click();await page.getByRole('dialog').getByRole('combobox',{name:'目标存储位置',exact:true}).selectOption('local');await page.getByRole('dialog').getByRole('button',{name:'开始迁移',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0,{timeout:60000});await expect(page.getByRole('row').filter({hasText:'cloud-private.txt'}).getByRole('cell',{name:'local',exact:true})).toBeVisible();
  await page.screenshot({path:`${dir}/minio-migrated.png`,fullPage:true,animations:'disabled'});
+ await api.storage!.activateStorage('local');
+ await page.goto(`${instance.url}/admin/files?tab=migration`);
+ await expect(page.getByText('待迁移概览',{exact:true})).toBeVisible();
+ await chooseOption(page,'源存储位置','本地存储',page);
+ await chooseOption(page,'目标存储位置',/MinIO/,page);
+ await page.getByRole('button',{name:'开始迁移',exact:true}).click();
+ await expect(page.getByText('迁移任务已启动',{exact:true})).toBeVisible({timeout:35000});
+ const cloudLocation=(await api.storage!.storageLocations()).items.find(item=>item.provider==='minio')!;
+ await expect.poll(async()=>(await api.fileCatalog!.catalog({search:'local-for-migration.txt'})).items[0]?.file.location_id,{timeout:60000}).toBe(cloudLocation.id);
+ await expect.poll(async()=>(await api.storage!.storageLocations()).active_id,{timeout:60000}).toBe(cloudLocation.id);
+ await api.fileCatalog!.migrateFile(localSource.file_id,'local');await api.storage!.activateStorage('local');
+
  } finally {execFileSync('build/bin/storagefixture',['cleanup',prefix]);}
 });
 
@@ -88,7 +117,20 @@ for(const provider of ['local','minio','oss','cos'] as const)test(`resumable ${p
   for(const [label,value] of [['Endpoint',env('ENDPOINT')!],['Bucket',env('BUCKET')!],['Region',env('REGION')??''],['对象前缀',prefix],['Access Key',env('ACCESS_KEY')!],['Secret Key',env('SECRET_KEY')!]])await modal.getByLabel(label,{exact:true}).fill(value);
   await modal.getByRole('button',{name:'保存配置',exact:true}).click();await expect(modal.getByLabel('Secret Key',{exact:true})).toHaveValue('');await page.getByRole('button',{name:'测试连接',exact:true}).first().click();await expect(page.getByText('读写、复制与删除测试通过',{exact:true})).toBeVisible({timeout:35000});await page.getByRole('button',{name:'配置本站跨域',exact:true}).first().click();await expect(page.getByText('本站跨域已就绪',{exact:true})).toBeVisible({timeout:35000});await page.getByRole('button',{name:'设为全局默认',exact:true}).first().click();await expect(page.getByLabel('全局默认',{exact:true})).toContainText(provider==='minio'?'MinIO':provider==='oss'?'阿里云 OSS':'腾讯云 COS');
  }
+ if(cloud){
+  await page.goto(`${instance.url}/admin/site?tab=branding`);
+  const brand=page.getByRole('form',{name:'浅色 Logo',exact:true});
+  await brand.locator('input[type="file"]').setInputFiles({name:'cloud-brand.png',mimeType:'image/png',buffer:await readFile('assets/brand/icon-64.png')});
+  await brand.getByRole('button',{name:'保存浅色 Logo',exact:true}).click();
+  const current=brand.getByRole('img',{name:'浅色 Logo当前预览',exact:true});
+  await expect(current).toHaveAttribute('src',/^\/brand-assets\//);
+  await expect(current).toHaveJSProperty('naturalWidth',64);
+  await instance.restart();await page.reload();
+  await expect(current).toHaveJSProperty('naturalWidth',64);
+  await page.goto(`${instance.url}/admin/storage`);
+ }
  await page.getByRole('tab',{name:'上传规则',exact:true}).click();await page.getByText('分片上传与自动清理',{exact:true}).click();await page.getByLabel('单文件上限（MiB）').fill('20');await page.getByLabel('分片大小（MiB）').fill('5');await page.getByLabel('同时上传分片数').fill('1');await page.getByRole('button',{name:'保存上传规则',exact:true}).click();await expect(page.getByText('文件策略已保存',{exact:true})).toBeVisible();
+ if(provider==='minio')await page.context().grantPermissions(['local-network-access'],{origin:instance.url});
  await openUploadFixture(page,instance.url);await page.getByRole('button',{name:'上传文件',exact:true}).click();const dialog=page.getByRole('dialog');
  const name='resumable.bin',data=Buffer.alloc(13*1024*1024,97);
  await dialog.getByLabel('选择文件').setInputFiles({name,mimeType:'application/octet-stream',buffer:data});

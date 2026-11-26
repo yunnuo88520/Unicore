@@ -5,8 +5,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ListChecks, Play } from 'lucide-react';
 import { AppError } from '@unicore/sdk';
 import type { TaskEntry, WebClient } from '@unicore/sdk';
-import { AppControllerField, AppField, AppForm, useAppForm } from '@unicore/form';
-import { Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, SimpleSelect, PageHeader, Switch as Toggle, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage, selectOptions } from '@unicore/ui';
+import { AppControllerField, AppField, AppForm, AppFormBody, AppFormFooter, useAppForm } from '@unicore/form';
+import { Badge, Button, ConfirmDialog, FormDrawer, Input, Modal, SimpleSelect, PageHeader, Switch as Toggle, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage, selectOptions } from '@unicore/ui';
 import { currentLocale, t, useI18n, useLocale } from '../../i18n';
 import { DataTableEmpty } from '../../components/data-table';
 import { invalidateAfter } from '../../queries';
@@ -58,7 +58,7 @@ export function AdminTasksPage({ client, metadata }: PageProps) {
     onError: error => message.error(t(error.message)),
   });
   const pending = toggle.isPending || trigger.isPending;
-  const render = (children: ReactNode) => <div className="flex min-w-0 flex-col gap-6"><PageHeader title={t('定时任务')} /><Card><CardContent className="flex flex-col gap-4">{children}</CardContent></Card></div>;
+  const render = (children: ReactNode) => <div className="flex min-w-0 flex-col gap-6"><PageHeader title={t('定时任务')} />{children}</div>;
   if (list.isPending) return render(<p role="status" className="py-10 text-center text-sm text-muted">{t('正在读取定时任务…')}</p>);
   if (list.isError) return render(<div role="alert" className="flex flex-col items-start gap-3 py-8">
     <p className="text-sm text-danger">{t(list.error.message)}</p>
@@ -72,7 +72,7 @@ export function AdminTasksPage({ client, metadata }: PageProps) {
           <span className="text-xs text-muted">{t('{{count}} 个任务', { count: items.length })}</span>
           {can('createTask') && <Button onClick={() => setEditor('new')}>{t('新增任务')}</Button>}
         </>} />
-    <Card><CardContent className="flex flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-4">
       <div className="min-w-0 overflow-x-auto rounded-lg border border-line" aria-busy={list.isFetching || pending}>
         <Table className="min-w-[860px]">
           <TableHeader>
@@ -111,7 +111,7 @@ export function AdminTasksPage({ client, metadata }: PageProps) {
           </TableBody>
         </Table>
       </div>
-    </CardContent></Card>
+    </div>
     {editor && <TaskEditor web={web} executors={executors} entry={editor === 'new' ? undefined : editor} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); refresh(); }} />}
     {history && <TaskRuns web={web} entry={history} onClose={() => setHistory(null)} />}
     {removing && <ConfirmDialog danger title={t('删除任务')} description={t('确定删除任务「{{name}}」？它的运行历史会一并删除。', { name: removing.name })} confirmLabel={t('确认删除')} cancelLabel={t('取消')} pending={remove.isPending} onConfirm={() => remove.mutate(removing)} onCancel={() => setRemoving(null)} />}
@@ -146,8 +146,8 @@ function TaskEditor({ web, executors, entry, onClose, onSaved }: {
       }
     },
   });
-  return <Modal title={t(editing ? '编辑任务' : '新增任务')} pending={save.isPending} onClose={onClose}>
-    <AppForm form={form} className="flex flex-col gap-3">
+  return <FormDrawer title={t(editing ? '编辑任务' : '新增任务')} pending={save.isPending} onClose={onClose}>
+    <AppForm form={form} layout="panel"><AppFormBody>
       {!editing && <AppField name="name" label={t('任务名')}><Input autoComplete="off" maxLength={64} placeholder="cleanup.stale" /></AppField>}
       <AppField name="description" label={t('说明')}><Textarea maxLength={200} rows={2} /></AppField>
       <AppControllerField name="executor" label={t('执行器')}>{field => <SimpleSelect {...field} value={String(field.value ?? '')} onChange={event => field.onChange(event)} className="max-w-full" options={selectOptions(<>
@@ -157,12 +157,11 @@ function TaskEditor({ web, executors, entry, onClose, onSaved }: {
         <Input autoComplete="off" maxLength={64} placeholder="0 3 * * * / @daily" />
       </AppField>
       <small className="text-xs text-muted">{t('支持 5 位或 6 位（含秒）cron 表达式，以及 @daily、@hourly、@every 30m 等描述符；保存时校验。')}</small>
-      <div className="flex justify-end gap-2">
+    </AppFormBody><AppFormFooter>
         <Button variant="secondary" disabled={save.isPending} onClick={onClose}>{t('取消')}</Button>
         <Button type="submit" pending={save.isPending}>{t('保存')}</Button>
-      </div>
-    </AppForm>
-  </Modal>;
+    </AppFormFooter></AppForm>
+  </FormDrawer>;
 }
 
 function TaskRuns({ web, entry, onClose }: { web: WebClient; entry: TaskEntry; onClose: () => void }) {

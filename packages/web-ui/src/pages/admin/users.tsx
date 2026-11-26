@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { columnVisibilityFeature, createColumnHelper, createPaginatedRowModel, rowPaginationFeature, tableFeatures, useTable, type PaginationState } from '@tanstack/react-table';
-import { Ban, CircleCheck, KeyRound, Pencil, UserPlus } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import { operations, type Bootstrap, type User, type UserCreate, type WebClient } from '@unicore/sdk';
 import { defineMessages, t, useLocale } from '../../i18n';
 import { buildDepartmentTree, flattenDepartmentTree, invalidateAfter, useDepartmentsQuery, usePostsQuery } from '../../queries';
@@ -12,9 +12,9 @@ import { roleDisplayLabels, roleDisplayLabel } from '../../role-display';
 import { routeSurfaces } from '../../navigation';
 import { UserAvatar, displayLabel } from '../../user-avatar';
 import { useColumnVisibility } from '../../column-visibility';
-import { AppControllerField, AppField, AppForm, useAppForm } from '@unicore/form';
-import { Badge, Button, Card, CardContent, Checkbox, Input, Modal, RadioGroup, RadioGroupItem, SimpleSelect, PageHeader, useMessage, selectOptions } from '@unicore/ui';
-import { DataTable, DataTablePagination, DataTableToolbar } from '../../components/data-table';
+import { AppControllerField, AppField, AppForm, AppFormBody, AppFormFooter, useAppForm } from '@unicore/form';
+import { Badge, Button, Checkbox, FormDrawer, Input, Modal, RadioGroup, RadioGroupItem, SimpleSelect, PageHeader, useMessage, selectOptions } from '@unicore/ui';
+import { DataTable, DataTablePagination, DataTableRowActions, DataTableToolbar } from '../../components/data-table';
 import type { PageProps } from '../../router';
 
 // The contract's administrator-only points identify management targets without
@@ -45,13 +45,13 @@ function RoleChipGroup({ options, selected, onToggle }: {
   options: RoleOption[]; selected: string[]; onToggle: (id: string, checked: boolean) => void;
 }) {
   useLocale();
-  return <div className="flex flex-wrap gap-2">
+  return <div role="group" aria-label={t('角色')} className="flex flex-wrap gap-2">
     {options.map(option => {
       const active = selected.includes(option.id);
       return <label key={option.id} data-role-chip={option.id}
-        className={`flex w-max cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors ${active ? 'border-button bg-primary-soft' : 'border-line bg-surface hover:bg-surface-hover'} ${option.assignable ? '' : 'cursor-not-allowed opacity-55'}`}>
-        <Checkbox aria-label={roleDisplayLabel(option)} checked={active} disabled={!option.assignable} onChange={checked => onToggle(option.id, checked)} />
-        <span className={active ? 'font-medium text-accent' : 'text-ink'}>{roleDisplayLabel(option)}</span>
+        className={`flex w-max min-w-0 max-w-full cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${active ? 'border-button bg-primary-soft' : 'border-line bg-surface hover:bg-surface-hover'} ${option.assignable ? '' : 'cursor-not-allowed opacity-55'}`}>
+        <Checkbox className="shrink-0" aria-label={roleDisplayLabel(option)} checked={active} disabled={!option.assignable} onChange={checked => onToggle(option.id, checked)} />
+        <span className={`min-w-0 break-words ${active ? 'font-medium text-accent' : 'text-ink'}`}>{roleDisplayLabel(option)}</span>
       </label>;
     })}
     {!options.length && <p className="py-1 text-center text-xs text-muted">{t('正在加载…')}</p>}
@@ -83,7 +83,7 @@ const columns = helper.columns([
     id: 'role',
     header: () => t('身份'),
     // Catalogue names ride parallel to the role ids (role_names); the helper
-    // localizes builtin ids and keeps super_admin's raw marker.
+    // localizes builtin ids and preserves custom catalogue labels.
     cell: info => <span className="text-muted">{roleDisplayLabels(info.row.original.roles, info.row.original.role_names).join(', ')}</span>,
   }),
   helper.display({
@@ -121,12 +121,13 @@ const columns = helper.columns([
     cell: info => {
       const user = info.row.original;
       const meta = info.table.options.meta as UsersTableMeta;
-      return <div className="flex items-center justify-end gap-1.5">
-        {meta.canToggle && meta.onToggle && <Button variant="secondary" size="icon" disabled={meta.pending} aria-label={user.status === 'active' ? t('禁用') : t('启用')} onClick={() => meta.onToggle?.(user)}>
-          {user.status === 'active' ? <Ban size={14} aria-hidden="true" /> : <CircleCheck size={14} aria-hidden="true" />}
-        </Button>}
-        {meta.onRole && <Button variant="secondary" size="icon" disabled={meta.pending} aria-label={t('编辑')} onClick={() => meta.onRole?.(user)}><Pencil size={14} aria-hidden="true" /></Button>}
-        {meta.onResetPassword && meta.canCredentials(user) && <Button variant="secondary" size="icon" disabled={meta.pending} aria-label={t('重置密码')} onClick={() => meta.onResetPassword?.(user)}><KeyRound size={14} aria-hidden="true" /></Button>}
+      const actions = [
+        ...(meta.canToggle && meta.onToggle ? [{ label: t(user.status === 'active' ? '禁用' : '启用'), onSelect: () => meta.onToggle?.(user), disabled: meta.pending }] : []),
+        ...(meta.onRole ? [{ label: t('编辑'), onSelect: () => meta.onRole?.(user), disabled: meta.pending }] : []),
+        ...(meta.onResetPassword && meta.canCredentials(user) ? [{ label: t('重置密码'), onSelect: () => meta.onResetPassword?.(user), disabled: meta.pending }] : []),
+      ];
+      return <div className="flex justify-end">
+        <DataTableRowActions label={t('操作')} items={actions} />
       </div>;
     },
   }),
@@ -239,8 +240,7 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
           </>}
           {canCreate && <Button onClick={() => setCreating(true)}><UserPlus size={15} />{t('新增{{kind}}', { kind })}</Button>}
         </>} />
-    <Card>
-    <CardContent className="flex flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-4">
       <DataTableToolbar
         summary={{ label: t('{{kind}}总数', { kind }), value: t('{{count}} 位{{kind}}', { count: list.data?.total ?? 0, kind }) }}
         search={{ label: t('搜索{{v0}}', { v0: kind }), placeholder: t('搜索'), value: search, maxLength: 128,
@@ -249,12 +249,11 @@ function UserListPanel({ web, metadata, administrators }: { web: WebClient; meta
       <DataTable table={table} pending={list.isPending} busy={list.isFetching} error={list.error} onRetry={() => void list.refetch()}
         empty={{ title: t('没有匹配的{{kind}}', { kind }) }} />
       <DataTablePagination table={table} disabled={list.isFetching} />
-    </CardContent>
+    </div>
     {importing && <UserImportDialog web={web} onClose={() => setImporting(false)} onImported={refresh} />}
     {creating && <UserCreateDialog web={web} kind={kind} role={role} administrators={administrators} postsEnabled={canPosts} onClose={() => setCreating(false)} onCreated={refresh} />}
     {roleTarget && <UserRoleDialog web={web} administrators={administrators} user={roleTarget} credentialsEnabled={canCredentials(roleTarget)} postsEnabled={canPosts} onClose={() => setRoleTargetID(null)} onSaved={refresh} />}
     {resetTarget && <PasswordResetDialog web={web} user={resetTarget} onClose={() => setResetTargetID(null)} onSaved={refresh} />}
-    </Card>
   </div>;
 }
 
@@ -290,40 +289,41 @@ function UserCreateDialog({ web, kind, role, administrators, postsEnabled, onClo
       }
     },
   });
-  return <Modal title={t('新增{{v0}}', { v0: kind })} onClose={onClose} pending={form.formState.isSubmitting}>
-    <AppForm form={form} className="flex flex-col gap-3">
+  const assignablePosts = (posts.data?.items ?? []).filter(post => post.enabled);
+  return <FormDrawer title={t('新增{{v0}}', { v0: kind })} onClose={onClose} pending={form.formState.isSubmitting}>
+    <AppForm form={form} layout="panel"><AppFormBody>
+      <div className="flex min-w-0 flex-col gap-4">
       <AppField name="username" label={t('账号')}><Input required minLength={3} maxLength={64} autoComplete="off" /></AppField>
-      <AppField name="display_name" label={t('昵称')} hint={t('选填；留空时各处显示直接使用账号。')}>
+      <AppField name="display_name" label={t('昵称')} hint={t('选填，留空时使用账号。')}>
         <Input maxLength={80} autoComplete="nickname" />
       </AppField>
       <AppField name="email" label={t('邮箱')}><Input required type="email" maxLength={254} /></AppField>
-      <AppField name="password" label={t('初始密码')}><Input required type="password" minLength={12} maxLength={128} autoComplete="new-password" /></AppField>
-      <fieldset><legend>{t('角色')}</legend><RoleChipGroup options={options.data?.items ?? []} selected={roleIds}
-        onToggle={(id, checked) => setRoleIds(ids => checked ? [...ids, id] : ids.filter(value => value !== id))} /></fieldset>
-      {!administrators && <AppControllerField name="department_id" label={t('部门')} hint={t('留空表示暂不分配部门。')}>{field => <SimpleSelect {...field} aria-label={t('部门')} disabled={departmentOptions.isLoading} value={String(field.value ?? '')} onChange={field.onChange} options={selectOptions(<>
+      <AppField name="password" label={t('初始密码')} hint={t('密码至少 12 位。')}><Input required type="password" minLength={12} maxLength={128} autoComplete="new-password" /></AppField>
+      <div className="flex min-w-0 flex-col gap-2">
+        <span className="text-sm font-medium text-ink">{t('角色')}</span>
+        <RoleChipGroup options={options.data?.items ?? []} selected={roleIds}
+          onToggle={(id, checked) => setRoleIds(ids => checked ? [...ids, id] : ids.filter(value => value !== id))} />
+      </div>
+      {!administrators && <AppControllerField name="department_id" label={t('部门')}>{field => <SimpleSelect {...field} aria-label={t('部门')} disabled={departmentOptions.isLoading} value={String(field.value ?? '')} onChange={field.onChange} options={selectOptions(<>
           <option value="">{t('未分配')}</option>
           {departmentOptions.items.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
         </>)} />}</AppControllerField>}
-      {!administrators && postsEnabled && <fieldset className="flex min-w-0 flex-col gap-1.5">
-        <span className="text-sm font-medium text-ink">{t('岗位')}</span>
-        <div role="group" aria-label={t('岗位')} className="flex max-h-40 flex-col gap-1 overflow-y-auto rounded-lg border border-line p-3">
-          {(posts.data?.items ?? []).filter(post => post.enabled).map(post => <label key={post.id} className="flex items-center gap-2 text-sm">
+      {!administrators && postsEnabled && (posts.isLoading || assignablePosts.length > 0) && <fieldset className="flex min-w-0 flex-col gap-2">
+        <legend className="text-sm font-medium text-ink">{t('岗位')}</legend>
+        <div className="flex max-h-40 flex-col gap-1 overflow-y-auto">
+          {assignablePosts.map(post => <label key={post.id} className="flex items-center gap-2 py-1 text-sm">
             <Checkbox aria-label={post.name} checked={postIds.includes(post.id)} onChange={checked => setPostIds(current => checked ? [...current, post.id] : current.filter(id => id !== post.id))} />
             <span className="text-ink">{post.name}</span>
           </label>)}
-          {!posts.data?.items.length && <p className="py-1 text-center text-xs text-muted">{posts.isLoading ? t('正在加载…') : t('暂无岗位')}</p>}
+          {posts.isLoading && <p className="text-xs text-muted">{t('正在加载…')}</p>}
         </div>
       </fieldset>}
-      <p className="text-xs leading-relaxed text-muted">
-        {administrators ? t('使用当前后台入口登录。') : t('创建后即可从 /login 使用初始密码登录，无需邮件验证。')}
-        {t('密码至少 12 位。')}
-      </p>
-      <div className="flex justify-end gap-2">
+      </div>
+    </AppFormBody><AppFormFooter>
         <Button variant="secondary" disabled={form.formState.isSubmitting} onClick={onClose}>{t('取消')}</Button>
         <Button type="submit" disabled={!roleIds.length || options.isLoading} pending={form.formState.isSubmitting}>{form.formState.isSubmitting ? t('正在创建…') : t('创建{{v0}}', { v0: kind })}</Button>
-      </div>
-    </AppForm>
-  </Modal>;
+    </AppFormFooter></AppForm>
+  </FormDrawer>;
 }
 
 function UserRoleDialog({ web, administrators, user, credentialsEnabled, postsEnabled, onClose, onSaved }: {
@@ -343,6 +343,7 @@ function UserRoleDialog({ web, administrators, user, credentialsEnabled, postsEn
   const departmentOptions = useDepartmentOptions(web, !administrators);
   const posts = usePostsQuery(web, { enabled: postsEnabled });
   const currentPostIds = user.post_ids ?? [];
+  const availablePosts = posts.data?.items ?? [];
   const [roleIds, setRoleIds] = useState<string[]>(user.roles);
   const [departmentId, setDepartmentId] = useState<string>(currentDepartment);
   const [postIds, setPostIds] = useState<string[]>(currentPostIds);
@@ -363,52 +364,54 @@ function UserRoleDialog({ web, administrators, user, credentialsEnabled, postsEn
   // The username is the login identity: created accounts keep it fixed, so
   // the dialog shows it read-only instead of pretending it is editable.
   const [saving, setSaving] = useState(false);
-  return <Modal title={t('编辑{{v0}}', { v0: displayLabel(user.display_name, user.username) || user.username })} onClose={onClose} pending={saving}>
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1 text-sm">
-
-        <Input label={t('账号')} value={user.username} readOnly aria-readonly="true" aria-label={t('账号')} className="opacity-70" />
-        <small className="text-xs text-muted">{t('账号创建后不可修改，用于登录。')}</small>
+  return <FormDrawer title={t('编辑{{v0}}', { v0: displayLabel(user.display_name, user.username) || user.username })} onClose={onClose} pending={saving}>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden"><AppFormBody>
+      <div className="flex min-w-0 flex-col gap-4">
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium text-ink">{t('账号')}</span>
+        <Input value={user.username} readOnly aria-readonly="true" aria-label={t('账号')} className="opacity-70" />
+      </label>
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium text-ink">{t('昵称')}</span>
+        <Input value={displayName} maxLength={80} autoComplete="nickname" aria-label={t('昵称')} onChange={event => { setTouched(true); setDisplayName(event.target.value); }} placeholder={user.username} />
+        <small className="text-xs text-muted">{t('选填，留空时使用账号。')}</small>
+      </label>
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium text-ink">{t('邮箱')}</span>
+        <Input type="email" maxLength={254} value={email} readOnly={!credentialsEnabled} aria-readonly={!credentialsEnabled} aria-label={t('邮箱')} onChange={event => { setTouched(true); setEmail(event.target.value); }} />
+        {!credentialsEnabled && <small className="text-xs text-muted">{t('修改邮箱需要凭据管理权限；管理权限账号仅超级管理员可修改。')}</small>}
+      </label>
+      <div className="flex min-w-0 flex-col gap-2">
+      <span className="text-sm font-medium text-ink">{t('角色')}</span>
+      <RoleChipGroup options={options.data?.items ?? []} selected={roleIds}
+        onToggle={(id, checked) => { setTouched(true); setRoleIds(ids => checked ? [...ids, id] : ids.filter(value => value !== id)); }} />
       </div>
-      <div className="flex flex-col gap-1 text-sm">
-
-        <Input label={t('昵称')} value={displayName} maxLength={80} autoComplete="nickname" aria-label={t('昵称')} onChange={event => { setTouched(true); setDisplayName(event.target.value); }} placeholder={user.username} />
-        <small className="text-xs text-muted">{t('显示昵称，留空时各处显示使用账号。')}</small>
-      </div>
-      <div className="flex flex-col gap-1 text-sm">
-
-        <Input label={t('邮箱')} type="email" maxLength={254} value={email} readOnly={!credentialsEnabled} aria-readonly={!credentialsEnabled} aria-label={t('邮箱')} onChange={event => { setTouched(true); setEmail(event.target.value); }} />
-        <small className="text-xs text-muted">{credentialsEnabled ? t('登录凭证之一，保存后立即生效。') : t('修改邮箱需要凭据管理权限；管理权限账号仅超级管理员可修改。')}</small>
-      </div>
-      <fieldset><legend>{t('角色')}</legend><RoleChipGroup options={options.data?.items ?? []} selected={roleIds}
-        onToggle={(id, checked) => { setTouched(true); setRoleIds(ids => checked ? [...ids, id] : ids.filter(value => value !== id)); }} /></fieldset>
       {!administrators && <label className="flex flex-col gap-1 text-sm">
-        <span className="text-muted">{t('部门')}</span>
+        <span className="font-medium text-ink">{t('部门')}</span>
         <SimpleSelect aria-label={t('部门')} value={departmentId} onChange={event => { setTouched(true); setDepartmentId(event); }} disabled={departmentOptions.isLoading} options={selectOptions(<>
           <option value="">{t('未分配')}</option>
           {departmentOptions.items.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
         </>)} />
-        <small className="text-xs text-muted">{t('选择「未分配」会清空该用户的部门归属。')}</small>
       </label>}
-      {!administrators && postsEnabled && <fieldset className="flex min-w-0 flex-col gap-1.5">
-        <span className="text-muted">{t('岗位')}</span>
-        <div role="group" aria-label={t('岗位')} className="flex max-h-40 flex-col gap-1 overflow-y-auto rounded-lg border border-line p-3">
-          {(posts.data?.items ?? []).map(post => {
+      {!administrators && postsEnabled && (posts.isLoading || availablePosts.length > 0) && <fieldset className="flex min-w-0 flex-col gap-1.5">
+        <legend className="text-sm font-medium text-ink">{t('岗位')}</legend>
+        <div className="flex max-h-40 flex-col gap-1 overflow-y-auto">
+          {availablePosts.map(post => {
             // Disabled posts cannot gain new members, but existing assignments
             // stay visible and removable; the server keeps omitted assignments.
             const assigned = postIds.includes(post.id);
-            return <label key={post.id} className="flex items-center gap-2 text-sm">
+            return <label key={post.id} className="flex items-center gap-2 py-1 text-sm">
               <Checkbox aria-label={post.name} checked={assigned} disabled={!post.enabled && !assigned}
                 onChange={checked => { setTouched(true); setPostIds(current => checked ? [...current, post.id] : current.filter(id => id !== post.id)); }} />
               <span className={post.enabled ? 'text-ink' : 'text-muted'}>{post.name}{!post.enabled && <small className="ms-1 text-2xs text-subtle">{t('已停用')}</small>}</span>
             </label>;
           })}
-          {!posts.data?.items.length && <p className="py-1 text-center text-xs text-muted">{posts.isLoading ? t('正在加载…') : t('暂无岗位')}</p>}
+          {posts.isLoading && <p className="text-xs text-muted">{t('正在加载…')}</p>}
         </div>
-        <small className="text-xs text-muted">{t('岗位只描述组织归属，不改变角色与权限。')}</small>
       </fieldset>}
-      <div className="flex justify-end gap-2">
-        <Button variant="secondary" onClick={onClose}>{t('取消')}</Button>
+      </div>
+    </AppFormBody><AppFormFooter>
+        <Button variant="secondary" disabled={saving} onClick={onClose}>{t('取消')}</Button>
         <Button disabled={!roleIds.length || options.isLoading || saving} onClick={() => {
           // Update semantics: omitted fields keep the stored value, an empty
           // string clears it, so the department select maps 未分配 to ''.
@@ -426,9 +429,8 @@ function UserRoleDialog({ web, administrators, user, credentialsEnabled, postsEn
             onClose();
           }).catch(error => message.error(t(error.message))).finally(() => setSaving(false));
         }}>{t('保存')}</Button>
-      </div>
-    </div>
-  </Modal>;
+    </AppFormFooter></div>
+  </FormDrawer>;
 }
 
 // PasswordResetDialog offers the two reset shapes the contract supports: the

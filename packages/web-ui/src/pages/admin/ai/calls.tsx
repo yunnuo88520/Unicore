@@ -5,9 +5,9 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { createColumnHelper, createPaginatedRowModel, rowPaginationFeature, tableFeatures, useTable, type PaginationState, type TableOptions } from '@tanstack/react-table';
 import { ScrollText } from 'lucide-react';
 import type { McpCall } from '@unicore/sdk';
-import { Badge, Button, Card, CardContent, Input, Modal, PageHeader, SimpleSelect, selectOptions } from '@unicore/ui';
+import { Badge, Button, Modal, PageHeader, SimpleSelect, selectOptions } from '@unicore/ui';
 import { currentLocale, t, useI18n, useLocale } from '../../../i18n';
-import { DataTable, DataTablePagination } from '../../../components/data-table';
+import { DataTable, DataTablePagination, DataTableToolbar } from '../../../components/data-table';
 import type { PageProps } from '../../../router';
 
 const PAGE_SIZE = 50;
@@ -83,22 +83,18 @@ export function AdminAiCallsPage({ client }: PageProps) {
   ];
   return <div className="flex min-w-0 flex-col gap-6">
     <PageHeader title={t('调用记录')} description={t('仅记录调用元数据；原始参数、结果与令牌不入库，客户端自报信息仅供参考。')} />
-    <Card><CardContent className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="w-44"><Input label={t('按能力筛选')} value={filters.name} maxLength={128} onChange={event => { setFilters(current => ({ ...current, name: event.target.value })); setPage(1); }} /></div>
-        <div className="w-40"><label className="flex flex-col gap-1.5 text-sm font-medium"><span>{t('按状态筛选')}</span>
-          <SimpleSelect value={filters.status} onChange={value => { setFilters(current => ({ ...current, status: value })); setPage(1); }} className="max-w-full" aria-label={t('按状态筛选')}
+    <div className="flex min-w-0 flex-col gap-4">
+      <DataTableToolbar summary={{ label: t('调用记录'), value: total }} search={{ label: t('按能力筛选'), placeholder: t('按能力筛选'), value: filters.name, maxLength: 128, onChange: value => { setFilters(current => ({ ...current, name: value })); setPage(1); } }}>
+          <SimpleSelect label={t('按状态筛选')} value={filters.status} onChange={value => { setFilters(current => ({ ...current, status: value })); setPage(1); }} className="h-9 w-40" aria-label={t('按状态筛选')}
             options={selectOptions(<>{<option value="">{t('全部状态')}</option>}{statuses.map(status => <option key={status} value={status}>{status === 'succeeded' ? t('成功') : status === 'failed' ? t('失败') : status === 'denied' ? t('已拒绝') : status === 'rate_limited' ? t('限流') : status === 'cancelled' ? t('已取消') : status === 'timed_out' ? t('超时') : status === 'input_invalid' ? t('参数无效') : t('服务错误')}</option>)}</>)} />
-        </label></div>
-        <span className="ms-auto text-xs text-muted">{t('{{count}} 条记录', { count: total })}</span>
-      </div>
+      </DataTableToolbar>
       <DataTable table={table} pending={list.isPending} busy={list.isFetching}
         error={list.isError ? { message: list.error.message } : null} onRetry={() => void list.refetch()}
         empty={{ icon: ScrollText, title: t('暂无调用记录'), hint: t('外部客户端通过 /mcp 调用能力后，元数据会出现在这里。') }}
         className="min-w-[900px]" />
       <DataTablePagination page={page} pageSize={PAGE_SIZE} total={total}
         onPageChange={next => setPage(next)} disabled={list.isFetching} />
-    </CardContent></Card>
+    </div>
     {detail && <Modal title={t('调用详情')} onClose={() => setDetail(null)}>
       <div className="flex flex-col gap-3 text-sm">
         <p className="flex items-center gap-2"><StatusBadge call={detail} /><code className="font-mono text-xs text-muted">{detail.name}</code></p>

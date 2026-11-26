@@ -8,12 +8,14 @@ import { Workspace, type PageProps } from './App';
 import { DashboardWidgetRegistry } from './registry';
 import type { AppClient } from '@unicore/sdk';
 import type { PageComponent } from './router';
-import { PageLoader } from './components/page-loader';
+import { PageLoader, pageSkeletonForPage } from './components/page-loader';
+import { pageOwnsHeading } from './routes';
 
 // Administration pages load on demand: the admin entry must not pull the
 // whole console before the first screen renders.
 const lazyPage = (loader: () => Promise<{ default: PageComponent }>) => lazy(loader);
 const AdminStoragePage = lazyPage(() => import('./pages/admin/storage').then(m => ({ default: m.AdminStoragePage })));
+const AdminFilesPage = lazyPage(() => import('./pages/admin/files').then(m => ({ default: m.AdminFilesPage })));
 const AdminUsersPage = lazyPage(() => import('./pages/admin/users').then(m => ({ default: m.AdminUsersPage })));
 const AdminAdministratorsPage = lazyPage(() => import('./pages/admin/users').then(m => ({ default: m.AdminAdministratorsPage })));
 const AdminMailSettingsPage = lazyPage(() => import('./pages/appearance').then(m => ({ default: m.AdminMailSettingsPage })));
@@ -37,17 +39,20 @@ const AdminAiAccessPage = lazyPage(() => import('./pages/admin/ai/access').then(
 const AdminAiCallsPage = lazyPage(() => import('./pages/admin/ai/calls').then(m => ({ default: m.AdminAiCallsPage })));
 const AdminAiOauthPage = lazyPage(() => import('./pages/admin/ai/oauth').then(m => ({ default: m.AdminAiOauthPage })));
 const AdminAiToolsPage = lazyPage(() => import('./pages/admin/ai/tools').then(m => ({ default: m.AdminAiToolsPage })));
+const AdminNoteManagementPage = __FEATURE_NOTES__ ? lazyPage(() => import('./modules/notes/management')) : null;
 
 export function AdministrationPage(props: PageProps) {
   useLocale();
   if (!props.client.web) return null;
-  return <Suspense fallback={<PageLoader />}>{renderAdminPage(props)}</Suspense>;
+  return <Suspense fallback={<PageLoader variant={pageSkeletonForPage(props.page)} showHeading={pageOwnsHeading(props.page)} />}>{renderAdminPage(props)}</Suspense>;
 }
 
 function renderAdminPage(props: PageProps) {
   switch (props.page) {
+    case 'note-management': return AdminNoteManagementPage && <AdminNoteManagementPage {...props} />;
     case 'site': case 'mail': case 'account-policy': return <AdminMailSettingsPage {...props} />;
     case 'storage': return props.client.storage && <AdminStoragePage {...props} />;
+    case 'files': return props.client.fileCatalog && <AdminFilesPage {...props} />;
     case 'users': case 'administrators': return props.page === 'administrators' ? <AdminAdministratorsPage {...props} /> : <AdminUsersPage {...props} />;
     case 'roles': return <AdminRolesPage {...props} />;
     case 'departments': return <AdminDepartmentsPage {...props} />;

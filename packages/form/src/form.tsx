@@ -56,8 +56,8 @@ export function useAppForm<T extends FieldValues>({ schema, defaultValues, onSub
     if (!(error instanceof AppError)) return;
     setServerError(error);
     const fields = error.fields ?? {};
-    // Field-level messages render inline next to their controls; messages without field targets
-    // surface through the global mutation toast, so the form never repeats them.
+    // Field messages render beside their controls; non-field failures render
+    // once in the shared form summary.
     for (const [name, message] of Object.entries(fields)) {
       if (name === '$form' || name === '') continue;
       form.setError(name as Path<T>, { type: 'server', message });
@@ -72,7 +72,7 @@ export function useAppForm<T extends FieldValues>({ schema, defaultValues, onSub
   return Object.assign(form, { submit, applyServerError, serverError, focusScope: scope, fieldDesign }) as AppForm<T>;
 }
 
-export function AppForm<T extends FieldValues>({ form, className, children, requiredMode, ...props }: { form: AppForm<T>; className?: string; children: ReactNode; requiredMode?: FieldDesign['requiredMode'] } & Omit<React.FormHTMLAttributes<HTMLFormElement>, 'onSubmit' | 'children'>) {
+export function AppForm<T extends FieldValues>({ form, className, children, requiredMode, layout = 'default', ...props }: { form: AppForm<T>; className?: string; children: ReactNode; requiredMode?: FieldDesign['requiredMode']; layout?: 'default' | 'panel' } & Omit<React.FormHTMLAttributes<HTMLFormElement>, 'onSubmit' | 'children'>) {
   useLocale();
   const rootMessage = form.formState.errors.root?.message as string | undefined;
   // Banner only for errors WITHOUT field targets: field-carrying errors render
@@ -81,7 +81,7 @@ export function AppForm<T extends FieldValues>({ form, className, children, requ
   const nonField = form.serverError != null && Object.keys(form.serverError.fields ?? {}).length === 0;
   const serverMessage = rootMessage ?? (nonField ? form.serverError?.message ?? null : null);
   return <FormProvider {...form}><FieldDesignContext.Provider value={{ ...form.fieldDesign, requiredMode: requiredMode ?? form.fieldDesign.requiredMode }}>
-    <form {...props} ref={element => { form.focusScope.current = element; }} className={className} noValidate aria-busy={form.formState.isSubmitting} onSubmit={event => {
+    <form {...props} ref={element => { form.focusScope.current = element; }} className={cn(layout === 'panel' ? 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden' : 'flex min-w-0 flex-col gap-4', className)} noValidate aria-busy={form.formState.isSubmitting} onSubmit={event => {
       event.preventDefault();
       // Nested editors render their own <form>s (link dialogs and similar);
       // their submit events bubble through the React tree — only submit when
@@ -89,13 +89,21 @@ export function AppForm<T extends FieldValues>({ form, className, children, requ
       if (event.target !== event.currentTarget) return;
       void form.submit(event);
     }}>
-      <FormSummary />
-      {/* Non-field server errors arrive through the `form` prop (re-attached every render);
-          RHF's FormProvider context does not carry custom properties, so read it here. */}
-      {serverMessage && <p role="alert" className="mb-3 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">{t(serverMessage)}</p>}
+      {/* Pass the resolved message explicitly: FormProvider omits custom properties. */}
+      <FormSummary message={serverMessage} />
       {children}
     </form>
   </FieldDesignContext.Provider></FormProvider>;
+}
+
+/** Scrollable content region for forms hosted in a side panel or drawer. */
+export function AppFormBody({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div {...props} data-slot="app-form-body" className={cn('flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-5 sm:p-6', className)}>{children}</div>;
+}
+
+/** Stable action region for panel forms; short actions stay together at every viewport. */
+export function AppFormFooter({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div {...props} data-slot="app-form-footer" className={cn('flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-line bg-surface px-5 py-4 sm:px-6', className)}>{children}</div>;
 }
 
 /** Contract-style field wrapper: label, injected registration, aria-invalid and localized error message. */
@@ -131,7 +139,7 @@ export function AppField<T extends FieldValues>({ name, label, hint, rules, onFi
   // silent no-op.
   const lastError = useRef('');
   if (message) lastError.current = message;
-  return <div data-invalid={!!message || undefined} className={cn('flex min-w-0 flex-col', floating ? 'gap-2' : 'gap-1.5', className)}>
+  return <div data-app-field="" data-invalid={!!message || undefined} className={cn('flex min-w-0 flex-col gap-1.5', className)}>
     {!floating && <label htmlFor={id} className="text-sm font-medium text-ink">{label}{mark}</label>}
     {isValidElement(children) ? cloneElement(children, {
       id,
@@ -179,33 +187,50 @@ export function AppControllerField<T extends FieldValues>({ name, label, hint, c
   return <Controller
     control={control}
     name={name}
-    render={({ field, fieldState }) => <div data-invalid={fieldState.invalid || undefined} className={cn('flex min-w-0 flex-col', floating ? 'gap-2' : 'gap-1.5', className)}>
-      {label && <label htmlFor={id} className={cn('text-sm font-medium text-ink', floating && 'sr-only')}><span id={`${id}-label`}>{label}</span><FieldMark required={required} mode={design.requiredMode} /></label>}
+    render={({ field, fieldState }) => <ControlledFieldShell id={id} label={label} hint={hint} required={required} mode={design.requiredMode} invalid={fieldState.invalid} message={fieldState.error?.message} floating={floating} className={className}>
       {children({ ...field, id,
         onChange: value => { if (getFieldState(name).error?.type === 'server') clearErrors(name); field.onChange(value); },
         onBlur: () => { if (getFieldState(name).error?.type === 'server') setValue(name, getValues(name), { shouldTouch: true }); else field.onBlur(); },
         'aria-labelledby': label ? `${id}-label` : undefined, 'aria-invalid': fieldState.invalid, 'aria-describedby': [hint ? `${id}-hint` : '', fieldState.error ? `${id}-error` : ''].filter(Boolean).join(' ') || undefined })}
-      {fieldState.error?.message && <p id={`${id}-error`} role="alert" className="text-xs text-danger">{t(fieldState.error.message)}</p>}
-      {hint && <p id={`${id}-hint`} className="text-xs leading-5 text-muted">{hint}</p>}
-    </div>}
+    </ControlledFieldShell>}
   />;
+}
+
+function ControlledFieldShell({ id, label, hint, required, mode, invalid, message, floating, className, children }: {
+  id: string;
+  label?: ReactNode;
+  hint?: ReactNode;
+  required: boolean;
+  mode: FieldDesign['requiredMode'];
+  invalid: boolean;
+  message?: string;
+  floating: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  const lastError = useRef('');
+  if (message) lastError.current = message;
+  return <div data-app-field="" data-invalid={invalid || undefined} className={cn('flex min-w-0 flex-col gap-1.5', className)}>
+    {label && <label htmlFor={id} className={cn('text-sm font-medium text-ink', floating && 'sr-only')}><span id={`${id}-label`}>{label}</span><FieldMark required={required} mode={mode} /></label>}
+    {children}
+    {lastError.current && <p id={`${id}-error`} role={message ? 'alert' : undefined} className={cn('min-h-4 text-xs', message ? 'text-danger' : 'invisible')}>{message ? t(message) : t(lastError.current)}</p>}
+    {hint && <p id={`${id}-hint`} className="text-xs leading-5 text-muted">{hint}</p>}
+  </div>;
 }
 
 /** Form-wide error banner: root/server messages only. Field errors render inline in their AppField,
  *  so the banner never duplicates them and never follows the user across wizard steps. */
-export function FormSummary() {
+export function FormSummary({ message: suppliedMessage }: { message?: string | null } = {}) {
   useLocale();
   const form = useFormContext();
   const root = form.formState.errors.root?.message as string | undefined;
-  // Non-field server errors (no `fields` targets) would otherwise render nowhere:
-  // the form defers them to the global toast, which skips mutations that carry a
-  // page-level onError. useAppForm re-attaches the current serverError on every
-  // render, so surface it here and keep every failed submit visible.
+  // Standalone consumers may provide the extended form context themselves.
+  // Field errors stay beside their controls; root overrides stay authoritative.
   const server = (form as unknown as { serverError?: AppError | null }).serverError ?? null;
-  const message = root ?? server?.message;
+  const nonField = server && Object.keys(server.fields ?? {}).length === 0;
+  const message = suppliedMessage ?? root ?? (nonField ? server.message : null);
   if (!message) return null;
   return <div role="alert" aria-label={t('表单校验')} tabIndex={-1} className="mb-3 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
-    <strong className="block font-medium">{t('请检查表单输入')}</strong>
     <p>{t(message)}</p>
   </div>;
 }

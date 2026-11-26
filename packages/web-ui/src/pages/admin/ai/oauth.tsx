@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { KeyRound, Lock, Plug, ShieldCheck } from 'lucide-react';
 import type { McpOauthClient, WebClient } from '@unicore/sdk';
-import { Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, PageHeader, SimpleSelect, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '@unicore/ui';
+import { AppControllerField, AppField, AppForm, AppFormBody, AppFormFooter, useAppForm } from '@unicore/form';
+import { Badge, Button, ConfirmDialog, FormDrawer, Input, Modal, PageHeader, SimpleSelect, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '@unicore/ui';
 import { defineMessages, t, useLocale } from '../../../i18n';
 import type { PageProps } from '../../../router';
 
@@ -25,12 +26,13 @@ export function AdminAiOauthPage({ client }: PageProps) {
   const refresh = () => void cache.invalidateQueries({ queryKey: ['mcp-oauth-clients'] });
   return <div className="flex min-w-0 flex-col gap-4">
     <PageHeader title={t('OAuth 接入')} description={t('预注册使用授权码 + PKCE 接入 MCP 的外部应用；密钥只在创建或轮换时显示一次。')} />
-    <Card><CardContent className="flex min-w-0 flex-col gap-4 p-4">
+    <div className="flex min-w-0 flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-muted">{t('停用客户端会立即拒绝新的授权与令牌签发；已有令牌在下次使用时失效。')}</p>
         <Button size="sm" onClick={() => setCreating(true)}><Plug size={14} aria-hidden="true" />{t('注册客户端')}</Button>
       </div>
-      <Table>
+      <div className="min-w-0 overflow-hidden rounded-lg border border-line">
+      <Table className="min-w-[760px]">
         <TableHeader>
           <TableRow>
             <TableHead>{t('名称')}</TableHead>
@@ -42,6 +44,7 @@ export function AdminAiOauthPage({ client }: PageProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
+          {list.isPending && <TableEmpty colSpan={6}>{t('正在加载…')}</TableEmpty>}
           {list.data?.items.length === 0 && <TableEmpty colSpan={6}><span className="block text-sm">{t('暂无注册客户端')}</span><span className="mt-1 block text-xs">{t('注册客户端后，用户即可在同意页授权其访问 MCP 能力。')}</span></TableEmpty>}
           {(list.data?.items ?? []).map(item => <TableRow key={item.id}>
             <TableCell><span className="break-all font-medium text-ink">{item.name}</span></TableCell>
@@ -60,9 +63,10 @@ export function AdminAiOauthPage({ client }: PageProps) {
           </TableRow>)}
         </TableBody>
       </Table>
+      </div>
       {list.isError && <div role="alert" className="flex items-center gap-2 text-sm text-danger">{t('无法读取客户端列表')} <Button variant="ghost" size="sm" onClick={() => void list.refetch()}>{t('重试')}</Button></div>}
       {list.data && list.data.items.length >= PAGE_SIZE && <p className="text-xs text-muted">{t('仅显示前 {{v0}} 个客户端。', { v0: PAGE_SIZE })}</p>}
-    </CardContent></Card>
+    </div>
     {creating && <CreateClient web={web} onClose={() => setCreating(false)} onCreated={refresh} />}
     {editing && <EditClient web={web} client={editing} onClose={() => setEditing(null)} onSaved={refresh} />}
     {rotating && <RotateSecret web={web} client={rotating} onClose={() => setRotating(null)} onRotated={refresh} />}
@@ -81,69 +85,66 @@ function SecretDisclosure({ secret, label }: { secret: string; label: string }) 
 
 function CreateClient({ web, onClose, onCreated }: { web: WebClient; onClose: () => void; onCreated: () => void }) {
   useLocale();
-  const [name, setName] = useState('');
-  const [clientType, setClientType] = useState<'public' | 'confidential'>('public');
-  const [uris, setUris] = useState('');
   const [created, setCreated] = useState<{ id: string; secret: string } | null>(null);
   const save = useMutation({
-    mutationFn: () => web.createMcpOauthClient({ name: name.trim(), client_type: clientType, redirect_uris: redirectList(uris) }),
+    mutationFn: (values: { name: string; clientType: 'public' | 'confidential'; uris: string }) => web.createMcpOauthClient({ name: values.name.trim(), client_type: values.clientType, redirect_uris: redirectList(values.uris) }),
     onSuccess: result => { setCreated({ id: result.client.id, secret: result.secret }); onCreated(); },
   });
-  const invalid = !name.trim() || redirectList(uris).length === 0;
-  return <Modal title={t('注册客户端')} onClose={onClose} pending={save.isPending}>
+  const form = useAppForm({
+    defaultValues: { name: '', clientType: 'public' as 'public' | 'confidential', uris: '' },
+    onSubmit: async values => {
+      try {
+        await save.mutateAsync(values);
+      } catch (error) { form.applyServerError(error); }
+    },
+  });
+  return <FormDrawer title={t('注册客户端')} onClose={onClose} pending={form.formState.isSubmitting} size="md">
     {created
-      ? <div className="flex min-w-0 flex-col gap-4">
+      ? <div className="flex min-h-0 flex-1 flex-col"><AppFormBody>
           <p role="status">{t('客户端已注册。密钥仅显示这一次，请立即复制并妥善保存。')}</p>
           <SecretDisclosure secret={created.secret || '—'} label={t('客户端密钥')} />
           <p className="text-xs text-muted">{t('客户端 ID：{{v0}}', { v0: created.id })}</p>
-          <Button onClick={onClose}>{t('完成')}</Button>
-        </div>
-      : <div className="flex min-w-0 flex-col gap-4">
-          <Input label={t('名称')} maxLength={80} autoComplete="off" value={name} onChange={event => setName(event.target.value)} />
-          <SimpleSelect label={t('客户端类型')} value={clientType} onChange={value => setClientType(value === 'confidential' ? 'confidential' : 'public')} options={[
+      </AppFormBody><AppFormFooter><Button onClick={onClose}>{t('完成')}</Button></AppFormFooter></div>
+      : <AppForm form={form} layout="panel"><AppFormBody>
+          <AppField name="name" label={t('名称')}><Input required maxLength={80} autoComplete="off" /></AppField>
+          <AppControllerField name="clientType" label={t('客户端类型')}>{field => <SimpleSelect {...field} value={String(field.value)} onChange={value => field.onChange(value)} options={[
             { value: 'public', label: t('公开客户端（PKCE）') },
             { value: 'confidential', label: t('机密客户端（密钥）') },
-          ]} />
-          <div className="flex flex-col gap-1">
-            <Textarea label={t('回调地址')} rows={4} value={uris} onChange={event => setUris(event.target.value)} />
-            <p className="text-xs text-muted">{t('每行一个精确地址；默认仅允许 HTTPS，本机回环可使用 http。')}</p>
-          </div>
-          {save.isError && <p role="alert" className="text-sm text-danger">{t('注册信息未通过校验，请检查名称与回调地址。')}</p>}
-          <div className="sticky bottom-0 z-10 flex justify-end gap-2 border-t border-line bg-surface pt-3">
-            <Button type="button" variant="secondary" disabled={save.isPending} onClick={onClose}>{t('取消')}</Button>
-            <Button pending={save.isPending} disabled={invalid} onClick={() => save.mutate()}>{t('注册')}</Button>
-          </div>
-        </div>}
-  </Modal>;
+          ]} />}</AppControllerField>
+          <AppField name="uris" label={t('回调地址')} hint={t('每行一个精确地址；默认仅允许 HTTPS，本机回环可使用 http。')}><Textarea rows={4} /></AppField>
+        </AppFormBody><AppFormFooter>
+          <Button type="button" variant="secondary" disabled={form.formState.isSubmitting} onClick={onClose}>{t('取消')}</Button>
+          <Button type="submit" pending={form.formState.isSubmitting} disabled={!form.watch('name').trim() || redirectList(form.watch('uris')).length === 0}>{t('注册')}</Button>
+        </AppFormFooter></AppForm>}
+  </FormDrawer>;
 }
 
 function EditClient({ web, client, onClose, onSaved }: { web: WebClient; client: McpOauthClient; onClose: () => void; onSaved: () => void }) {
   useLocale();
-  const [name, setName] = useState(client.name);
-  const [uris, setUris] = useState(client.redirect_uris.join('\n'));
-  const [enabled, setEnabled] = useState(client.enabled);
   const save = useMutation({
-    mutationFn: () => web.updateMcpOauthClient(client.id, { name: name.trim(), redirect_uris: redirectList(uris), enabled, expected_version: client.version }),
+    mutationFn: (values: { name: string; uris: string; enabled: boolean }) => web.updateMcpOauthClient(client.id, { name: values.name.trim(), redirect_uris: redirectList(values.uris), enabled: values.enabled, expected_version: client.version }),
     onSuccess: () => { onSaved(); onClose(); },
   });
-  return <Modal title={t('编辑客户端')} onClose={onClose} pending={save.isPending}>
-    <div className="flex min-w-0 flex-col gap-4">
-      <Input label={t('名称')} maxLength={80} autoComplete="off" value={name} onChange={event => setName(event.target.value)} />
-      <div className="flex flex-col gap-1">
-        <Textarea label={t('回调地址')} rows={4} value={uris} onChange={event => setUris(event.target.value)} />
-        <p className="text-xs text-muted">{t('每行一个精确地址；默认仅允许 HTTPS，本机回环可使用 http。')}</p>
-      </div>
+  const form = useAppForm({
+    defaultValues: { name: client.name, uris: client.redirect_uris.join('\n'), enabled: client.enabled },
+    onSubmit: async values => {
+      try { await save.mutateAsync(values); }
+      catch (error) { form.applyServerError(error); }
+    },
+  });
+  return <FormDrawer title={t('编辑客户端')} onClose={onClose} pending={form.formState.isSubmitting}>
+    <AppForm form={form} layout="panel"><AppFormBody>
+      <AppField name="name" label={t('名称')}><Input required maxLength={80} autoComplete="off" /></AppField>
+      <AppField name="uris" label={t('回调地址')} hint={t('每行一个精确地址；默认仅允许 HTTPS，本机回环可使用 http。')}><Textarea rows={4} /></AppField>
       <label className="flex items-center justify-between gap-3 text-sm">
         <span className="flex items-center gap-2"><ShieldCheck size={15} className="text-muted" aria-hidden="true" />{t('允许发起新授权')}</span>
-        <Switch checked={enabled} onChange={setEnabled} aria-label={t('允许发起新授权')} />
+        <Switch checked={form.watch('enabled')} onChange={value => form.setValue('enabled', value, { shouldDirty: true })} aria-label={t('允许发起新授权')} />
       </label>
-      {save.isError && <p role="alert" className="text-sm text-danger">{t('保存失败：客户端可能已被其他管理员修改，请刷新后重试。')}</p>}
-      <div className="sticky bottom-0 z-10 flex justify-end gap-2 border-t border-line bg-surface pt-3">
-        <Button type="button" variant="secondary" disabled={save.isPending} onClick={onClose}>{t('取消')}</Button>
-        <Button pending={save.isPending} disabled={!name.trim() || redirectList(uris).length === 0} onClick={() => save.mutate()}>{t('保存')}</Button>
-      </div>
-    </div>
-  </Modal>;
+    </AppFormBody><AppFormFooter>
+      <Button type="button" variant="secondary" disabled={form.formState.isSubmitting} onClick={onClose}>{t('取消')}</Button>
+      <Button type="submit" pending={form.formState.isSubmitting} disabled={!form.watch('name').trim() || redirectList(form.watch('uris')).length === 0}>{t('保存')}</Button>
+    </AppFormFooter></AppForm>
+  </FormDrawer>;
 }
 
 function RotateSecret({ web, client, onClose, onRotated }: { web: WebClient; client: McpOauthClient; onClose: () => void; onRotated: () => void }) {

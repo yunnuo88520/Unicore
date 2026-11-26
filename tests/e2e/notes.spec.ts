@@ -2,7 +2,7 @@
 // Description: Shared note dialogs run against real Go/SQLite on desktop-sized and 375px browser pages.
 import {mkdir,readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
-import {chooseOption,test,expect,installPlatform,installStandalone,loginClient,adminLogin,openPersonalCenter,sdkClient} from './fixtures';
+import {chooseOption,test,expect,installPlatform,installStandalone,loginClient,adminLogin,workspaceLogin,openPersonalCenter,sdkClient,menuChain} from './fixtures';
 
 test('persistent standalone notes, modal CRUD, filtering and concurrency',async({page,instance},info)=>{
  await installStandalone(instance);await page.goto(`${instance.url}/notes`);
@@ -63,9 +63,10 @@ test('notes have distinct personal and management pages and menu assignments', a
   await page.goto(`${instance.url}/notes`);
   await expect(page.getByRole('heading', { name: 'Owner personal note' })).toBeVisible();
   await expect(page.getByText('Member private note')).toHaveCount(0);
-  // 笔记管理 is a user business region page: the super admin opens it from
-  // the user workspace, the administrator console keeps no notes entry.
+  // Management belongs to the administrator workspace, even for the same account.
   await page.goto(`${instance.url}/note-management`);
+  await expect(page.getByRole('heading', { name: '没有访问权限' })).toBeVisible();
+  await page.goto(`${instance.url}/admin/note-management`);
   await expect(page.getByRole('heading', { name: '笔记管理', exact: true })).toBeVisible();
   const actions = page.getByRole('button', { name: '笔记操作：Member private note', exact: true });
   const authorCell = info.project.name === 'mobile'
@@ -106,7 +107,12 @@ test('notes have distinct personal and management pages and menu assignments', a
   await expect(authorCell).toBeVisible();
   const search = page.getByRole('searchbox', { name: '搜索标题或作者' });
   await expect(page.getByRole('button', { name: '筛选', exact: true })).toHaveCount(0);
+  // Wait for the select's closing focus restoration before focusing the next control.
+  await expect(page.getByRole('listbox', { includeHidden: true })).toHaveCount(0);
+  await search.click();
+  await expect(search).toBeFocused();
   await search.pressSequentially('Owner personal');
+  await expect(search).toHaveValue('Owner personal');
   await expect(authorCell).toHaveCount(0);
   await expect(page.getByText('Owner personal note', { exact: true })).toBeVisible();
   await search.fill('  笔记作者  ');
@@ -183,15 +189,46 @@ test('notes have distinct personal and management pages and menu assignments', a
   expect((await myNotes()).items).toHaveLength(0);
   await page.goto(`${instance.url}/admin/menus`);
   await expect(page.getByRole('combobox', { name: '按工作台筛选' })).toHaveText('管理工作台');
-  // Both notes entries live in the user business region only: the
-  // administrator surface exposes no notes rows at all.
-  await expect(page.getByRole('button', { name: '分配角色：笔记管理' })).toHaveCount(0);
+  // Personal and management pages have separate workspace reach.
+  await expect(page.getByRole('button', { name: '分配角色：笔记管理' })).toBeVisible();
   await expect(page.getByRole('button', { name: '分配角色：我的笔记' })).toHaveCount(0);
   await chooseOption(page, '按工作台筛选', '用户工作台');
-  // The personal page and the management page each expose a menu-row role
-  // assignment in the user workspace.
+  // The user workspace exposes only the personal page.
   await expect(page.getByRole('button', { name: '分配角色：我的笔记' })).toBeVisible();
-  await expect(page.getByRole('button', { name: '分配角色：笔记管理' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '分配角色：笔记管理' })).toHaveCount(0);
+});
+
+test('delegated note reviewer reaches only the management workspace and read operations', async ({ page, browser, instance }) => {
+  await installPlatform(instance);
+  const admin = sdkClient(instance.url);
+  await loginClient(admin, 'admin', 'administrator-password-strong');
+  const config = await admin.menuConfig();
+  const author = await admin.createUser({ username: 'reviewauthor', email: 'reviewauthor@example.test', password: 'member-password-strong', role: 'user' });
+  const authorAPI = sdkClient(instance.url, 'user');
+  await loginClient(authorAPI, author.username, 'member-password-strong');
+  const note = await authorAPI.createNote({ title: 'Reviewer list entry', body: 'Private content stays protected', status: 'open' });
+  const role = await admin.createRole({ name: 'Note reviewer', permissions: ['admin:access', 'notes:manage:read'], realm: 'administrator', data_scope: 'all', menu_ids: menuChain(config, 'note-management', 'administrator'), action_ids: [], operation_ids: ['listNoteManagement'] });
+  await admin.createUser({ username: 'reviewer', email: 'reviewer@example.test', password: 'member-password-strong', role_ids: [role.id] });
+  await adminLogin(page, instance.url, 'reviewer', 'member-password-strong');
+  await page.goto(`${instance.url}/admin/note-management`);
+  await expect(page.getByRole('heading', { name: '笔记管理', exact: true })).toBeVisible();
+  await expect(page.getByText('Reviewer list entry', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '笔记操作：Reviewer list entry', exact: true })).toHaveCount(0);
+  await expect(page.getByText('Private content stays protected')).toHaveCount(0);
+  const reviewer = sdkClient(instance.url);
+  await loginClient(reviewer, 'reviewer', 'member-password-strong');
+  await expect(reviewer.previewManagedNote(author.id, note.id)).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  await page.goto(`${instance.url}/note-management`);
+  await expect(page.getByRole('heading', { name: '没有访问权限', exact: true })).toBeVisible();
+  const memberContext = await browser.newContext({ viewport: page.viewportSize()! });
+  try {
+    const memberPage = await memberContext.newPage();
+    await workspaceLogin(memberPage, instance.url, author.username, 'member-password-strong');
+    await memberPage.goto(`${instance.url}/admin/note-management`);
+    await expect(memberPage.getByRole('heading', { name: /管理员登录/ })).toBeVisible();
+    await expect(memberPage.getByRole('heading', { name: '笔记管理', exact: true })).toHaveCount(0);
+    await expect(authorAPI.listNoteManagement({ status: '', page: 1 })).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  } finally { await memberContext.close(); }
 });
 
 test('ordinary member uploads an avatar and note attachment without file management grants',async({page,instance},info)=>{

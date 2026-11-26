@@ -139,6 +139,8 @@ export function AnnouncementCenter({ inbox: notifications, web, administrator = 
           onAction={(itemId, actionId) => {
             const entry = (inbox.data?.items ?? []).find(item => item.id === itemId);
             const action = entry?.actions?.find(candidate => candidate.id === actionId);
+            // Following an action consumes the message just like expanding it.
+            if (entry && !entry.read_at) inboxRead.mutate(itemId);
             if (!action?.href) return;
             setOpen(false);
             if (/^https?:\/\//i.test(action.href)) window.location.assign(action.href);

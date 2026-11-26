@@ -62,11 +62,13 @@ func (s *Store) ListParts(ctx context.Context, k, upload string) ([]blob.Part, e
 	return parts, nil
 }
 func isMissing(e error) bool { return errors.Is(e, fs.ErrNotExist) }
-func (s *Store) CompleteMultipart(ctx context.Context, k, upload string, parts []blob.Part) error {
+func (s *Store) CompleteMultipart(ctx context.Context, k, upload string, parts []blob.Part) (blob.Object, error) {
 	if !validUpload(k, upload) {
-		return blob.ErrChanged
+		return blob.Object{}, blob.ErrChanged
 	}
 	// Pipe keeps RAM independent of total file size and opens only one part at a time.
+	// Part bytes are verified by size here; the whole-object hash returned by Put is
+	// compared against the client fingerprint by the upload service.
 	var size int64
 	for _, p := range parts {
 		size += p.Size
@@ -81,7 +83,7 @@ func (s *Store) CompleteMultipart(ctx context.Context, k, upload string, parts [
 				err = e
 				break
 			}
-			if o.ETag != p.ETag || o.Size != p.Size {
+			if o.Size != p.Size {
 				r.Close()
 				err = blob.ErrChanged
 				break
@@ -95,13 +97,16 @@ func (s *Store) CompleteMultipart(ctx context.Context, k, upload string, parts [
 		writer.CloseWithError(err)
 		done <- err
 	}()
-	_, e := s.Put(ctx, k, reader, size, "")
+	obj, e := s.Put(ctx, k, reader, size, "")
 	reader.CloseWithError(e)
 	writeErr := <-done
 	if e != nil {
-		return e
+		return blob.Object{}, e
 	}
-	return writeErr
+	if writeErr != nil {
+		return blob.Object{}, writeErr
+	}
+	return obj, nil
 }
 func (s *Store) AbortMultipart(ctx context.Context, k string) error {
 	if e := checked(k); e != nil {

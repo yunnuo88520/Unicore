@@ -49,13 +49,13 @@ func (s *s3Store) ListParts(ctx context.Context, k, id string) ([]blob.Part, err
 		marker = v.NextPartNumberMarker
 	}
 }
-func (s *s3Store) CompleteMultipart(ctx context.Context, k, id string, parts []blob.Part) error {
+func (s *s3Store) CompleteMultipart(ctx context.Context, k, id string, parts []blob.Part) (blob.Object, error) {
 	v := make([]minio.CompletePart, 0, len(parts))
 	for _, p := range parts {
 		v = append(v, minio.CompletePart{PartNumber: p.Number, ETag: p.ETag})
 	}
 	_, e := (minio.Core{Client: s.client}).CompleteMultipartUpload(ctx, s.config.Bucket, s.key(k), id, v, minio.PutObjectOptions{})
-	return e
+	return blob.Object{}, e
 }
 func (s *s3Store) AbortMultipart(ctx context.Context, k string) error {
 	core := minio.Core{Client: s.client}
@@ -113,13 +113,13 @@ func (s *ossStore) ListParts(ctx context.Context, k, id string) ([]blob.Part, er
 		marker = next
 	}
 }
-func (s *ossStore) CompleteMultipart(ctx context.Context, k, id string, parts []blob.Part) error {
+func (s *ossStore) CompleteMultipart(ctx context.Context, k, id string, parts []blob.Part) (blob.Object, error) {
 	v := make([]oss.UploadPart, 0, len(parts))
 	for _, p := range parts {
 		v = append(v, oss.UploadPart{PartNumber: p.Number, ETag: p.ETag})
 	}
 	_, e := s.bucket.CompleteMultipartUpload(s.multipart(k, id), v, oss.WithContext(ctx))
-	return e
+	return blob.Object{}, e
 }
 func (s *ossStore) AbortMultipart(ctx context.Context, k string) error {
 	key, upload := "", ""
@@ -183,13 +183,13 @@ func (s *cosStore) ListParts(ctx context.Context, k, id string) ([]blob.Part, er
 		marker = v.NextPartNumberMarker
 	}
 }
-func (s *cosStore) CompleteMultipart(ctx context.Context, k, id string, parts []blob.Part) error {
+func (s *cosStore) CompleteMultipart(ctx context.Context, k, id string, parts []blob.Part) (blob.Object, error) {
 	v := make([]cos.Object, 0, len(parts))
 	for _, p := range parts {
 		v = append(v, cos.Object{PartNumber: p.Number, ETag: p.ETag})
 	}
 	_, _, e := s.client.Object.CompleteMultipartUpload(ctx, s.key(k), id, &cos.CompleteMultipartUploadOptions{Parts: v})
-	return e
+	return blob.Object{}, e
 }
 func (s *cosStore) AbortMultipart(ctx context.Context, k string) error {
 	key, upload := "", ""

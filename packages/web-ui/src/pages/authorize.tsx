@@ -7,6 +7,7 @@ import { Badge, Button, Card, CardContent, CardHeader, CardTitle, SimpleSelect }
 import { defineMessages, t, useLocale } from '../i18n';
 import { useRouteSearch, type PageProps } from '../router';
 import type { AppClient } from '@unicore/sdk';
+import { roleDisplayLabel } from '../role-display';
 
 const SCOPE_LABELS = defineMessages({
   'mcp.read': '读取 MCP 能力',
@@ -87,7 +88,7 @@ export function AuthorizePage({ client }: PageProps) {
         {roles.length > 1 && <label className="flex flex-col gap-1.5 text-sm text-muted">
           {t('以哪个身份访问')}
           <SimpleSelect value={selectedRole} onChange={setRoleId} label={t('以哪个身份访问')}
-            options={roles.map(role => ({ value: role.id, label: role.name }))} />
+            options={roles.map(role => ({ value: role.id, label: roleDisplayLabel(role) }))} />
         </label>}
         <p className="text-xs text-subtle">{t('授权绑定所选角色当前的权限；你可以随时在个人中心撤销。')}</p>
         <div className="flex gap-2">

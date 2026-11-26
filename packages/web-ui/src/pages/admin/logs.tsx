@@ -9,7 +9,7 @@ import type { AuditLogQuery, AuditLogList, MailJobList, WebClient } from '@unico
 type AuditEntry = AuditLogList['items'][number];
 type MailJob = MailJobList['items'][number];
 import { currentLocale, defineMessages, t, useI18n } from '../../i18n';
-import { Badge, Button, Card, CardContent, Input, SimpleSelect, Tabs, useMessage } from '@unicore/ui';
+import { Badge, Button, Input, SimpleSelect, Tabs, useMessage } from '@unicore/ui';
 import { DataTable, DataTablePagination, DataTableSortHeader, DataTableToolbar } from '../../components/data-table';
 import type { PageProps } from '../../router';
 
@@ -199,8 +199,7 @@ function LogsPanel({ web }: { web: WebClient }) {
   return <div className="flex flex-col gap-4">
     <Tabs id="system-logs" label={t('日志类型')} value={tab} onChange={setTab} items={[{ id: 'audit', label: t('操作日志') }, { id: 'mail', label: t('通知投递') }]} />
     <section role="tabpanel" id={`system-logs-panel-${tab}`} aria-labelledby={`system-logs-tab-${tab}`}>
-      {tab === 'audit' ? <Card>
-        <CardContent className="flex flex-col gap-4">
+      {tab === 'audit' ? <div className="flex min-w-0 flex-col gap-4">
           <DataTableToolbar
             search={{ label: t('搜索操作日志'), placeholder: t('搜索操作者、目标、详情或 IP…'), value: searchInput, maxLength: 128,
               onChange: value => setSearchInput(value), onSubmit: () => filter({ search: searchRef.current }) }}
@@ -224,18 +223,15 @@ function LogsPanel({ web }: { web: WebClient }) {
             empty={{ icon: ScrollText, title: t('没有匹配的操作记录'), hint: t('试试其他类型、关键词或日期范围。') }} />
           <DataTablePagination className="audit-pagination" page={query.page} pageSize={query.page_size} total={audit.data?.total ?? 0}
             onPageChange={page => setQuery(current => ({ ...current, page }))} onPageSizeChange={size => filter({ page_size: size })} disabled={audit.isFetching} />
-        </CardContent>
-      </Card>
-        : <Card>
-          <CardContent className="flex flex-col gap-4">
+        </div>
+        : <div className="flex min-w-0 flex-col gap-4">
             <div>
               <h2 className="text-md font-semibold text-ink">{t('通知投递记录')}</h2>
               <p className="mt-0.5 text-xs text-muted">{t('最近 30 个任务；失败自动重试，最多 5 次')}</p>
             </div>
             <DataTable table={mailTable} pending={mail.isPending} busy={mail.isFetching} error={mail.error}
               onRetry={() => void mail.refetch()} empty={{ title: t('暂无投递任务') }} />
-          </CardContent>
-        </Card>}
+        </div>}
     </section>
   </div>;
 }

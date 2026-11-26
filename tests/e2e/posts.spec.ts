@@ -79,7 +79,8 @@ test('posts manage the directory and guard membership boundaries', async ({ page
 
   // The edit dialog lists disabled posts but refuses new assignments on them.
   const openEdit = async () => {
-    await memberRow.getByRole('button', { name: '编辑', exact: true }).click();
+    await memberRow.getByRole('button', { name: '操作', exact: true }).click();
+    await page.getByRole('menuitem', { name: '编辑', exact: true }).click();
     return page.getByRole('dialog', { name: '编辑postmember', exact: true });
   };
   let edit = await openEdit();
@@ -118,7 +119,8 @@ test('posts manage the directory and guard membership boundaries', async ({ page
   await expect(dualRow).toContainText('工程师');
   await expect(dualRow).toContainText('设计师');
   // Editing one assignment off keeps the other.
-  await dualRow.getByRole('button', { name: '编辑', exact: true }).click();
+  await dualRow.getByRole('button', { name: '操作', exact: true }).click();
+  await page.getByRole('menuitem', { name: '编辑', exact: true }).click();
   const dualEdit = page.getByRole('dialog', { name: '编辑dualpost', exact: true });
   await dualEdit.getByRole('group', { name: '岗位', exact: true }).getByLabel('设计师', { exact: true }).uncheck();
   await dualEdit.getByRole('button', { name: '保存', exact: true }).click();

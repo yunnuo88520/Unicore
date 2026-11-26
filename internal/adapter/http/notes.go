@@ -84,6 +84,7 @@ func mountNotes(api chi.Router, config Config) {
 			service := &notesusecase.Notes{Repo: &notesnotessql.Repository{Store: store, ManageAll: manageAll}}
 			if fs := config.Install.Files(); fs != nil {
 				service.Attachments = func(ctx context.Context, _ string, id string) error { return fs.ValidateAttachment(ctx, actor, id) }
+				service.ReferenceGuard = fs.WithReferenceGuard
 			}
 			fn(w, r, service, scope, visibility)
 		}

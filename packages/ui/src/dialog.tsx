@@ -12,7 +12,7 @@ export const Dialog = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
 export const DialogClose = DialogPrimitive.Close;
 
-const FOCUSABLE = 'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
+export const FOCUSABLE = 'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
 
 export const DialogContent = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { showClose?: boolean }>(function DialogContent({ className, children, showClose = true, onOpenAutoFocus, onCloseAutoFocus, ...props }, ref) {
   useLocale();
@@ -93,12 +93,14 @@ export function ConfirmDialog({ title, description, confirmLabel, cancelLabel, d
       <AlertDialogPrimitive.Content className="fixed start-1/2 top-1/2 z-50 w-[calc(100%-32px)] max-w-dialog -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-line bg-workspace p-6 shadow-floating outline-none">
         <AlertDialogPrimitive.Title className="text-xl font-medium text-ink">{t(title)}</AlertDialogPrimitive.Title>
         {description && <AlertDialogPrimitive.Description className="mt-1 text-sm text-muted">{t(description)}</AlertDialogPrimitive.Description>}
-        <AlertDialogPrimitive.Action asChild>
-          <Button variant={danger ? 'danger' : 'primary'} className="mt-4" pending={pending} onClick={event => { event.preventDefault(); onConfirm(); }}>{t(confirmLabel)}</Button>
-        </AlertDialogPrimitive.Action>
-        <AlertDialogPrimitive.Cancel asChild>
-          <Button variant="secondary" className="mt-4 ms-2" disabled={pending} onClick={onCancel}>{t(cancelLabel)}</Button>
-        </AlertDialogPrimitive.Cancel>
+        <DialogFooter>
+          <AlertDialogPrimitive.Cancel asChild>
+            <Button variant="secondary" disabled={pending} onClick={onCancel}>{t(cancelLabel)}</Button>
+          </AlertDialogPrimitive.Cancel>
+          <AlertDialogPrimitive.Action asChild>
+            <Button variant={danger ? 'danger' : 'primary'} pending={pending} onClick={event => { event.preventDefault(); onConfirm(); }}>{t(confirmLabel)}</Button>
+          </AlertDialogPrimitive.Action>
+        </DialogFooter>
       </AlertDialogPrimitive.Content>
     </AlertDialogPrimitive.Portal>
   </AlertDialogPrimitive.Root>;

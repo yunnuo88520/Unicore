@@ -14,7 +14,7 @@ export const Select = SelectPrimitive.Root;
 export const SelectValue = SelectPrimitive.Value;
 
 // The aria-invalid:* selector reacts to the DOM attribute, mirroring the input control surface.
-export const selectTriggerVariants = cva('flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-transparent bg-field px-3 text-base text-ink transition-colors outline-none hover:border-line-strong focus-visible:border-focus focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55 aria-invalid:border-danger data-[placeholder]:text-subtle');
+export const selectTriggerVariants = cva('flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 text-base text-ink transition-colors outline-none hover:border-line-strong focus-visible:border-focus focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55 aria-invalid:border-danger data-[placeholder]:text-subtle');
 
 export const SelectTrigger = forwardRef<HTMLButtonElement, React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>>(function SelectTrigger({ className, children, ...props }, ref) {
   return <SelectPrimitive.Trigger ref={ref}

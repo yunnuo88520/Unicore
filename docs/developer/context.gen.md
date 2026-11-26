@@ -32,7 +32,7 @@
 | notificationIntegration | [docs/product/notifications.md](../product/notifications.md) |
 | frameworkUpgrade | [docs/product/framework-upgrade.md](../product/framework-upgrade.md) |
 
-OpenAPI 当前包含 280 个 operation、311 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
+OpenAPI 当前包含 291 个 operation、325 个 schema。Go/TS 模型、调用描述与离线文档从同一源生成。不要手改生成文件。
 
 | 任务 Skill | 用途 |
 | --- | --- |

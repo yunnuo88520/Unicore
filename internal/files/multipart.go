@@ -216,6 +216,7 @@ func (s *Service) FinishUpload(ctx context.Context, a Actor, id string) (contrac
 		return f.FileEntry, ErrUnavailable
 	}
 	obj, statErr := st.Stat(ctx, f.Staging)
+	etag := obj.ETag
 	if previous == "pending" || statErr != nil {
 		parts, e := mp.ListParts(ctx, f.Staging, u.UploadID)
 		if e != nil {
@@ -228,27 +229,43 @@ func (s *Service) FinishUpload(ctx context.Context, a Actor, id string) (contrac
 			return f.FileEntry, ErrInvalid
 		}
 		for i, p := range parts {
-			if p.Number != i+1 || p.Size != partLength(f, u, p.Number) || p.ETag == "" {
+			// Local parts stream without stored hashes; the assembled-object
+			// fingerprint check below still covers every byte.
+			if p.Number != i+1 || p.Size != partLength(f, u, p.Number) || f.StorageType != "local" && p.ETag == "" {
 				s.restorePending(ctx, a, id)
 				return f.FileEntry, ErrInvalid
 			}
 		}
-		if e = mp.CompleteMultipart(ctx, f.Staging, u.UploadID, parts); e != nil {
+		completed, completeErr := mp.CompleteMultipart(ctx, f.Staging, u.UploadID, parts)
+		if completeErr != nil {
 			return f.FileEntry, ErrUnavailable
 		}
 		obj, statErr = st.Stat(ctx, f.Staging)
+		etag = completed.ETag
+		if etag == "" {
+			etag = obj.ETag
+		}
 	}
-	if f.StorageType == "local" && statErr == nil && obj.ETag != u.Fingerprint {
+	if f.StorageType == "local" {
+		// The client fingerprint is the authoritative integrity check for local
+		// multipart uploads; resumed finishes verify the staging bytes once.
+		if etag == "" {
+			if etag, e = s.verifyHash(ctx, st, f.Staging); e != nil {
+				return f.FileEntry, e
+			}
+		}
+		if etag != u.Fingerprint {
+			return f.FileEntry, ErrInvalid
+		}
+	}
+	if statErr != nil || obj.Size != int64(f.Size) || etag == "" || obj.MIME != "" && obj.MIME != f.MimeType {
 		return f.FileEntry, ErrInvalid
 	}
-	if statErr != nil || obj.Size != int64(f.Size) || obj.ETag == "" || obj.MIME != "" && obj.MIME != f.MimeType {
-		return f.FileEntry, ErrInvalid
-	}
-	if e = st.Copy(ctx, f.Staging, f.Key, obj.ETag); e != nil {
+	if e = st.Copy(ctx, f.Staging, f.Key, etag); e != nil {
 		return f.FileEntry, ErrUnavailable
 	}
 	confirmed, e := st.Stat(ctx, f.Key)
-	if e != nil || confirmed.Size != int64(f.Size) || confirmed.ETag == "" || confirmed.MIME != "" && confirmed.MIME != f.MimeType {
+	if e != nil || confirmed.Size != int64(f.Size) || confirmed.MIME != "" && confirmed.MIME != f.MimeType {
 		return f.FileEntry, ErrUnavailable
 	}
 	s.mu.Lock()
@@ -261,7 +278,7 @@ func (s *Service) FinishUpload(ctx context.Context, a Actor, id string) (contrac
 		return f.FileEntry, ErrBusy
 	}
 	f.State = "ready"
-	f.ETag = confirmed.ETag
+	f.ETag = etag
 	f.Staging = ""
 	if e = s.Repo.Change(ctx, f, nil, a.ID); e != nil {
 		return f.FileEntry, ErrUnavailable

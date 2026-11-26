@@ -33,6 +33,8 @@ function bootstrapPath(payload: unknown): string {
 }
 export default defineConfig({
   plugins: [react(), tailwindcss(), features.plugin, administratorEntry()], define: features.define,
-  server: { port: 5173, strictPort: true, proxy: { '/api': apiURL } },
+  // Runtime images and the instance manifest belong to the API server too.
+  // Falling through to Vite's SPA fallback returns HTML with status 200 for an image.
+  server: { port: 5173, strictPort: true, proxy: { '/api': apiURL, '/brand-assets': apiURL, '/site.webmanifest': apiURL } },
   build: { rollupOptions: { input: { client: 'index.html', administrator: 'admin.html' } }, outDir: 'static', emptyOutDir: false },
 });

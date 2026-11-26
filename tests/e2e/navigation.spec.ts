@@ -298,10 +298,10 @@ test('menu visibility follows role assignments while API capability stays indepe
     // The files page is not in the role's menu authorization at all.
     await expect(memberSidebar.getByRole('button', { name: labelOf('files'), exact: true })).toHaveCount(0);
     if (info.project.name === 'mobile') await member.keyboard.press('Escape');
-    // Direct URL still serves the page (permission bound), but the API layer
-    // refuses: the role holds files:access without the listFiles grant.
+    // The files page is governed now: the missing page permission renders the
+    // in-workspace 403 and the API layer refuses the ungranted list call.
     await member.goto(`${instance.url}/files`);
-    await expect(member.getByText('页面不存在', { exact: true })).toBeVisible();
+    await expect(member.getByRole('heading', { name: '没有访问权限', exact: true })).toBeVisible();
     await expect(memberApi.files!.listFiles('', 1)).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
     await evidence(member, info, '菜单过滤且API拒绝');
 

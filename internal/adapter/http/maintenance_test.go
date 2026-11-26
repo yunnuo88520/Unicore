@@ -53,7 +53,7 @@ func TestMaintenanceBoundaryAndRecovery(t *testing.T) {
 	json.Unmarshal(request("GET", "/api/v1/admin/bootstrap", nil, cookie, "").Body.Bytes(), &boot)
 	csrf := *boot.Data.CsrfToken
 	patch := func(enabled string) *httptest.ResponseRecorder {
-		return request("PATCH", "/api/v1/admin/settings", contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "maintenance.enabled", Value: enabled}, {Key: "maintenance.message", Value: "Planned work"}, {Key: "site.police_number", Value: "Registration 123"}, {Key: "site.footer_html", Value: `<p>Public footer</p>`}}}, cookie, csrf)
+		return request("PATCH", "/api/v1/admin/settings", contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "maintenance.enabled", Value: enabled}, {Key: "maintenance.message", Value: "Planned work"}, {Key: "site.police_number", Value: "京公网安备110105000722"}, {Key: "site.footer_html", Value: `<p>Public footer</p>`}}}, cookie, csrf)
 	}
 	if w = patch("true"); w.Code != 200 {
 		t.Fatal(w.Code, w.Body.String())

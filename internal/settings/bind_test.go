@@ -81,10 +81,14 @@ func TestBindRejectsMalformedTargets(t *testing.T) {
 
 func TestSessionPolicyBindsFromRegistryValues(t *testing.T) {
 	var policy SessionPolicy
-	if err := Bind(Defaults("web-platform"), &policy); err != nil {
+	values := Defaults("web-platform")
+	if err := Bind(values, &policy); err != nil {
 		t.Fatal(err)
 	}
 	if !policy.LoginCaptcha || policy.SessionHours != 24 {
 		t.Fatalf("registry defaults bind wrong: %+v", policy)
+	}
+	if values["security.user_idle_minutes"] != "1440" || values["security.admin_idle_minutes"] != "1440" || values["security.admin_max_minutes"] != "1440" {
+		t.Fatalf("session policy defaults should allow a full day while retaining the administrator absolute limit: %+v", values)
 	}
 }

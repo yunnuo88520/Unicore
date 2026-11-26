@@ -49,6 +49,10 @@ it('seeds one shared default tree with ordered sections, registry-mirrored surfa
   // Page nodes cover exactly the default page order.
   const pages = config.nodes.filter(node => node.type === 'page');
   expect(pages.map(node => node.route_id!).slice().sort()).toEqual([...defaultPageOrder].sort());
+  const platformEdition = pages.find(node => node.route_id === 'edition')!;
+  const platformAccessTokens = pages.find(node => node.route_id === 'access-tokens')!;
+  expect(platformEdition.sort).toBeLessThan(platformAccessTokens.sort);
+  expect(pages.find(node => node.route_id === 'files')).toMatchObject({ section_id: 'system', parent_id: undefined, sort: 27 });
   // Page surfaces mirror the route registry: management and system groups plus
   // the platform admin-only pages (including the API reference) stay off the
   // user surface; the workspace overview is registered for both workspaces and
@@ -66,7 +70,7 @@ it('seeds one shared default tree with ordered sections, registry-mirrored surfa
     // directories in the system region — API 文档 stays a top-level tail
     // there — everything else stays in business. The personal center keeps
     // no navigation presence: it opens from the account menus' settings modal.
-    const systemTopLevel = node.route_id === 'api-docs';
+    const systemTopLevel = node.route_id === 'api-docs' || node.route_id === 'files';
     expect(node.section_id).toBe(systemTopLevel || group === 'system' || group === 'administration' || group === 'monitor' || group === 'ai' ? 'system' : 'business');
     expect(node.parent_id).toBe(systemTopLevel ? undefined : group === 'system' ? 'settings' : group === 'administration' ? 'administration' : group === 'monitor' ? 'monitor-center' : group === 'ai' ? 'ai-management' : undefined);
   }
@@ -259,6 +263,9 @@ it('falls back to static defaults for standalone profiles and unknown parents', 
   expect(navigation.sections.map(section => section.id)).toEqual(['business']);
   const all = walkAll(navigation);
   expect(all).toContain('overview');
+  expect(navigation.sections[0].entries.at(-1)?.id).toBe('edition');
+  const desktop = render({ ...standalone, profile: 'desktop' } as Bootstrap);
+  expect(desktop.sections[0].entries.at(-1)?.id).toBe('edition');
   expect(all).not.toContain('site');
   expect(all).not.toContain('account');
 });

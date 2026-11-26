@@ -30,6 +30,7 @@ import (
 	"github.com/yunnuo/unicore/internal/bootstrap"
 	"github.com/yunnuo/unicore/internal/config"
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/files"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/lifecycle"
 	"github.com/yunnuo/unicore/internal/logging"
@@ -302,6 +303,9 @@ func run(args []string) (result error) {
 	if err := notifyRegistry.Register(notify.Definition{Type: "system", TitleZh: "系统", TitleEn: "System"}); err != nil {
 		return err
 	}
+	if err := notifyRegistry.Register(notify.Definition{Type: "migration", TitleZh: "存储迁移", TitleEn: "Storage migration"}); err != nil {
+		return err
+	}
 	for _, definition := range module.NotificationTypes() {
 		if err := notifyRegistry.Register(definition); err != nil {
 			return err
@@ -314,6 +318,17 @@ func run(args []string) (result error) {
 		}
 		return (&platformsql.Repository{Store: store}).DeliverInbox(ctx, runner, recipients, messageType, sourceID, title, body, actions)
 	})}
+
+	// Terminal migration outcomes land in the creating administrator's inbox
+	// with a jump action; delivery is best effort and worker-ordered.
+	migrationBridge := files.MigrationNotifierFunc(func(ctx context.Context, notice files.MigrationNotice) {
+		store, _, _, _ := manager.Services()
+		if store == nil || notice.RecipientID == "" {
+			return
+		}
+		action := "/admin/files?tab=migration"
+		_ = notifyService.NotifyUsers(ctx, store, []string{notice.RecipientID}, "migration", notice.SourceID, notice.Title, notice.Body, []contracts.InboxAction{{ID: "view-migration", Label: "查看迁移详情", Href: &action}})
+	})
 
 	workerCtx, cancelWorkers := context.WithCancel(context.Background())
 	defer cancelWorkers()
@@ -515,6 +530,44 @@ func run(args []string) (result error) {
 			return shutdownCtx.Err()
 		}
 		return tasks.Shutdown(shutdownCtx)
+	})
+	// The storage migration engine only runs on an installed web-platform;
+	// standalone, desktop and CLI never migrate between storage locations. One
+	// batch per tick keeps pause, resume and cancel responsive.
+	migrationDone := make(chan struct{})
+	go func() {
+		defer close(migrationDone)
+		ticker := time.NewTicker(2 * time.Second)
+		defer ticker.Stop()
+		recovered := false
+		for {
+			select {
+			case <-workerCtx.Done():
+				return
+			case <-ticker.C:
+			}
+			_, _, _, currentProfile := manager.Services()
+			if !manager.Installed() || currentProfile != runtime.WebPlatform {
+				continue
+			}
+			fs := manager.Files()
+			if fs == nil {
+				continue
+			}
+			if !recovered {
+				fs.MigrationNotifications = migrationBridge
+				files.RecoverMigrations(workerCtx, fs)
+				recovered = true
+			}
+			stepCtx, cancelStep := context.WithTimeout(workerCtx, 30*time.Minute)
+			files.RunMigrationStep(stepCtx, fs, logger)
+			cancelStep()
+		}
+	}()
+	resources.Defer("storage migration worker", func() error {
+		cancelWorkers()
+		<-migrationDone
+		return nil
 	})
 	// Long-lived SSE streams must close when draining begins; otherwise an
 	// otherwise graceful HTTP shutdown would always exhaust its deadline. The

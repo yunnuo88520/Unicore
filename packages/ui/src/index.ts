@@ -1,14 +1,14 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Barrel for the shared UI primitive layer.
 export { Button, buttonVariants, type ButtonProps } from './button';
-export { Input, Textarea, NativeSelect, Label, controlSurface, controlVariants } from './input';
+export { Input, Textarea, NativeSelect, Label, ControlLabelProvider, controlSurface, controlVariants } from './input';
 export { Badge, badgeVariants, type BadgeProps } from './badge';
 export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './card';
 export { StatCard, type StatCardProps } from './stat-card';
 export { EmptyState, type EmptyStateProps } from './empty-state';
 export { PageHeader, type PageHeaderProps } from './page-header';
 export { Alert, type AlertProps } from './alert';
-export { Drawer, DrawerTrigger, DrawerClose, DrawerContent } from './drawer';
+export { Drawer, DrawerTrigger, DrawerClose, DrawerContent, FormDrawer } from './drawer';
 export { Popover, PopoverTrigger, PopoverAnchor, PopoverClose, PopoverContent } from './popover';
 export { RadioGroup, RadioGroupItem } from './radio-group';
 export { Breadcrumb, BreadcrumbItem, BreadcrumbSeparator } from './breadcrumb';

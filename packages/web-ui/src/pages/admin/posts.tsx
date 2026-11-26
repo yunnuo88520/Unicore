@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppError } from '@unicore/sdk';
 import type { Post, PostSaveInput, WebClient } from '@unicore/sdk';
-import { AppControllerField, AppField, AppForm, useAppForm } from '@unicore/form';
-import { Button, Card, CardContent, ConfirmDialog, Input, Modal, PageHeader, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '@unicore/ui';
+import { AppControllerField, AppField, AppForm, AppFormBody, AppFormFooter, useAppForm } from '@unicore/form';
+import { Button, ConfirmDialog, FormDrawer, Input, Modal, PageHeader, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage } from '@unicore/ui';
 import { DataTableEmpty } from '../../components/data-table';
 import { t, useLocale } from '../../i18n';
 import { invalidateAfter, usePostsQuery } from '../../queries';
@@ -32,7 +32,7 @@ export function AdminPostsPage({ client, metadata }: PageProps) {
   return <div className="flex min-w-0 flex-col gap-6">
     <PageHeader title={t('岗位管理')} description={t('岗位用于组织成员，不会隐式授予角色或权限。')}
       actions={can('createPost') && <Button onClick={() => setEditor('new')}>{t('新建岗位')}</Button>} />
-    <Card><CardContent className="flex min-w-0 flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-4">
     {list.isError && <div role="alert">{t(list.error.message)} <Button variant="secondary" onClick={() => void list.refetch()}>{t('重试')}</Button></div>}
     <div className="min-w-0 overflow-x-auto rounded-lg border border-line"><Table className="min-w-[680px]"><TableHeader><TableRow>
       <TableHead>{t('编码')}</TableHead><TableHead>{t('名称')}</TableHead><TableHead>{t('排序')}</TableHead><TableHead>{t('状态')}</TableHead><TableHead>{t('说明')}</TableHead><TableHead>{t('操作')}</TableHead>
@@ -42,11 +42,10 @@ export function AdminPostsPage({ client, metadata }: PageProps) {
       </div></TableCell></TableRow>)}
       {!list.data?.items.length && <TableEmpty colSpan={6}>{list.isPending ? t('正在加载…') : <DataTableEmpty title={t('暂无岗位')} hint={t('岗位用于组织成员，不会隐式授予角色或权限。')} />}</TableEmpty>}
     </TableBody></Table></div>
-  </CardContent>
     {editor && <PostEditor web={web} post={editor === 'new' ? undefined : editor} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); void invalidateAfter(cache, 'posts'); }} />}
     {removing && <ConfirmDialog danger title={t('删除岗位')} description={t('确定删除岗位「{{name}}」？已关联用户的岗位不可删除。', { name: removing.name })} confirmLabel={t('确认删除')} cancelLabel={t('取消')} pending={remove.isPending} onConfirm={() => remove.mutate(removing)} onCancel={() => setRemoving(null)} />}
     {members && <PostMembers web={web} post={members} onClose={() => setMembers(null)} />}
-    </Card>
+    </div>
   </div>;
 }
 
@@ -69,14 +68,15 @@ function PostEditor({ web, post, onClose, onSaved }: { web: WebClient; post?: Po
       form.applyServerError(error);
     }
   } });
-  return <Modal title={t(post ? '编辑岗位' : '新建岗位')} pending={save.isPending} onClose={onClose}><AppForm form={form} className="flex flex-col gap-3">
+  return <FormDrawer title={t(post ? '编辑岗位' : '新建岗位')} pending={save.isPending} onClose={onClose}><AppForm form={form} layout="panel">
+    <AppFormBody>
     <AppField name="code" label={t('岗位编码')} onFieldChange={event => form.setValue('code', event.target.value.trim().toLowerCase())}><Input autoComplete="off" maxLength={64} /></AppField>
     <AppField name="name" label={t('岗位名称')}><Input maxLength={80} /></AppField>
     <AppField name="sort" label={t('排序')} rules={{ valueAsNumber: true }}><Input type="number" step="1" /></AppField>
     <AppControllerField name="enabled" label={t('状态')}>{field => <Switch aria-label={t('启用岗位')} checked={!!field.value} onChange={field.onChange} />}</AppControllerField>
     <AppField name="description" label={t('说明')}><Textarea maxLength={1000} /></AppField>
-    <div className="flex justify-end gap-2"><Button variant="secondary" disabled={save.isPending} onClick={onClose}>{t('取消')}</Button><Button type="submit" pending={save.isPending}>{t('保存')}</Button></div>
-  </AppForm></Modal>;
+    </AppFormBody><AppFormFooter><Button variant="secondary" disabled={save.isPending} onClick={onClose}>{t('取消')}</Button><Button type="submit" pending={save.isPending}>{t('保存')}</Button></AppFormFooter>
+  </AppForm></FormDrawer>;
 }
 
 function PostMembers({ web, post, onClose }: { web: WebClient; post: Post; onClose: () => void }) {

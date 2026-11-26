@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"github.com/yunnuo/unicore/assets/brand"
 	"github.com/yunnuo/unicore/internal/bootstrap"
+	"github.com/yunnuo/unicore/internal/branding"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/install"
 	"io"
@@ -16,10 +17,31 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"testing/fstest"
 )
+
+func TestBrandImageErrorsAreDistinct(t *testing.T) {
+	for _, test := range []struct {
+		err  error
+		code string
+	}{
+		{branding.ErrInvalid, "BRAND_INVALID"},
+		{branding.ErrUploadTooLarge, "BRAND_UPLOAD_TOO_LARGE"},
+		{branding.ErrImageTooLarge, "BRAND_IMAGE_TOO_LARGE"},
+	} {
+		t.Run(test.code, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			webError(w, test.err)
+			var response struct{ Code string }
+			if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil || w.Code != http.StatusBadRequest || response.Code != test.code {
+				t.Fatalf("wrong image error response: %d %s (%v)", w.Code, w.Body.String(), err)
+			}
+		})
+	}
+}
 
 func TestBrandHTTP(t *testing.T) {
 	for _, profile := range []contracts.Profile{"web-platform", "web-standalone"} {
@@ -88,7 +110,7 @@ func TestBrandHTTP(t *testing.T) {
 				expect(request("PUT", path, input, "", ""), 404)
 				return
 			}
-			expect(request("PUT", path, map[string]string{"slot": "logo", "content": strings.Repeat("a", 400000)}, cookie, csrf), 413)
+			expect(request("PUT", path, map[string]string{"slot": "logo", "content": strings.Repeat("a", 800000)}, cookie, csrf), 413)
 			w := request("PUT", path, input, cookie, csrf)
 			expect(w, 200)
 			var response contracts.BrandingResponse
@@ -100,6 +122,28 @@ func TestBrandHTTP(t *testing.T) {
 			expect(asset, 200)
 			if asset.Header().Get("Content-Type") != "image/png" || asset.Header().Get("X-Content-Type-Options") != "nosniff" {
 				t.Fatal("unsafe image headers")
+			}
+			if !bytes.HasPrefix(asset.Body.Bytes(), []byte("\x89PNG\r\n\x1a\n")) {
+				t.Fatal("brand asset response is not a PNG")
+			}
+			name := strings.TrimPrefix(response.Data.Logo, "/brand-assets/")
+			record, err := manager.Files().Repo.Get(ctx, name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			objectDirectory := "files"
+			if record.LocationID == "legacy-brand" {
+				objectDirectory = "brand-assets"
+			}
+			if err := os.WriteFile(filepath.Join(directory, objectDirectory, filepath.FromSlash(record.Key)), []byte("truncated"), 0600); err != nil {
+				t.Fatal(err)
+			}
+			repaired := request("PUT", path, input, cookie, csrf)
+			expect(repaired, 200)
+			restored := request("GET", response.Data.Logo, nil, "", "")
+			expect(restored, 200)
+			if !bytes.HasPrefix(restored.Body.Bytes(), []byte("\x89PNG\r\n\x1a\n")) {
+				t.Fatal("re-upload did not repair the existing brand object")
 			}
 			expect(request("GET", "/brand-assets/not-a-file", nil, "", ""), 404)
 			expect(request("GET", "/brand-assets/a/b", nil, "", ""), 404)

@@ -13,7 +13,15 @@ it('keeps local preferences in the top bar and removes demo navigation', async (
   api.settings = vi.fn(); api.patchSettings = vi.fn(); api.monitorSnapshot = vi.fn();
   render(<Workspace client={api} />);
   const heading = await screen.findByRole('heading', { name: '工作台概览', level: 1 });
-  expect(document.getElementById('main-content')).toContainElement(heading);
+  const mainContent = document.getElementById('main-content');
+  expect(mainContent).toContainElement(heading);
+  expect(mainContent).not.toHaveClass('pb-8');
+  const brandHeader = document.querySelector('[data-brand-header="icon-title"]');
+  expect(brandHeader).not.toBeNull();
+  expect(brandHeader?.querySelector('.sidebar-header-logo')).toHaveAttribute('aria-label', 'Unicore');
+  expect(brandHeader?.querySelector('.version-badge')).toHaveTextContent('v0.1.0');
+  expect(brandHeader?.querySelector('.version-badge')).not.toHaveClass('bg-primary-soft');
+  expect(brandHeader?.querySelector('.version-badge')).toHaveClass('text-2xs', 'text-muted', 'hover:text-ink');
   expect(document.querySelector('.topbar h1')).toBeNull();
   expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   for (const name of ['核心实验室', '文件管理', '外观设置']) expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();

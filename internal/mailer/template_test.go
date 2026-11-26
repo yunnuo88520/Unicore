@@ -3,6 +3,10 @@
 package mailer
 
 import (
+	"bytes"
+	"image"
+	"image/color"
+	"image/png"
 	"strings"
 	"testing"
 )
@@ -34,5 +38,41 @@ func TestConfiguredTemplateEscaping(t *testing.T) {
 	message, e = RenderConfigured(values, "notification", "", "", true, nil, map[string]string{"detail": "literal {{unknown}} <script>bad</script>"})
 	if e != nil || strings.Contains(message.HTML, "<script>bad") || !strings.Contains(message.Body, "{{unknown}}") {
 		t.Fatal("business content was reinterpreted", e)
+	}
+}
+
+func TestMailLogoPreservesNaturalDimensions(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		w, h int
+		want string
+	}{
+		{name: "wordmark", w: 320, h: 80, want: `width="160" height="40"`},
+		{name: "mark", w: 84, h: 84, want: `width="42" height="42"`},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			logo := image.NewNRGBA(image.Rect(0, 0, test.w, test.h))
+			for y := 0; y < test.h; y++ {
+				for x := 0; x < test.w; x++ {
+					logo.SetNRGBA(x, y, color.NRGBA{R: 30, G: 80, B: 160, A: 255})
+				}
+			}
+			var data bytes.Buffer
+			if err := png.Encode(&data, logo); err != nil {
+				t.Fatal(err)
+			}
+			message := Render("A long instance name", "Copyright", "verify", "123456", "user@example.test", false, data.Bytes())
+			if !strings.Contains(message.HTML, test.want) || !strings.Contains(message.HTML, "max-width:160px;max-height:42px") || !strings.Contains(message.HTML, "word-break:break-word") {
+				t.Fatalf("logo dimensions or site-name space missing: %s", message.HTML)
+			}
+			start := strings.Index(message.HTML, `<img src="cid:unicore-brand"`)
+			if start < 0 {
+				t.Fatal("mail logo image is missing")
+			}
+			end := strings.Index(message.HTML[start:], ">")
+			if end < 0 || strings.Contains(message.HTML[start:start+end], "border-radius") {
+				t.Fatal("mail logo should not be clipped by rounded corners")
+			}
+		})
 	}
 }

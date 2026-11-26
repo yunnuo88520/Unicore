@@ -30,6 +30,7 @@ require (
 	github.com/xuri/excelize/v2 v2.11.1
 	github.com/yuin/goldmark v1.8.7
 	golang.org/x/crypto v0.59.0
+	golang.org/x/image v0.44.0
 	golang.org/x/net v0.63.0
 	golang.org/x/oauth2 v0.38.0
 	golang.org/x/sys v0.50.0

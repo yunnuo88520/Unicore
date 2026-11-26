@@ -66,6 +66,22 @@ it('keeps the form-wide banner only for $form-level server errors', async () => 
   render(<Harness onSubmit={submit} serverError={new AppError('INVALID_INPUT', '请求无效', 'request', { $form: '请先保存 SMTP 配置并成功发送测试邮件' })} />);
   await userEvent.click(screen.getByRole('button', { name: '应用服务端错误' }));
   expect(screen.getByRole('alert', { name: '表单校验' })).toHaveTextContent('请先保存 SMTP 配置并成功发送测试邮件');
+  expect(screen.getAllByRole('alert')).toHaveLength(1);
+});
+
+it('renders a root override once instead of duplicating the server rejection', async () => {
+  function RejectedForm() {
+    const form = useAppForm({ defaultValues: { recipient: '' }, onSubmit: () => {
+      form.applyServerError(new AppError('PERMISSION_DENIED', '没有访问权限'));
+      form.setError('root', { type: 'server', message: '此账号没有管理工作台访问权限，请从用户入口登录。' });
+    } });
+    return <AppForm form={form}><button type="submit">登录</button></AppForm>;
+  }
+  render(<RejectedForm />);
+  await userEvent.click(screen.getByRole('button', { name: '登录' }));
+  expect(screen.getAllByRole('alert')).toHaveLength(1);
+  expect(screen.getByRole('alert')).toHaveTextContent('此账号没有管理工作台访问权限，请从用户入口登录。');
+  expect(screen.queryByText('没有访问权限', { exact: true })).toBeNull();
 });
 
 function TwinForms({ serverError }: { serverError: AppError }) {

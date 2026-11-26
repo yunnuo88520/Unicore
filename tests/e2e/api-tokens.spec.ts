@@ -1,5 +1,5 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Real role-bound tokens, owner/admin workflows and bounded dialogs at desktop and 375px.
+// Description: Real role-bound tokens, owner/admin workflows and bounded editors at desktop and 375px.
 import { mkdir } from 'node:fs/promises';
 import { test, expect, installPlatform, adminLogin, sdkClient, loginClient, workspaceLogin, memberPassword, navigate, openPersonalCenter } from './fixtures';
 import { BearerTransport } from '../../packages/sdk/src';
@@ -100,21 +100,24 @@ test('role-bound personal tokens support issuance, renewal and global revocation
   await expect(page.getByRole('option')).toHaveCount(2);
   await page.getByRole('option', { name: reader.name, exact: true }).click();
   await dialog.getByLabel('备注', { exact: true }).fill('Delegated export');
-  // Long editor content scrolls inside the modal without making the page taller.
+  // Long editor content scrolls inside the drawer without moving its actions or growing the page.
   const scroll = await dialog.evaluate(element => {
-    const body = element.querySelector<HTMLElement>('[data-autofocus-scope]')!;
+    const body = element.querySelector<HTMLElement>('[data-slot="app-form-body"]')!;
+    const footer = element.querySelector<HTMLElement>('[data-slot="app-form-footer"]')!;
+    const footerBefore = footer.getBoundingClientRect().top;
     const pageHeight = document.documentElement.scrollHeight;
     body.scrollTop = 100000;
     const first = body.scrollTop;
     body.scrollTop = 100000;
     const r = element.getBoundingClientRect();
-    return { first, second: body.scrollTop, max: body.scrollHeight - body.clientHeight, pageHeight, after: document.documentElement.scrollHeight, top: r.top, bottom: r.bottom, height: innerHeight };
+    return { first, second: body.scrollTop, max: body.scrollHeight - body.clientHeight, pageHeight, after: document.documentElement.scrollHeight, top: r.top, bottom: r.bottom, height: innerHeight, footerBefore, footerAfter: footer.getBoundingClientRect().top };
   });
   expect(scroll.second).toBe(scroll.first);
   expect(scroll.second).toBeLessThanOrEqual(scroll.max + 1);
   expect(scroll.after).toBe(scroll.pageHeight);
   expect(scroll.top).toBeGreaterThanOrEqual(0);
   expect(scroll.bottom).toBeLessThanOrEqual(scroll.height);
+  expect(scroll.footerAfter).toBe(scroll.footerBefore);
   await dialog.getByRole('button', { name: '生成令牌', exact: true }).click();
   await expect(dialog.getByLabel('新访问令牌', { exact: true })).toBeVisible();
   await dialog.getByRole('button', { name: '完成', exact: true }).click();

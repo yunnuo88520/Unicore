@@ -885,7 +885,7 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": true,
     "csrf": true,
-    "maxBodyBytes": 393216,
+    "maxBodyBytes": 786432,
     "identityRealm": "administrator"
   },
   "listAdministrators": {
@@ -5462,6 +5462,226 @@ export const operations = {
     "superAdmin": false,
     "csrf": true,
     "identityRealm": "user"
+  },
+  "fileCatalog": {
+    "method": "GET",
+    "path": "/api/v1/admin/file-catalog",
+    "requestSchema": null,
+    "responseSchema": "FileCatalogListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "fileCatalogAccess": {
+    "method": "POST",
+    "path": "/api/v1/admin/file-catalog/{id}/access",
+    "requestSchema": null,
+    "responseSchema": "FileAccessResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "deleteCatalogFile": {
+    "method": "DELETE",
+    "path": "/api/v1/admin/file-catalog/{id}",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "storageMigrationSummary": {
+    "method": "GET",
+    "path": "/api/v1/admin/storage/migrations/summary",
+    "requestSchema": null,
+    "responseSchema": "StorageMigrationSummaryResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "listStorageMigrations": {
+    "method": "GET",
+    "path": "/api/v1/admin/storage/migrations",
+    "requestSchema": null,
+    "responseSchema": "StorageMigrationListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "createStorageMigration": {
+    "method": "POST",
+    "path": "/api/v1/admin/storage/migrations",
+    "requestSchema": "StorageMigrationCreateInput",
+    "responseSchema": "StorageMigrationJobResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "currentStorageMigration": {
+    "method": "GET",
+    "path": "/api/v1/admin/storage/migrations/current",
+    "requestSchema": null,
+    "responseSchema": "StorageMigrationCurrentResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "pauseStorageMigration": {
+    "method": "POST",
+    "path": "/api/v1/admin/storage/migrations/{id}/pause",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "resumeStorageMigration": {
+    "method": "POST",
+    "path": "/api/v1/admin/storage/migrations/{id}/resume",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "cancelStorageMigration": {
+    "method": "POST",
+    "path": "/api/v1/admin/storage/migrations/{id}/cancel",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "retryFailedStorageMigration": {
+    "method": "POST",
+    "path": "/api/v1/admin/storage/migrations/{id}/retry-failed",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -5746,6 +5966,17 @@ export interface OperationInputs {
   consentMcpOauthAuthorize: Models.McpOauthConsentInput;
   myMcpOauthGrants: undefined;
   revokeMyMcpOauthGrant: undefined;
+  fileCatalog: undefined;
+  fileCatalogAccess: undefined;
+  deleteCatalogFile: undefined;
+  storageMigrationSummary: undefined;
+  listStorageMigrations: undefined;
+  createStorageMigration: Models.StorageMigrationCreateInput;
+  currentStorageMigration: undefined;
+  pauseStorageMigration: undefined;
+  resumeStorageMigration: undefined;
+  cancelStorageMigration: undefined;
+  retryFailedStorageMigration: undefined;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -6028,4 +6259,15 @@ export interface OperationData {
   consentMcpOauthAuthorize: Models.McpOauthConsentResponse['data'];
   myMcpOauthGrants: Models.McpOauthGrantListResponse['data'];
   revokeMyMcpOauthGrant: Models.ActionResultResponse['data'];
+  fileCatalog: Models.FileCatalogListResponse['data'];
+  fileCatalogAccess: Models.FileAccessResponse['data'];
+  deleteCatalogFile: Models.ActionResultResponse['data'];
+  storageMigrationSummary: Models.StorageMigrationSummaryResponse['data'];
+  listStorageMigrations: Models.StorageMigrationListResponse['data'];
+  createStorageMigration: Models.StorageMigrationJobResponse['data'];
+  currentStorageMigration: Models.StorageMigrationCurrentResponse['data'];
+  pauseStorageMigration: Models.ActionResultResponse['data'];
+  resumeStorageMigration: Models.ActionResultResponse['data'];
+  cancelStorageMigration: Models.ActionResultResponse['data'];
+  retryFailedStorageMigration: Models.ActionResultResponse['data'];
 }

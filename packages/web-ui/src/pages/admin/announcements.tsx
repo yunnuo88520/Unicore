@@ -8,8 +8,8 @@ import { AppSelectField } from '@unicore/form/fields';
 import { Eye, Megaphone, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { AnnouncementEntry, AnnouncementInput, AnnouncementQuery, AnnouncementSelection, WebClient } from '@unicore/sdk';
 import { currentLocale, defineMessages, t, useI18n } from '../../i18n';
-import { AppField, AppForm, useAppForm } from '@unicore/form';
-import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Input, Label, Modal, SimpleSelect, PageHeader, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage, selectOptions } from '@unicore/ui';
+import { AppField, AppForm, AppFormBody, AppFormFooter, useAppForm } from '@unicore/form';
+import { Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, FormDrawer, Input, Label, Modal, SimpleSelect, PageHeader, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Textarea, useMessage, selectOptions } from '@unicore/ui';
 import { RichTextEditor } from '@unicore/ui/editor';
 import { DataTable, DataTablePagination, DataTableToolbar } from '../../components/data-table';
 import { RichContent } from '../../rich-content';
@@ -196,8 +196,7 @@ function AnnouncementPanel({ web, metadata }: { web: WebClient; metadata: Bootst
         </div>
       </CardContent>
     </Card>
-    <Card>
-      <CardContent className="flex flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-4">
         <DataTableToolbar
           summary={{ label: t('公告总数'), value: t('共 {{count}} 条', { count: list.data?.total ?? 0 }) }}
           search={{ label: t('搜索公告'), placeholder: t('搜索公告标题、内容或备注…'), value: search, maxLength: 128,
@@ -215,8 +214,7 @@ function AnnouncementPanel({ web, metadata }: { web: WebClient; metadata: Bootst
           empty={{ icon: Megaphone, title: query.search || query.status ? t('没有匹配的公告') : t('暂无公告'), hint: t('新增公告，向用户传递平台消息。') }} />
         <DataTablePagination page={query.page} pageSize={query.page_size} total={list.data?.total ?? 0}
           onPageChange={page => { setQuery(current => ({ ...current, page })); setSelection([]); }} disabled={list.isFetching} />
-      </CardContent>
-    </Card>
+    </div>
     {readers && <AnnouncementReaders web={web} entry={readers} onClose={()=>setReaders(null)}/>}
     {editor && <AnnouncementEditor key={editor === 'new' ? 'new' : editor.id} web={web} entry={editor === 'new' ? undefined : editor}
       onClose={() => setEditor(null)} onSaved={() => { setEditor(null); refresh(); }} />}
@@ -264,9 +262,9 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
   });
   const pending = form.formState.isSubmitting || render.isPending;
   const current = (): AnnouncementInput => ({ ...form.getValues() });
-  return <Modal title={t(entry ? '编辑公告' : '新增公告')} onClose={onClose} pending={pending}>
-    <AppForm form={form} className="flex flex-col gap-4">
- <AppField name="title" label={t('公告标题')}><Input required maxLength={200} disabled={pending}/></AppField>
+  return <FormDrawer title={t(entry ? '编辑公告' : '新增公告')} onClose={onClose} pending={pending} size="lg">
+    <AppForm form={form} layout="panel"><AppFormBody>
+      <AppField name="title" label={t('公告标题')}><Input required maxLength={200} disabled={pending} /></AppField>
       <div className="flex min-w-0 flex-col gap-1.5">
         <div className="flex items-center justify-between gap-3">
           <Label htmlFor="announcement-content">{t('公告内容')}</Label>
@@ -294,7 +292,7 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
               onChange={event => { if (event.target.value) { setPreview(false); field.onChange(Math.floor(new Date(event.target.value).getTime() / 1000)); } }} />
           </div>
         )} />
-        <Controller control={form.control} name="ends_at" render={({field})=><div className="flex min-w-0 flex-col gap-1.5"><Input label={t('结束时间（可选）')} type="datetime-local" className="max-w-56" disabled={pending} value={field.value?localDate(field.value):''} min={localDate(values.publish_at ?? Math.floor(Date.now()/1000))} onChange={event=>field.onChange(event.target.value?Math.floor(new Date(event.target.value).getTime()/1000):0)}/></div>}/>
+        <Controller control={form.control} name="ends_at" render={({ field }) => <div className="flex min-w-0 flex-col gap-1.5"><Input label={t('结束时间（可选）')} type="datetime-local" className="max-w-56" disabled={pending} value={field.value ? localDate(field.value) : ''} min={localDate(values.publish_at ?? Math.floor(Date.now() / 1000))} onChange={event => field.onChange(event.target.value ? Math.floor(new Date(event.target.value).getTime() / 1000) : 0)} /></div>} />
         <AppSelectField name="notify_mode" label={t('通知方式')} className="max-w-40" disabled={pending} options={[{ value: 'silent', label: notifyModes.silent }, { value: 'popup', label: notifyModes.popup }]} />
         <Controller control={form.control} name="type" render={({ field }) => (
           <label className="flex min-w-0 flex-col gap-1.5">
@@ -312,7 +310,7 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
             <SimpleSelect aria-label={t('发布状态')} className="max-w-40" disabled={pending} value={field.value ?? 'draft'} onChange={event => { setPreview(false); field.onChange(event); }} options={selectOptions(<>
               <option value="published">{t((values.publish_at ?? 0) > Date.now() / 1000 ? '定时发布' : '发布')}</option>
               <option value="draft">{t('草稿')}</option>
- <option value="archived">{t('已归档')}</option>
+              <option value="archived">{t('已归档')}</option>
             </>)} />
           </label>
         )} />
@@ -328,16 +326,15 @@ function AnnouncementEditor({ web, entry, onClose, onSaved }: { web: WebClient; 
       {values.audience==='selected' && <RecipientPicker web={web} selected={values.recipient_ids ?? []} disabled={pending} onChange={ids=>form.setValue('recipient_ids',ids,{shouldDirty:true})}/>}
       <p className="text-xs text-muted">{t('修改公告不会重置已读记录；需要重新提醒时，请新建公告。')}</p>
       {preview && render.data && <div className="announcement-preview max-h-44 overflow-auto rounded-lg border border-line bg-surface-alt p-3"><RichContent html={render.data.content_html} /></div>}
-      <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
+    </AppFormBody><AppFormFooter className="sm:justify-between">
         <Button variant="secondary" disabled={pending || !content.trim()} onClick={() => render.mutate(current())}>
           <Eye size={14} />{t('预览')}
         </Button>
         <span className="flex-1" />
         <Button variant="secondary" disabled={pending} onClick={onClose}>{t('取消')}</Button>
         <Button type="submit" pending={form.formState.isSubmitting}>{pending ? t('处理中…') : t('保存')}</Button>
-      </div>
-    </AppForm>
-  </Modal>;
+    </AppFormFooter></AppForm>
+  </FormDrawer>;
 }
 
 function RecipientPicker({ web, selected, disabled, onChange }: { web: WebClient; selected: string[]; disabled: boolean; onChange: (ids: string[]) => void }) {

@@ -42,6 +42,7 @@ func WithSecrets(store *sqlstore.Store, directory string, key files.Secrets) (*f
 		}
 		return bloblocal.New(filepath.Join(directory, "files")), nil
 	}}
+	service.References = localFileReferenceCheckers(store)
 	if err := service.Cleanup(context.Background()); err != nil {
 		return nil, err
 	}

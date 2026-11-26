@@ -655,7 +655,7 @@ func (r *Repository) ListUsers(ctx context.Context, search string, page, size in
 	}
 	return result, nil
 }
-func (r *Repository) CreateSession(ctx context.Context, hash, userID string, expires int, credentialHash string) error {
+func (r *Repository) CreateSession(ctx context.Context, hash, userID string, expires int, credentialHash string, administrator bool) error {
 	tx, err := r.Store.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -670,6 +670,15 @@ func (r *Repository) CreateSession(ctx context.Context, hash, userID string, exp
 	}
 	if status != "active" || (credentialHash != "" && credentialHash != passwordHash) {
 		return platform.ErrCredentials
+	}
+	if administrator {
+		user, err := r.user(ctx, tx, userID)
+		if err != nil {
+			return err
+		}
+		if !platform.HasManagementAccess(user) {
+			return platform.ErrForbidden
+		}
 	}
 	if _, err = r.exec(ctx, tx, "DELETE FROM unicore_sessions WHERE expires_at<=?", time.Now().Unix()); err != nil {
 		return err

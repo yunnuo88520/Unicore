@@ -32,7 +32,7 @@ setTranslator(t);
 | Badge | `@unicore/ui` | 状态/计数标签（badgeVariants 语义色） |
 | AlertDialog / Avatar / Separator / Skeleton / Progress / Label | `@unicore/ui` | 告警确认弹窗、头像、分隔线、骨架屏、进度条与控件关联标签（Label 与 Input 控制面同源导出） |
 | Card | `@unicore/ui` | 面板表面与 Header/Title/Description/Content/Footer 组合；`asChild` 可渲染为链接瓦片；默认及 `variant="soft"` 提供无可见边框/阴影的柔和表面，`outlined` 提供边框表面 |
-| Input | `@unicore/ui` | 默认浮动标签；`appearance="search"` 提供导航快速筛选的圆角柔和表面，外部 label 必须关联 |
+| Input | `@unicore/ui` | FormDrawer 内固定上置标签、36px 输入与细边框；独立流程支持浮动标签；`appearance="search"` 提供导航快速筛选，外部 label 必须关联 |
 | PageHeader | `@unicore/ui` | 节标题 + 可选描述 + 操作槽；无外壳，放 CardContent 或裸用 |
 | StatCard | `@unicore/ui` | 仪表盘指标卡；支持 Card 的 `variant="soft"`；图标默认降噪，`tone="success"` 只用于承载语义的状态 |
 | EmptyState | `@unicore/ui` | 空/加载/错误三态；`icon/title/description/action`，原生 role 透传，外壳由调用方决定 |
@@ -43,7 +43,9 @@ setTranslator(t);
 | Modal / ConfirmDialog | `@unicore/ui` | 模态与确认框；`pending` 抑制 Esc 与遮罩关闭 |
 | DropdownMenu / Tooltip / Table | `@unicore/ui` | 弹出菜单、悬停提示、表格 |
 | MessageProvider / useMessage | `@unicore/ui` | 全局消息（五态、自动消失、树外静态代理） |
-| AppField / AppForm | `@unicore/form` | 契约驱动表单层，见 [应用开发](development.md) |
+| AppField / AppForm | `@unicore/form` | 契约驱动表单层，见 [表单交互](form-interaction.md) |
+| AppFormBody / AppFormFooter | `@unicore/form` | FormDrawer 表单的独立滚动正文与固定操作区 |
+| FormDrawer | `@unicore/ui` | 新建/编辑实体的抽屉表单外壳；固定头部，`size="md"`（560）或 `size="lg"`（800） |
 | RichTextEditor | `@unicore/ui/editor` | 受限富文本（独立入口，较重） |
 
 ## 最小示例
@@ -67,11 +69,29 @@ message.success(t('已保存'));
 
 ## 行为约定
 
+品牌布局区分图标与完整字标，遵循 [MUI Toolpad 的 logo/title 独立槽](https://mui.com/toolpad/core/react-dashboard-layout/#branding) 与 [Atlassian 的 logomark/wordmark 分类](https://atlassian.design/foundations/logos)；各项目仍需定义自己的槽位大小。共享 `BrandLockup` 默认图标加名称，图标优先使用站点图标、未配置时使用 Logo；侧栏图标固定 28×28 px、间隔 8 px，站名使用剩余宽度并在过长时省略，链接保留完整名称提示。完整字标模式占独立品牌区（侧栏最大 180×28 px），不重复显示名称；登录与首页按各自版位限制整体宽高。所有图片 `contain` 等比显示，不能扩大侧栏；折叠态使用站点图标，缺失时用名称首字。品牌设置的展示预览直接使用该组件，不能另画一个近似预览。
+
 - 显示文案由调用方翻译后传入（或传目录 key 由翻译桩处理）；业务数据（文件名、用户内容）不经过翻译。
 - 消息 `content` 渲染调用方传入的原文，组件不做目录查找。
 - 组件不负责权限与数据获取；键盘与焦点行为（焦点圈、焦点返回、Esc 抑制）内建。
 - 工作区固定 LTR，忽略旧阅读方向偏好；WorkspaceLayout 独占导航与内容占位。正文页首使用 PageHeader（默认 `as="h1"`），需要分节时用 h2/h3；顶栏面包屑或标题不能替代正文标题，业务页不自行增加侧栏偏移。
 - 独立图表从 `@unicore/ui/charts` 导入；已有业务 Recharts widget 仍由业务层装配，管理员近七天活动继续读取真实统计 API，不向单机/桌面注入平台请求。
+
+### 自定义控制台工作台切换
+
+`@unicore/web-ui` 导出 `WorkspaceSwitcher`，供 Platform 派生应用的自定义 Shell 自行放置。`ConsoleShellProps.workspaces` 是可选 prop 以兼容既有手动构造的 Shell props；框架渲染时会提供当前会话可达目标，`title` 已翻译，`kind` 为 `user`、`administrator` 或 `console`：
+
+```tsx
+import { WorkspaceSwitcher, type ConsoleShellProps } from '@unicore/web-ui';
+
+function PartnerShell({ workspaces }: ConsoleShellProps) {
+  return <header>
+    <WorkspaceSwitcher workspaces={workspaces ?? []} aria-label={t('切换工作台')} />
+  </header>;
+}
+```
+
+列表始终包含用户工作空间，只有 bootstrap 提供 `admin_path` 时才包含管理工作台；业务控制台只列出通过当前 bootstrap 权限投影的已注册目标。组件对 custom 目标使用应用路由，对 user/admin 目标使用普通链接跨入口导航。管理员仍从现有账号菜单返回用户工作空间，再切换到业务控制台；自定义控制台不装配进管理员 SPA，也不改变统一账号、身份域或后端 API realm。Switcher 不会自动加入 Shell 布局，Shell 负责选择其位置与周边样式。
 
 ## 独立 family 与子入口
 
@@ -183,7 +203,7 @@ const table = useTable({ features, columns, data: list.data?.items ?? [], meta, 
 
 ## 表单交互
 
-共享表单按[表单交互规范](form-interaction.md)组合。Input/Textarea 支持 `label` 浮动标签，密码 Input 在 new-password 场景默认显示强度条并提供显隐；秘密配置传 `strength={false}`。SimpleSelect 默认少于 5 项平铺单选、5–20 项下拉、超过 20 项可搜索，`presentation` 可指定搜索或紧凑下拉；ref 指向当前真实可聚焦控件。
+共享表单按[表单交互规范](form-interaction.md)组合。新建/编辑实体默认使用 `FormDrawer` + `AppForm layout="panel"`；`AppFormBody` 独立滚动，`AppFormFooter` 固定取消/提交操作。业务页面不自行拼滚动区域、sticky footer 或抽屉宽度。默认单列；只将语义相关的短字段放入 `grid-cols-1 sm:grid-cols-2`，375px 单列；复杂表单可选 `size="lg"`。确认、查看和短临时任务使用 Modal，危险动作使用 ConfirmDialog。FormDrawer 通过 ControlLabelProvider 统一使 Input/Textarea 的 `label` 上置，不预留浮动标签空白；独立流程仍支持浮动标签。输入采用 surface 底色与细边框、字段间距 16px。普通列表不重复套 Card/CardContent。密码 Input 在 new-password 场景默认显示强度条并提供显隐；秘密配置传 `strength={false}`。SimpleSelect 默认少于 5 项平铺单选、5–20 项下拉、超过 20 项可搜索，`presentation` 可指定搜索或紧凑下拉；ref 指向当前真实可聚焦控件。
 
 `@unicore/ui/controls` 新增 RangeSlider（双端+数值同步）、TagInput（回车/IME/删除）和 Cascader（相邻层级列）。Combobox 支持 `query/onQueryChange` 交由宿主异步检索，`loading/error/onRetry/footer` 保持在锚定浮层；`translateOptions={false}` 保留业务姓名，匹配内容高亮。FileUploadDropzone 的受控 `files/onRemove` 展示真实进度；未接上传服务时仅显示等待状态，不制造进度。
 

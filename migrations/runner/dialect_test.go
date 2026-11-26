@@ -33,13 +33,13 @@ func TestLiveCompoundMigration(t *testing.T) {
 			defer store.Close()
 			suffix := fmt.Sprintf("%d", time.Now().UnixNano())
 			table, ledger, trigger, function := "i103_e_"+suffix, "i103_l_"+suffix, "i103_t_"+suffix, "i103_f_"+suffix
-			t.Cleanup(func() {
+			defer func() {
 				store.DB.ExecContext(ctx, "DROP TABLE IF EXISTS "+table)
 				store.DB.ExecContext(ctx, "DROP TABLE IF EXISTS "+ledger)
 				if driver == "postgres" {
 					store.DB.ExecContext(ctx, "DROP FUNCTION IF EXISTS "+function+"()")
 				}
-			})
+			}()
 			if _, err := store.DB.ExecContext(ctx, "CREATE TABLE "+ledger+" (namespace VARCHAR(128), version INTEGER, checksum VARCHAR(64), applied_at BIGINT)"); err != nil {
 				t.Fatal(err)
 			}

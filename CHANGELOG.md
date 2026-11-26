@@ -7,6 +7,11 @@ All notable changes to Unicore are documented here. 本文件只记录面向使�
 
 ### 中文
 
+- 新增平台文件治理页（超级管理员）：全实例文件目录、用途/类型/存储位置筛选、表格与网格视图、内联预览、详情审计（含完整存储路径）、批量删除与业务引用保护。
+- 新增服务端异步存储迁移：本地↔云按批扫描迁移、断点续传（服务重启自动暂停）、暂停/恢复/取消、失败重试与失败明细、最近 20 条迁移记录；任务完成或失败推送创建管理员的通知中心并附跳转入口。迁移前需先将目标位置设为全局默认，迁移期间新文件直接写入目标。
+- 统一上传对象键由服务端生成（`{目录}/{年}/{月}/{随机ID}.{扩展名}`）：业务相对目录受白名单与路径穿越清洗约束，显示名与物理名分离，历史文件读取不受影响。
+- 修复 PDF 内联预览被 Chrome 沙箱策略屏蔽的问题，预览弹窗新增“新标签页打开”兜底。
+- 修复登录、注册页在宽 Logo 下站名被截断的问题；PC 端显示完整名称，移动端优雅省略，侧边栏不受影响。
 - 修复数据库迁移无法执行包含内部分号的触发器和函数的问题；新迁移可显式分隔完整语句，已发布迁移的执行规则保持不变。
 - 修复 Platform 已有实例关闭笔记 demo 后无法保存菜单树的问题；保留原有模块菜单、自定义配置和角色授权，重新启用后继续使用，其他菜单仍可正常编辑。
 - 修复 MySQL 库默认排序规则为 `utf8mb4_unicode_ci` 时 Platform 登录及个人安全数据关联失败的问题；通过追加迁移统一关联键并保留已有数据。包含此迁移的版本须停服备份后人工部署，回退使用匹配旧程序的完整快照。
@@ -15,6 +20,11 @@ All notable changes to Unicore are documented here. 本文件只记录面向使�
 
 ### English
 
+- New platform file governance page (super administrators): instance-wide file catalog with purpose/type/location filters, table and grid views, inline previews, detail audit including the full storage path, batch delete and business-reference protection.
+- New server-side asynchronous storage migration: batched local↔cloud migration with a resumable cursor (runs auto-pause after restarts), pause/resume/cancel, failure retry with per-file details, and the last 20 runs as history; completion or failure is delivered to the creating administrator's notification center with a jump action. Set the global default to the target before migrating so new files land there during the run.
+- Upload object keys are now generated server-side (`{folder}/{year}/{month}/{random}.{extension}`): business relative directories pass whitelist and traversal sanitization, display names stay separate from physical names, and existing files keep reading as before.
+- Fixed PDF inline preview blocked by Chrome's sandbox policy; the preview dialog gains an open-in-new-tab fallback.
+- Fixed the site name being truncated next to wide logos on login and register pages; roomy viewports show the full name, mobile falls back to an ellipsis, and the sidebar is unaffected.
 - Fixed database migrations containing triggers and functions with internal semicolons by supporting explicit statement blocks; published migration splitting remains unchanged.
 - Fixed menu-tree saves on existing Platform instances after disabling the notes demo. Module menus, customizations, and role grants are retained for re-enabling, while other menus remain editable.
 - Fixed Platform login and personal-security joins on MySQL databases using `utf8mb4_unicode_ci` by aligning association keys in an appended migration while retaining existing data. Deploy this migration with a stopped instance and a backup; rollback requires the matching old binary and a complete snapshot.

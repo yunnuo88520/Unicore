@@ -1,5 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: Standard pagination bar in two shapes: bound to a TanStack paginated instance or driven by server-side page state.
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button, SimpleSelect } from '@unicore/ui';
 import { cn } from '@unicore/ui/cn';
 import { t } from '../../i18n';
@@ -47,15 +48,19 @@ export function DataTablePagination({ table, page, pageSize, total, onPageChange
     if (table) table.setPageSize?.(next);
     onPageSizeChange?.(next);
   };
-  return <div className={cn('flex flex-wrap items-center justify-between gap-3 text-xs text-muted', className)}>
-    {!table && <span>{t('共 {{count}} 条', { count: total ?? 0 })}</span>}
-    <div className="flex flex-wrap items-center gap-2">
+  return <div className={cn('flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 text-xs text-muted', className)}>
+    {!table && <span className="tabular-nums">{t('共 {{count}} 条', { count: total ?? 0 })}</span>}
+    <div className="ms-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
       {onPageSizeChange && <SimpleSelect label={t('每页条数')} className="h-8 w-28" value={String(size)} disabled={disabled}
         onChange={value => changeSize(Number(value))}
         options={pageSizeOptions.map(option => ({ value: String(option), label: t('每页 {{v0}} 条', { v0: option }) }))} />}
-      <Button variant="secondary" size="sm" disabled={!canPrevious || disabled} onClick={goPrevious}>{t('上一页')}</Button>
-      <span>{t('第 {{page}} / {{total}} 页', { page: current, total: pageCount })}</span>
-      <Button variant="secondary" size="sm" disabled={!canNext || disabled} onClick={goNext}>{t('下一页')}</Button>
+      <Button variant="secondary" size="sm" aria-label={t('上一页')} disabled={!canPrevious || disabled} onClick={goPrevious}>
+        <ChevronLeft size={14} aria-hidden="true" /><span className="max-sm:hidden">{t('上一页')}</span>
+      </Button>
+      <span className="min-w-20 text-center tabular-nums">{t('第 {{page}} / {{total}} 页', { page: current, total: pageCount })}</span>
+      <Button variant="secondary" size="sm" aria-label={t('下一页')} disabled={!canNext || disabled} onClick={goNext}>
+        <span className="max-sm:hidden">{t('下一页')}</span><ChevronRight size={14} aria-hidden="true" />
+      </Button>
     </div>
   </div>;
 }

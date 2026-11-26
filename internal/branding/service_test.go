@@ -11,6 +11,7 @@ import (
 	"hash/crc32"
 	"image"
 	"image/color"
+	"image/draw"
 	"image/jpeg"
 	"image/png"
 	"os"
@@ -69,7 +70,7 @@ func TestNormalizeBoundaries(t *testing.T) {
 			t.Fatal(err)
 		}
 		cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
-		if err != nil || format != "png" || cfg.Width != 256 || cfg.Height != 256 {
+		if err != nil || format != "png" || cfg.Width != 1024 || cfg.Height != 512 || len(data) > maxNormalizedBytes {
 			t.Fatal(cfg, format, err)
 		}
 	}
@@ -80,13 +81,197 @@ func TestNormalizeBoundaries(t *testing.T) {
 		t.Fatal("trailing payload survived", err)
 	}
 	bomb := append([]byte{}, valid...)
-	binary.BigEndian.PutUint32(bomb[16:20], 100000)
+	binary.BigEndian.PutUint32(bomb[16:20], 1000000)
 	binary.BigEndian.PutUint32(bomb[29:33], crc32.ChecksumIEEE(bomb[12:29]))
-	invalid := []string{"", "invalid", base64.StdEncoding.EncodeToString([]byte(`<svg onload="alert(1)"/>`)), base64.StdEncoding.EncodeToString(bomb), imageInput(t, 15, 32, false), imageInput(t, 2049, 16, false), base64.StdEncoding.EncodeToString(make([]byte, MaxBytes+1))}
+	invalid := []string{"", "invalid", base64.StdEncoding.EncodeToString([]byte(`<svg onload="alert(1)"/>`))}
 	for i, input := range invalid {
 		if _, err := Normalize(input); !errors.Is(err, ErrInvalid) {
 			t.Fatalf("invalid %d accepted: %v", i, err)
 		}
+	}
+	if _, err := Normalize(base64.StdEncoding.EncodeToString(bomb)); !errors.Is(err, ErrImageTooLarge) {
+		t.Fatalf("decode budget error was not distinguished: %v", err)
+	}
+	for _, normalize := range []func(string) ([]byte, error){Normalize, NormalizeIcon} {
+		if _, err := normalize(base64.StdEncoding.EncodeToString(make([]byte, MaxBytes+1))); !errors.Is(err, ErrUploadTooLarge) {
+			t.Fatalf("upload byte limit error was not distinguished: %v", err)
+		}
+	}
+}
+
+func TestNormalizeAcceptsSmallHighResolutionLogo(t *testing.T) {
+	// Regress a small encoded PNG exceeding the former 16 MP limit. A palette
+	// keeps the source fixture small without retaining a real uploaded logo.
+	const width, height = 12228, 2227
+	img := image.NewPaletted(image.Rect(0, 0, width, height), color.Palette{color.White, color.NRGBA{R: 220, A: 255}})
+	draw.Draw(img, image.Rect(500, 500, width-500, height-500), image.NewUniform(img.Palette[1]), image.Point{}, draw.Src)
+	var raw bytes.Buffer
+	if err := png.Encode(&raw, img); err != nil {
+		t.Fatal(err)
+	}
+	if raw.Len() > MaxBytes {
+		t.Fatalf("regression input must satisfy upload limit: %d bytes", raw.Len())
+	}
+	data, err := Normalize(base64.StdEncoding.EncodeToString(raw.Bytes()))
+	if err != nil {
+		t.Fatalf("small high-resolution image rejected: %v", err)
+	}
+	cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil || format != "png" || cfg.Width != 1024 || cfg.Height != 186 || len(data) > maxNormalizedBytes {
+		t.Fatalf("high-resolution logo was not normalized proportionally: %+v %s %v", cfg, format, err)
+	}
+}
+
+func TestDecodeBudgetAccountsForColorDepthAndExtremeDimensions(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		config image.Config
+		want   bool
+	}{
+		{"8-bit accepted", image.Config{ColorModel: color.NRGBAModel, Width: 12228, Height: 2227}, true},
+		{"16-bit exceeds budget", image.Config{ColorModel: color.NRGBA64Model, Width: 12228, Height: 2227}, false},
+		{"huge width", image.Config{ColorModel: color.RGBAModel, Width: 1_000_000, Height: 32}, false},
+		{"huge height", image.Config{ColorModel: color.RGBAModel, Width: 1, Height: 1_000_000_000}, false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := withinDecodeBudget(test.config); got != test.want {
+				t.Fatalf("withinDecodeBudget() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestLogoScalingBoundsScratchForTallImages(t *testing.T) {
+	// A narrow, tall image has a small pixel buffer but large kernel weights.
+	src := image.NewNRGBA(image.Rect(0, 0, 2, 2_200_000))
+	for y := 0; y < src.Bounds().Dy(); y++ {
+		for x := 0; x < 2; x++ {
+			i := src.PixOffset(x, y)
+			stripe := uint8(y % 2 * 255)
+			src.Pix[i], src.Pix[i+1], src.Pix[i+2], src.Pix[i+3] = stripe, stripe, stripe, 255
+		}
+	}
+	dst := image.NewNRGBA(image.Rect(0, 0, 1, 1024))
+	scaleLogo(dst, src, src.Bounds())
+	for y := 1; y < dst.Bounds().Dy()-1; y++ {
+		if got := dst.NRGBAAt(0, y); got.R < 120 || got.R > 136 || got.A != 255 {
+			t.Fatalf("bounded resampling aliased fine stripes at row %d: %+v", y, got)
+		}
+	}
+}
+
+func TestNormalizeTrimsOnlyTransparentPNGBounds(t *testing.T) {
+	img := image.NewNRGBA(image.Rect(0, 0, 300, 180))
+	for y := 50; y < 130; y++ {
+		for x := 100; x < 200; x++ {
+			img.SetNRGBA(x, y, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
+		}
+	}
+	var raw bytes.Buffer
+	if err := png.Encode(&raw, img); err != nil {
+		t.Fatal(err)
+	}
+	data, err := Normalize(base64.StdEncoding.EncodeToString(raw.Bytes()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, _, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil || cfg.Width != 100 || cfg.Height != 80 {
+		t.Fatalf("transparent padding was not removed: %+v %v", cfg, err)
+	}
+
+	white := image.NewNRGBA(image.Rect(0, 0, 300, 180))
+	for y := 0; y < 180; y++ {
+		for x := 0; x < 300; x++ {
+			white.SetNRGBA(x, y, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
+		}
+	}
+	raw.Reset()
+	if err := png.Encode(&raw, white); err != nil {
+		t.Fatal(err)
+	}
+	data, err = Normalize(base64.StdEncoding.EncodeToString(raw.Bytes()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, _, err = image.DecodeConfig(bytes.NewReader(data))
+	if err != nil || cfg.Width != 300 || cfg.Height != 180 {
+		t.Fatalf("opaque white canvas was cropped: %+v %v", cfg, err)
+	}
+}
+
+func TestEncodeFitBoundedRespectsOutputBudget(t *testing.T) {
+	img := image.NewNRGBA(image.Rect(0, 0, 1024, 1024))
+	state := uint32(1)
+	for y := 0; y < 1024; y++ {
+		for x := 0; x < 1024; x++ {
+			state ^= state << 13
+			state ^= state >> 17
+			state ^= state << 5
+			img.SetNRGBA(x, y, color.NRGBA{R: byte(state), G: byte(state >> 8), B: byte(state >> 16), A: 255})
+		}
+	}
+	data, err := encodeFitBounded(img, maxLogoDimension, maxLogoDimension, maxNormalizedBytes)
+	if err != nil || len(data) > maxNormalizedBytes {
+		t.Fatalf("output exceeded stored asset budget: %d bytes, %v", len(data), err)
+	}
+	cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil || format != "png" || cfg.Width >= maxLogoDimension || cfg.Height >= maxLogoDimension {
+		t.Fatalf("oversized encoded output was not reduced: %+v %s %v", cfg, format, err)
+	}
+}
+
+func TestMailLogoPreservesAspectRatioAndBudget(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		w, h       int
+		outW, outH int
+	}{
+		{name: "wordmark", w: 2048, h: 512, outW: 320, outH: 80},
+		{name: "mark", w: 1024, h: 1024, outW: 84, outH: 84},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			store := &memoryStore{values: map[string]string{}}
+			service := New(store, bloblocal.New(filepath.Join(t.TempDir(), "brand-assets")))
+			if _, err := service.Update(context.Background(), contracts.BrandingInput{Slot: "logo", Content: imageInput(t, test.w, test.h, false)}, "actor", false); err != nil {
+				t.Fatal(err)
+			}
+			data, err := service.Logo(context.Background())
+			if err != nil || len(data) > maxMailLogoBytes {
+				t.Fatalf("mail image exceeded budget: %d bytes, %v", len(data), err)
+			}
+			cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
+			if err != nil || format != "png" || cfg.Width != test.outW || cfg.Height != test.outH {
+				t.Fatalf("mail image dimensions changed: %+v %s %v", cfg, format, err)
+			}
+		})
+	}
+}
+
+func TestNormalizeAcceptsLargeLandscapeAndPortraitLogos(t *testing.T) {
+	for _, dimensions := range [][2]int{{4096, 512}, {512, 4096}, {1, 16}} {
+		data, err := Normalize(imageInput(t, dimensions[0], dimensions[1], false))
+		if err != nil {
+			t.Fatalf("accepted size %dx%d rejected: %v", dimensions[0], dimensions[1], err)
+		}
+		cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
+		if err != nil || format != "png" {
+			t.Fatalf("normalized %dx%d image invalid: %v", dimensions[0], dimensions[1], err)
+		}
+		if cfg.Width*dimensions[1] != cfg.Height*dimensions[0] {
+			t.Fatalf("aspect ratio changed: input %dx%d, output %dx%d", dimensions[0], dimensions[1], cfg.Width, cfg.Height)
+		}
+	}
+}
+
+func TestNormalizeAcceptsExactUploadByteLimit(t *testing.T) {
+	raw, err := base64.StdEncoding.DecodeString(imageInput(t, 16, 16, false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw = append(raw, make([]byte, MaxBytes-len(raw))...)
+	if _, err = Normalize(base64.StdEncoding.EncodeToString(raw)); err != nil {
+		t.Fatalf("image at %d-byte limit rejected: %v", MaxBytes, err)
 	}
 }
 func TestPersistenceFailureAndCleanup(t *testing.T) {
@@ -169,6 +354,26 @@ func TestAccentSlot(t *testing.T) {
 	after, _ := service.Snapshot(ctx, false)
 	if after.Accent != nil {
 		t.Fatal("reset accent still present")
+	}
+}
+
+func TestSnapshotDefaultsAndPreservesDisplayMode(t *testing.T) {
+	for _, test := range []struct {
+		stored string
+		want   string
+	}{
+		{stored: "", want: "icon-title"},
+		{stored: "wordmark", want: "wordmark"},
+		{stored: "unknown", want: "icon-title"},
+	} {
+		store := &memoryStore{values: map[string]string{}}
+		if test.stored != "" {
+			store.values["branding.display_mode"] = test.stored
+		}
+		snapshot, err := New(store, bloblocal.New(filepath.Join(t.TempDir(), "brand-assets"))).Snapshot(context.Background(), false)
+		if err != nil || snapshot.DisplayMode == nil || *snapshot.DisplayMode != test.want {
+			t.Fatalf("display mode = %v, want %q (err %v)", snapshot.DisplayMode, test.want, err)
+		}
 	}
 }
 

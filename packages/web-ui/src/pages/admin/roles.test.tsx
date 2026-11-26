@@ -93,7 +93,7 @@ it('lists all roles together and shows member counts per role', async () => {
   mount(metadata(['roles:read', 'roles:write']), baseWeb());
   expect(await screen.findByText('记录员')).toBeVisible();
   expect(screen.getByText('内容运营')).toBeVisible();
-  expect(screen.getByText('super_admin')).toBeVisible();
+  expect(screen.getByText('超级管理员')).toBeVisible();
   expect(screen.getByText('全部')).toBeVisible();
   expect(screen.getByText('自定义 · 1 个部门')).toBeVisible();
   expect(screen.getByRole('row', { name: /内容运营/ })).toHaveTextContent('2');

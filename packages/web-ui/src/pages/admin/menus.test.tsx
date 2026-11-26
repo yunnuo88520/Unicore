@@ -261,10 +261,7 @@ it('creates a page from the region row: the type is picked in the dialog and the
   await userEvent.click(screen.getByRole('option', { name: '笔记管理' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '确定' }));
   // New nodes take a random id; the row is located by its display name.
-  // 笔记管理 is registered for the user workspace only, so the row shows up
-  // after switching the editor's surface filter away from the administrator view.
-  await userEvent.click(screen.getByRole('combobox', { name: '按工作台筛选' }));
-  await userEvent.click(screen.getByRole('option', { name: '用户工作台' }));
+  // The management page stays in the current administrator view.
   const labRow = screen.getByText('笔记管理').closest('tr') as HTMLElement;
   expect(labRow.getAttribute('data-node-type')).toBe('page');
   expect(labRow.getAttribute('data-section')).toBe('business');
@@ -276,9 +273,8 @@ it('creates a page from the region row: the type is picked in the dialog and the
   const created = payload.nodes.find(item => item.route_id === 'note-management');
   expect(created?.section_id).toBe('business');
   expect(created?.parent_id).toBeUndefined();
-  // Surfaces derive from the registered route: the business management page
-  // reaches the user workspace only and never the administrator console.
-  expect(created?.surfaces).toEqual(['user']);
+  // The registered management surface bounds the saved node.
+  expect(created?.surfaces).toEqual(['administrator']);
   expect(payload.role_assignments).toBeUndefined();
 });
 
@@ -336,10 +332,7 @@ it('adds a child page from a page row with the parent preset to that row', async
   await userEvent.click(within(dialog).getByRole('combobox', { name: '目标页面（仅已注册路由）' }));
   await userEvent.click(screen.getByRole('option', { name: '笔记管理' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '确定' }));
-  // 笔记管理 is registered for the user workspace only: the created row shows
-  // up after switching the editor's surface filter away from the administrator view.
-  await userEvent.click(screen.getByRole('combobox', { name: '按工作台筛选' }));
-  await userEvent.click(screen.getByRole('option', { name: '用户工作台' }));
+  // The management page stays in the current administrator view.
   const labRow = screen.getByText('笔记管理').closest('tr') as HTMLElement;
   expect(labRow.getAttribute('data-node-type')).toBe('page');
   await userEvent.click(screen.getByRole('button', { name: '保存菜单配置' }));
@@ -739,7 +732,7 @@ it('retries a failed role catalogue inside the assignment dialog without exposin
   await userEvent.click(within(dialog).getByRole('button', { name: '重试' }));
   expect(await screen.findByRole('checkbox', { name: '运营' })).not.toBeChecked();
   const loaded = screen.getByRole('dialog', { name: '分配角色：工作台概览' });
-  expect(within(loaded).getByRole('checkbox', { name: 'super_admin' })).toBeDisabled();
+  expect(within(loaded).getByRole('checkbox', { name: '超级管理员' })).toBeDisabled();
   expect(within(loaded).getByRole('button', { name: '保存' })).toBeEnabled();
   expect(roles).toHaveBeenCalledTimes(2);
 });
@@ -759,7 +752,7 @@ it('keeps the super administrator assignment fixed and protects dirty layout nav
   harness(menuList(), [role({ id: 'user', name: '用户', builtin: true, menu_ids: [] })]);
   await userEvent.click(await screen.findByRole('button', { name: '分配角色：工作台概览' }));
   const dialog = screen.getByRole('dialog', { name: '分配角色：工作台概览' });
-  const fixed = within(dialog).getByRole('checkbox', { name: 'super_admin' });
+  const fixed = within(dialog).getByRole('checkbox', { name: '超级管理员' });
   expect(fixed).toBeChecked(); expect(fixed).toBeDisabled();
   expect(within(dialog).getByText('还没有自定义角色')).toBeVisible();
   expect(within(dialog).getByRole('link', { name: '前往角色管理' })).toHaveAttribute('href', 'roles');

@@ -2893,11 +2893,11 @@
           "permissionMode": "all",
           "superAdmin": true,
           "csrf": true,
-          "maxBodyBytes": 393216,
+          "maxBodyBytes": 786432,
           "identityRealm": "administrator"
         },
         "summary": "adminPatchSettings",
-        "description": "替换品牌图片；空 content 恢复默认。只接受 PNG/JPEG，服务端重新编码为 PNG。",
+        "description": "替换品牌图片；空 content 恢复默认。Logo 仅接受不超过 500 KB 的 PNG/JPEG，支持任意尺寸和比例；站点图标另接受有界 ICO，服务端重新编码为 PNG。",
         "parameters": []
       }
     },
@@ -4315,7 +4315,7 @@
             }
           }
         },
-        "description": "管理员流式迁移并校验摘要，保持 file_id，成功后切换引用并延迟清理原对象。"
+        "description": "Migrates only between local and cloud storage (or local locations). Cloud-to-cloud transfer is rejected. Verifies size and SHA-256 before changing the stable file reference."
       }
     },
     "/api/v1/files/{id}/content": {
@@ -4397,7 +4397,7 @@
     "/api/v1/admin/auth/oidc/callback": {
       "get": {
         "operationId": "administratorOIDCCallback",
-        "description": "One-time state + browser proof, PKCE, nonce, signed ID token. Fixed local redirect only.",
+        "description": "One-time state + browser proof, PKCE, nonce, signed ID token. Fixed local redirect only. 管理登录仅允许具有管理工作台访问权的账号；凭据验证成功后仍须在会话签发事务内检查当前权限，无权账号返回 403 且不签发会话。",
         "parameters": [
           {
             "name": "state",
@@ -4495,7 +4495,7 @@
         "security": [],
         "summary": "管理员端：bootstrap",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。 不具备管理工作台访问权时只返回管理登录所需公共元数据，不投影 current_user、导航、CSRF 或待完成 MFA。"
       }
     },
     "/api/v1/admin/core/execute": {
@@ -4599,7 +4599,7 @@
         ],
         "summary": "管理员端：execute",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/auth/captcha": {
@@ -4641,7 +4641,7 @@
         "security": [],
         "summary": "管理员端：captcha",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/auth/login": {
@@ -4693,7 +4693,7 @@
         "security": [],
         "summary": "管理员端：login",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。 管理登录仅允许具有管理工作台访问权的账号；凭据验证成功后仍须在会话签发事务内检查当前权限，无权账号返回 403 且不签发会话。"
       }
     },
     "/api/v1/admin/auth/session": {
@@ -4739,7 +4739,7 @@
         },
         "summary": "管理员端：session",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。 普通账号的有效共享会话不能进入管理工作台，此接口返回 403；原用户工作台会话保持有效。"
       }
     },
     "/api/v1/admin/auth/logout": {
@@ -4786,7 +4786,7 @@
         },
         "summary": "管理员端：logout",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/auth/policy": {
@@ -4828,7 +4828,7 @@
         "security": [],
         "summary": "管理员端：authPolicy",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/auth/password/request": {
@@ -4881,7 +4881,7 @@
         "security": [],
         "summary": "管理员端：requestPasswordReset",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/auth/password/reset": {
@@ -4934,7 +4934,7 @@
         "security": [],
         "summary": "管理员端：resetPassword",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/auth/email/reset/request": {
@@ -4986,7 +4986,7 @@
         "security": [],
         "summary": "管理员端：requestEmailReset",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/auth/email/reset/complete": {
@@ -5038,7 +5038,7 @@
         "security": [],
         "summary": "管理员端：completeEmailReset",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/auth/email/login/request": {
@@ -5090,7 +5090,7 @@
         "security": [],
         "summary": "管理员端：requestEmailLogin",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/auth/email/login/complete": {
@@ -5142,13 +5142,13 @@
         "security": [],
         "summary": "管理员端：completeEmailLogin",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。 管理登录仅允许具有管理工作台访问权的账号；凭据验证成功后仍须在会话签发事务内检查当前权限，无权账号返回 403 且不签发会话。"
       }
     },
     "/api/v1/admin/auth/oidc": {
       "get": {
         "operationId": "adminOidcInfo",
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。public",
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。public",
         "responses": {
           "200": {
             "description": "Success",
@@ -5250,7 +5250,7 @@
     "/api/v1/admin/auth/oidc/start": {
       "post": {
         "operationId": "adminOidcStart",
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。public; same-origin; rate limited",
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。public; same-origin; rate limited",
         "responses": {
           "200": {
             "description": "Success",
@@ -5352,7 +5352,7 @@
     "/api/v1/admin/account/oidc": {
       "get": {
         "operationId": "adminOidcAccount",
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。authenticated self",
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。authenticated self",
         "responses": {
           "200": {
             "description": "Success",
@@ -5461,7 +5461,7 @@
     "/api/v1/admin/account/oidc/link": {
       "post": {
         "operationId": "adminOidcLink",
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。authenticated self; CSRF; local password",
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。authenticated self; CSRF; local password",
         "responses": {
           "200": {
             "description": "Success",
@@ -5581,7 +5581,7 @@
     "/api/v1/admin/account/oidc/unlink": {
       "post": {
         "operationId": "adminOidcUnlink",
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。authenticated self; CSRF; local password",
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。authenticated self; CSRF; local password",
         "responses": {
           "200": {
             "description": "Success",
@@ -5755,7 +5755,7 @@
           }
         },
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/files": {
@@ -5825,7 +5825,7 @@
             }
           }
         ],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。普通用户只读取本人所属身份域的文件；管理员可查看实例文件。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。普通用户只读取本人所属身份域的文件；管理员可查看实例文件。"
       }
     },
     "/api/v1/admin/files/uploads": {
@@ -5888,7 +5888,7 @@
             }
           }
         },
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。生成仅可写临时对象的上传凭证，云存储使用浏览器直传；无需携带实例 Cookie/CSRF 至云。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。生成仅可写临时对象的上传凭证，云存储使用浏览器直传；无需携带实例 Cookie/CSRF 至云。"
       }
     },
     "/api/v1/admin/files/uploads/{id}/content": {
@@ -5964,7 +5964,7 @@
             }
           }
         },
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。仅本地模式：带身份和 CSRF 的原始二进制 PUT，长度必须与申请一致。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。仅本地模式：带身份和 CSRF 的原始二进制 PUT，长度必须与申请一致。"
       }
     },
     "/api/v1/admin/files/uploads/{id}/complete": {
@@ -6028,7 +6028,7 @@
             }
           }
         ],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。校验临时对象，以 ETag 条件复制到正式对象后标记可用；可幂等重试。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。校验临时对象，以 ETag 条件复制到正式对象后标记可用；可幂等重试。"
       }
     },
     "/api/v1/admin/files/{id}/access": {
@@ -6102,7 +6102,7 @@
             }
           }
         ],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。验证本人或管理员后发放短期下载地址，默认 300 秒。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。验证本人或管理员后发放短期下载地址，默认 300 秒。"
       }
     },
     "/api/v1/admin/files/{id}": {
@@ -6166,7 +6166,7 @@
             }
           }
         ],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。关闭文件访问，待既有签名到期后清理；匿名或他人文件统一返回 404。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。关闭文件访问，待既有签名到期后清理；匿名或他人文件统一返回 404。"
       }
     },
     "/api/v1/notes": {
@@ -10143,7 +10143,7 @@
         },
         "summary": "Read own profile and security policy",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       },
       "patch": {
         "operationId": "adminSaveAccountProfile",
@@ -10201,7 +10201,7 @@
           }
         },
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/account/totp/setup": {
@@ -10261,7 +10261,7 @@
           }
         },
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       },
       "get": {
         "operationId": "adminPendingTOTP",
@@ -10358,7 +10358,7 @@
         },
         "summary": "Cancel authenticator setup",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/account/totp/enable": {
@@ -10418,7 +10418,7 @@
           }
         },
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/account/totp/disable": {
@@ -10478,7 +10478,7 @@
           }
         },
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/auth/mfa": {
@@ -10535,7 +10535,7 @@
           }
         },
         "parameters": [],
-        "description": "Restricted identity-realm session and matching CSRF required. No workspace access until successful verification."
+        "description": "Restricted identity-realm session and matching CSRF required. No workspace access until successful verification. The management entry additionally requires current management-workspace access; a pending user session alone cannot complete management sign-in."
       }
     },
     "/api/v1/admin/auth/mfa/cancel": {
@@ -10631,7 +10631,7 @@
         },
         "summary": "List own active devices",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/account/sessions/revoke": {
@@ -10691,7 +10691,7 @@
           }
         },
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/account/sessions/revoke-others": {
@@ -10741,7 +10741,7 @@
         },
         "summary": "Revoke all other sessions",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/account/email/current": {
@@ -10791,7 +10791,7 @@
         },
         "summary": "Send a code to the current mailbox",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/account/email/verify-current": {
@@ -10851,7 +10851,7 @@
           }
         },
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/account/email/new": {
@@ -10911,7 +10911,7 @@
           }
         },
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/account/email/confirm": {
@@ -10971,7 +10971,7 @@
           }
         },
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/announcements/{id}/read": {
@@ -17817,6 +17817,357 @@
           }
         ]
       }
+    },
+    "/api/v1/admin/file-catalog": {
+      "get": {
+        "operationId": "fileCatalog",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileCatalogListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "fileCatalog",
+        "x-permission": "storage:read; super administrator only",
+        "description": "Instance-wide metadata catalog, including business uploads and normalized branding. Directory filters include descendants. Does not scan buckets or disclose object keys or credentials.",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "location_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "directory",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 512
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/file-catalog/directories": {
+      "get": {
+        "operationId": "fileDirectories",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileDirectoryListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "fileDirectories",
+        "x-permission": "storage:read; super administrator only",
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。普通用户只读取本人所属身份域的文件；管理员可查看实例文件。"
+      }
+    },
+    "/api/v1/admin/file-catalog/{id}/access": {
+      "post": {
+        "operationId": "fileCatalogAccess",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileAccessResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": [],
+            "CSRFToken": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "fileCatalogAccess",
+        "x-permission": "storage:read; super administrator only",
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。普通用户只读取本人所属身份域的文件；管理员可查看实例文件。",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/file-catalog/{id}": {
+      "delete": {
+        "operationId": "deleteCatalogFile",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": [],
+            "CSRFToken": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "deleteCatalogFile",
+        "x-permission": "storage:write; super administrator only",
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。普通用户只读取本人所属身份域的文件；管理员可查看实例文件。",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/file-catalog/migration-selection": {
+      "get": {
+        "operationId": "fileMigrationSelection",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileMigrationSelectionResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "Snapshot ready file IDs matching the catalog filters",
+        "x-permission": "storage:read; super administrator only",
+        "description": "Takes one metadata snapshot of ready files matching filters, up to 100000 entries. Later uploads are not added to this selection. Oversized selections are rejected; narrow by location or directory. An optional tested target filters out files already there and unsupported cloud-to-cloud transfers.",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            }
+          },
+          {
+            "name": "location_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "directory",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 512
+            }
+          },
+          {
+            "name": "target_location_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "description": "Exclude the destination and limit cloud destinations to local sources. Cloud-to-cloud migration is not supported."
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -20049,6 +20400,14 @@
             "type": "string",
             "pattern": "^#[0-9a-f]{6}$",
             "description": "Optional instance accent overriding the compiled brand color; users still win with an explicit preset."
+          },
+          "display_mode": {
+            "type": "string",
+            "enum": [
+              "icon-title",
+              "wordmark"
+            ],
+            "description": "Brand layout: icon-title reserves a fixed icon slot beside the site title (default); wordmark gives the full logo a bounded slot without a duplicate title. Configured through branding.display_mode in settings."
           }
         }
       },
@@ -20071,8 +20430,8 @@
           },
           "content": {
             "type": "string",
-            "maxLength": 349528,
-            "description": "Raw base64 PNG/JPEG; favicon also accepts ICO (PNG or uncompressed DIB frames). Up to 256 KiB; empty restores default. The accent slot takes a #RRGGBB color instead."
+            "maxLength": 682668,
+            "description": "Raw base64 PNG/JPEG; favicon also accepts ICO (PNG or uncompressed DIB frames). Up to 500 KB; logo dimensions and aspect ratio are unrestricted; empty restores default. The accent slot takes a #RRGGBB color instead."
           }
         }
       },
@@ -27475,6 +27834,216 @@
             "type": "integer"
           }
         }
+      },
+      "FileCatalogEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "file",
+          "purpose",
+          "directory",
+          "creator_name",
+          "creator_username"
+        ],
+        "properties": {
+          "file": {
+            "$ref": "#/components/schemas/FileEntry"
+          },
+          "purpose": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "directory": {
+            "type": "string",
+            "maxLength": 512
+          },
+          "creator_name": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "Current account display name; empty for system or removed accounts."
+          },
+          "creator_username": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "Current account username; never an internal identifier."
+          }
+        }
+      },
+      "FileCatalogList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileCatalogEntry"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        }
+      },
+      "FileDirectory": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "location_id",
+          "path",
+          "file_count",
+          "total_size"
+        ],
+        "properties": {
+          "location_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "path": {
+            "type": "string",
+            "maxLength": 512
+          },
+          "file_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "total_size": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      },
+      "FileDirectoryList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileDirectory"
+            }
+          }
+        }
+      },
+      "FileCatalogListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "data": {
+            "$ref": "#/components/schemas/FileCatalogList"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message; clients translate known catalog messages.",
+            "x-go-value": true
+          }
+        }
+      },
+      "FileDirectoryListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "data": {
+            "$ref": "#/components/schemas/FileDirectoryList"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message; clients translate known catalog messages.",
+            "x-go-value": true
+          }
+        }
+      },
+      "FileMigrationSelection": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "file_ids"
+        ],
+        "properties": {
+          "file_ids": {
+            "type": "array",
+            "maxItems": 100000,
+            "items": {
+              "type": "string",
+              "maxLength": 80
+            }
+          }
+        }
+      },
+      "FileMigrationSelectionResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "data": {
+            "$ref": "#/components/schemas/FileMigrationSelection"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message; clients translate known catalog messages.",
+            "x-go-value": true
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -27650,7 +28219,15 @@
     },
     "BRAND_INVALID": {
       "status": 400,
-      "message": "请选择不超过 256 KiB、尺寸 16–2048 像素的 PNG/JPEG；站点图标也支持 16–256 像素 ICO"
+      "message": "图片无法读取，请选择有效的 PNG/JPEG；站点图标另支持 16–256 像素 ICO"
+    },
+    "BRAND_UPLOAD_TOO_LARGE": {
+      "status": 400,
+      "message": "图片文件不能超过 500 KB"
+    },
+    "BRAND_IMAGE_TOO_LARGE": {
+      "status": 400,
+      "message": "图片解码所需内存超过 128 MB，请缩小图片后重试"
     },
     "DATABASE_NOT_EMPTY": {
       "status": 409,

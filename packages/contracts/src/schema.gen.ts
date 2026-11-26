@@ -575,6 +575,7 @@ export interface Branding {
   logo_dark: string;
   favicon: string;
   accent?: string;
+  display_mode?: "icon-title" | "wordmark";
 }
 
 export interface BrandingInput {
@@ -2382,4 +2383,55 @@ export interface SettingGroup {
   description: string;
   description_en: string;
   order: number;
+}
+
+export interface FileCatalogEntry {
+  file: FileEntry;
+  purpose: string;
+  directory: string;
+  creator_name: string;
+  creator_username: string;
+}
+
+export interface FileCatalogList {
+  items: Array<FileCatalogEntry>;
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface FileDirectory {
+  location_id: string;
+  path: string;
+  file_count: number;
+  total_size: number;
+}
+
+export interface FileDirectoryList {
+  items: Array<FileDirectory>;
+}
+
+export interface FileCatalogListResponse {
+  code: string;
+  data: FileCatalogList;
+  request_id: string;
+  message?: string;
+}
+
+export interface FileDirectoryListResponse {
+  code: string;
+  data: FileDirectoryList;
+  request_id: string;
+  message?: string;
+}
+
+export interface FileMigrationSelection {
+  file_ids: Array<string>;
+}
+
+export interface FileMigrationSelectionResponse {
+  code: string;
+  data: FileMigrationSelection;
+  request_id: string;
+  message?: string;
 }

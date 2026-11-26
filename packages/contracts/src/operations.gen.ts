@@ -885,7 +885,7 @@ export const operations = {
     "permissionMode": "all",
     "superAdmin": true,
     "csrf": true,
-    "maxBodyBytes": 393216,
+    "maxBodyBytes": 786432,
     "identityRealm": "administrator"
   },
   "listAdministrators": {
@@ -5462,6 +5462,106 @@ export const operations = {
     "superAdmin": false,
     "csrf": true,
     "identityRealm": "user"
+  },
+  "fileCatalog": {
+    "method": "GET",
+    "path": "/api/v1/admin/file-catalog",
+    "requestSchema": null,
+    "responseSchema": "FileCatalogListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "fileDirectories": {
+    "method": "GET",
+    "path": "/api/v1/admin/file-catalog/directories",
+    "requestSchema": null,
+    "responseSchema": "FileDirectoryListResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
+  },
+  "fileCatalogAccess": {
+    "method": "POST",
+    "path": "/api/v1/admin/file-catalog/{id}/access",
+    "requestSchema": null,
+    "responseSchema": "FileAccessResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "deleteCatalogFile": {
+    "method": "DELETE",
+    "path": "/api/v1/admin/file-catalog/{id}",
+    "requestSchema": null,
+    "responseSchema": "ActionResultResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:write"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": true,
+    "identityRealm": "administrator"
+  },
+  "fileMigrationSelection": {
+    "method": "GET",
+    "path": "/api/v1/admin/file-catalog/migration-selection",
+    "requestSchema": null,
+    "responseSchema": "FileMigrationSelectionResponse",
+    "binaryRequest": false,
+    "binaryResponse": false,
+    "multipartRequest": false,
+    "profiles": [
+      "web-platform"
+    ],
+    "access": "authenticated",
+    "permissions": [
+      "storage:read"
+    ],
+    "permissionMode": "all",
+    "superAdmin": true,
+    "csrf": false,
+    "identityRealm": "administrator"
   }
 } as const;
 export type OperationId = keyof typeof operations;
@@ -5746,6 +5846,11 @@ export interface OperationInputs {
   consentMcpOauthAuthorize: Models.McpOauthConsentInput;
   myMcpOauthGrants: undefined;
   revokeMyMcpOauthGrant: undefined;
+  fileCatalog: undefined;
+  fileDirectories: undefined;
+  fileCatalogAccess: undefined;
+  deleteCatalogFile: undefined;
+  fileMigrationSelection: undefined;
 }
 export interface OperationData {
   bootstrap: Models.BootstrapResponse['data'];
@@ -6028,4 +6133,9 @@ export interface OperationData {
   consentMcpOauthAuthorize: Models.McpOauthConsentResponse['data'];
   myMcpOauthGrants: Models.McpOauthGrantListResponse['data'];
   revokeMyMcpOauthGrant: Models.ActionResultResponse['data'];
+  fileCatalog: Models.FileCatalogListResponse['data'];
+  fileDirectories: Models.FileDirectoryListResponse['data'];
+  fileCatalogAccess: Models.FileAccessResponse['data'];
+  deleteCatalogFile: Models.ActionResultResponse['data'];
+  fileMigrationSelection: Models.FileMigrationSelectionResponse['data'];
 }

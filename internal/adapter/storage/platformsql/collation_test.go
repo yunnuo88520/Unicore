@@ -94,7 +94,7 @@ func TestMySQLPersonalKeyCollationsUpgrade(t *testing.T) {
 	mustExec("INSERT INTO unicore_session_details(token_hash,user_id,ip_address,user_agent,created_at,last_seen_at,mfa_verified,mfa_attempts) VALUES(?,?,'192.0.2.1','Preserved device',?,?,0,0)", oldHash, member.ID, time.Now().Unix(), time.Now().Unix())
 	mustExec("INSERT INTO unicore_email_changes(id,user_id,session_hash,parent_id,original_email,target_email,code_digest,verified,attempts,created_at,expires_at) VALUES('old-proof',?,?,'',?,?,'synthetic-proof',0,1,1,?)", member.ID, oldHash, member.Email, "replacement@example.test", expires)
 	mustExec("INSERT INTO unicore_mail_jobs(id,token_hash,payload,state,attempts,created_at,available_at,expires_at,lease_id,lease_until,last_error) VALUES('old-mail','old-proof','synthetic mail','pending',0,1,1,?,'',0,'')", expires)
-	if err := repo.CreateSession(ctx, platform.Hash("before-upgrade"), member.ID, expires, hash); err == nil {
+	if err := repo.CreateSession(ctx, platform.Hash("before-upgrade"), member.ID, expires, hash, false); err == nil {
 		t.Fatal("platform@1 fixture did not reproduce the login failure")
 	} else {
 		var mysqlErr *mysql.MySQLError

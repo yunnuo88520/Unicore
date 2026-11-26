@@ -7,11 +7,12 @@ import { createColumnHelper, tableFeatures, useTable } from '@tanstack/react-tab
 import { Combobox } from '@unicore/ui/controls';
 import { Bot, Copy, KeyRound } from 'lucide-react';
 import type { AdminPersonalTokenInput, AppClient, PersonalToken, PersonalTokenCreated, PersonalTokenInput, PersonalTokenRenewInput, WebClient } from '@unicore/sdk';
-import { AppControllerField, AppField, AppForm, useAppForm, type ControlledField } from '@unicore/form';
-import { Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, SimpleSelect, Textarea, useMessage } from '@unicore/ui';
+import { AppControllerField, AppField, AppForm, AppFormBody, AppFormFooter, useAppForm, type ControlledField } from '@unicore/form';
+import { Badge, Button, Card, CardContent, ConfirmDialog, FormDrawer, Input, Modal, SimpleSelect, Textarea, useMessage } from '@unicore/ui';
 import { DataTable, DataTableToolbar, DataTablePagination } from '../components/data-table';
 import { defineMessages, t, useLocale } from '../i18n';
 import { useColumnVisibility } from '../column-visibility';
+import { roleDisplayLabel } from '../role-display';
 
 const lifetimes = defineMessages([
   { value: '1', label: '1 天' }, { value: '7', label: '7 天' }, { value: '30', label: '30 天' }, { value: '90', label: '90 天' }, { value: '0', label: '永久' },
@@ -113,7 +114,7 @@ export function TokenManager({ web, userID, manage = false }: { web: WebClient; 
       <p className="text-xs text-muted">{t(manage ? '管理所有用户的访问令牌，或选择用户为其签发。' : '每个令牌绑定一个角色，仅使用该角色的当前权限和数据范围。')}</p>
       <Button size="sm" onClick={() => setCreating(true)}>{t('创建访问令牌')}</Button>
     </div>
-    <Card><CardContent className="flex min-w-0 flex-col gap-4 p-4">
+    <div className="flex min-w-0 flex-col gap-4">
       <DataTableToolbar
         search={{ label: t('搜索访问令牌'), placeholder: t(manage ? '搜索名称、用户或备注' : '搜索名称或备注'), value: search, onChange: value => { setSearch(value); setPage(1); } }}
         columnMenu={{ entries: menu, onToggle: toggle }} />
@@ -121,11 +122,10 @@ export function TokenManager({ web, userID, manage = false }: { web: WebClient; 
         empty={{ icon: KeyRound, title: t('暂无访问令牌'), hint: t('创建访问令牌，按绑定角色调用开放 API。') }} />
       {query.data && query.data.total > query.data.page_size
         && <DataTablePagination page={page} pageSize={query.data.page_size} total={query.data.total} onPageChange={setPage} disabled={query.isFetching} />}
-    </CardContent>
+    </div>
     {creating && <CreateToken web={web} userID={userID} manage={manage} onClose={() => setCreating(false)} onCreated={() => void query.refetch()} />}
     {renewing && <RenewToken web={web} token={renewing} manage={manage} onClose={() => setRenewing(undefined)} onSaved={() => { setRenewing(undefined); void query.refetch(); }} />}
     {revoking && <ConfirmDialog title={t('作废访问令牌')} description={t('作废后立即失效，且无法通过续期恢复。')} confirmLabel={t('确认作废')} cancelLabel={t('取消')} danger pending={revoke.isPending} onConfirm={() => revoke.mutate(revoking.id)} onCancel={() => setRevoking(undefined)} />}
-    </Card>
   </div>;
 }
 function LifetimeField() {
@@ -143,20 +143,20 @@ function CreateToken({ web, userID, manage, onClose, onCreated }: { web: WebClie
     const { user_id: _owner, ...personal } = input;
     return web.createPersonalToken(personal as PersonalTokenInput);
   }, onSuccess: result => { setCreated(result); onCreated(); }, onError: form.applyServerError });
-  return <Modal title={t('创建访问令牌')} onClose={onClose} pending={save.isPending}>
-    {created ? <div className="flex min-w-0 flex-col gap-4"><p role="status">{t('令牌仅显示这一次。请立即复制并妥善保存，关闭后无法再次查看。')}</p><div className="flex min-w-0 flex-col gap-2 text-sm"><Input label={t('新访问令牌')} autoComplete="off" readOnly value={created.token} onFocus={event => event.currentTarget.select()} /></div><Button onClick={onClose}>{t('完成')}</Button></div> : <AppForm form={form} className="flex min-w-0 flex-col gap-4">
+  return <FormDrawer title={t('创建访问令牌')} onClose={onClose} pending={save.isPending}>
+    {created ? <div className="flex min-h-0 flex-1 flex-col"><AppFormBody><p role="status">{t('令牌仅显示这一次。请立即复制并妥善保存，关闭后无法再次查看。')}</p><Input label={t('新访问令牌')} autoComplete="off" readOnly value={created.token} onFocus={event => event.currentTarget.select()} /></AppFormBody><AppFormFooter><Button onClick={onClose}>{t('完成')}</Button></AppFormFooter></div> : <AppForm form={form} layout="panel"><AppFormBody>
       {manage && <AppControllerField name="user_id" label={t('所属用户')} floating hint={t('输入用户名或邮箱搜索，再选择令牌所属用户')}>{field => <UserPicker web={web} field={field} onChange={id => { field.onChange(id); form.setValue('role_id', ''); }} />}</AppControllerField>}
       <AppField name="name" label={t('令牌名称')} rules={{ required: t('此项为必填') }}><Input maxLength={80} autoComplete="off" /></AppField>
       <AppControllerField name="role_id" label={t('绑定角色')} hint={t('只能选择该用户已拥有的一个角色。')}>
-        {field => <SimpleSelect {...field} label={t('绑定角色')} value={String(field.value)} onChange={field.onChange} disabled={!target || roles.isPending || !!roles.error || save.isPending} placeholder={t('请选择角色')} options={(roles.data?.items ?? []).map(role => ({ value: role.id, label: role.name }))} />}
+        {field => <SimpleSelect {...field} label={t('绑定角色')} value={String(field.value)} onChange={field.onChange} disabled={!target || roles.isPending || !!roles.error || save.isPending} placeholder={t('请选择角色')} options={(roles.data?.items ?? []).map(role => ({ value: role.id, label: roleDisplayLabel(role) }))} />}
       </AppControllerField>
       {roles.error && <div role="alert">{t('无法读取用户角色')} <Button type="button" variant="secondary" onClick={() => void roles.refetch()}>{t('重试')}</Button></div>}
       {!!target && roles.isSuccess && !roles.data.items.length && <p role="status">{t('当前用户没有可绑定的角色')}</p>}
       <LifetimeField />
       <AppField name="remark" label={t('备注')}><Textarea maxLength={500} rows={3} /></AppField>
-      <div className="sticky bottom-0 z-10 flex justify-end gap-2 border-t border-line bg-surface pt-3"><Button type="button" variant="secondary" disabled={save.isPending} onClick={onClose}>{t('取消')}</Button><Button type="submit" pending={save.isPending} disabled={!form.watch('role_id') || !target}>{t('生成令牌')}</Button></div>
+      </AppFormBody><AppFormFooter><Button type="button" variant="secondary" disabled={save.isPending} onClick={onClose}>{t('取消')}</Button><Button type="submit" pending={save.isPending} disabled={!form.watch('role_id') || !target}>{t('生成令牌')}</Button></AppFormFooter>
     </AppForm>}
-  </Modal>;
+  </FormDrawer>;
 }
 function UserPicker({ web, field, onChange }: { web: WebClient; field: ControlledField; onChange: (id: string) => void }) {
   useLocale();

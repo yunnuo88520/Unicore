@@ -36,7 +36,7 @@ metadata:
 
 pnpm typecheck、pnpm test、pnpm build；交互变更运行 make build-web test-e2e，桥接变更做原生构建。
 
-新增实体表单使用 ui 的 Modal/ConfirmDialog，不在列表下方展开。验证初始焦点、Escape/取消、焦点返回及 pending；安装/认证页面和设置编辑按自身流程呈现。导航默认区域与顺序由代码显式定义（业务区固定序列，系统设置组仅放全局设置类页面），操作员经菜单管理调整；不恢复重复平台仪表盘。系统日志承载可筛选/排序/分页/导出的审计与邮件投递；邮件模板是系统管理独立页，复用 ui/editor.tsx 的 Tiptap 编辑器，单层场景 Tabs；见 ADR-0020 和 docs/03-runbooks/admin-tools.md。共享 sidebar 固定视口，导航区独立滚动，验证 720px 高和 375px 宽。
+新增/编辑实体默认使用 `@unicore/ui` 的 `FormDrawer`（`size="md"` 默认；复杂内容才用 `size="lg"`）+ `@unicore/form` 的 `AppForm layout="panel"`、`AppFormBody`、`AppFormFooter`。标题固定、正文独立滚动、footer 固定；业务页不得自拼滚动区、sticky 操作栏或 Drawer 宽度。字段默认单列，仅语义相关短字段可在 `sm` 起双列，显式 `grid-cols-1 sm:grid-cols-2` 并保证 375px 单列。Modal 用于确认、查看与短临时任务，危险操作用 ConfirmDialog；验证初始焦点、Escape/取消、焦点返回及 pending。安装/认证页面和设置编辑按自身流程呈现。导航默认区域与顺序由代码显式定义（业务区固定序列，系统设置组仅放全局设置类页面），操作员经菜单管理调整；不恢复重复平台仪表盘。系统日志承载可筛选/排序/分页/导出的审计与邮件投递；邮件模板是系统管理独立页，复用 ui/editor.tsx 的 Tiptap 编辑器，单层场景 Tabs；见 ADR-0020 和 docs/03-runbooks/admin-tools.md。共享 sidebar 固定视口，导航区独立滚动，验证 720px 高和 375px 宽。
 
 二级导航向内缩进并配套 Lucide/SVG 图标，全局 UI 禁止 Emoji；单机/桌面不显示用户头像。短暂操作反馈复用 message.tsx 的 useMessage（五态，默认顶部 3 秒），提交失败由 QueryScope MutationCache 统一处理，成功回调给明确文案；不在保存按钮旁插入提示。保留字段校验、可重试加载错误与完成页状态；验证消息不挤动布局、自动消失及原生 dialog 内可见。
 
@@ -50,4 +50,4 @@ pnpm typecheck、pnpm test、pnpm build；交互变更运行 make build-web test
 
 文件上传复用 FileUploadDialog 和 AppClient.files.uploadFile（hashing/uploading/confirming、确认字节进度、signal 暂停、resumeId 恢复），不要在业务页重复上传或自行拼云 URL。恢复重选原文件，身份/签名/File 不写 localStorage；放弃调用 deleteFile。覆盖 PC/375px、中英文、明暗、刷新/服务重启、错误文件及只补传缺片，见 ADR-0022。
 
-表单与搜索控件按[表单交互规范](../../../docs/product/form-interaction.md)选择：浮动标签、常驻帮助、失焦校验、按数量选择单选/下拉/自动补全，以及范围、级联、标签和真实上传进度。邮箱/短信/动态口令用六格输入；图形验证码用普通 Input 配刷新图片，恢复码用普通文本框。优先复用共享层，只有共享行为缺陷才修改原语；页面不得通过祖先选择器抹去输入框底色和边界。异步候选必须是锚定浮层，打开前后验证后续字段位置不变。
+表单与搜索控件按[表单交互规范](../../../docs/product/form-interaction.md)选择：实体抽屉固定上置标签、surface 底色与细边框、16px 字段间距、常驻帮助、失焦校验、按数量选择单选/下拉/自动补全，以及范围、级联、标签和真实上传进度。邮箱/短信/动态口令用六格输入；图形验证码用普通 Input 配刷新图片，恢复码用普通文本框。优先复用共享层，只有共享行为缺陷才修改原语；页面不得通过祖先选择器抹去输入框底色和边界。异步候选必须是锚定浮层，打开前后验证后续字段位置不变。

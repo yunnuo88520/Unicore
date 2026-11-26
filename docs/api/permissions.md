@@ -1,7 +1,7 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 权限与错误契约
 
-统一账号与多角色见 [ADR-0037](../adr/ADR-0037-unified-user-identity.md)。普通账号与管理操作共用账号和会话；是否允许操作取决于权限点、适用的 API operation grant、超级管理员保留策略及 CSRF/Origin，不由账号表或工作台路径授予。角色可组合业务与管理权限；菜单、动作、API 授权分别取并集。角色分配仅超管可执行，账号编辑者不得借机提权；最后启用超管及最后有本地密码超管受保护。两端本人 account API 均针对同一会话账号，identity_realm 仅描述工作台。匿名受保护请求为 401，缺少权限为 403。
+统一账号与多角色见 [ADR-0037](../adr/ADR-0037-unified-user-identity.md)。账号与会话共享不代表任意账号都能登录管理工作台：管理入口准入按完整账号的 `HasManagementAccess` 判断；通过入口准入后，每项管理 API 仍独立校验权限点、适用的 API operation grant、超级管理员保留策略及 CSRF/Origin。用户工作台准入与 API 授权不由账号表或路径本身授予。角色可组合业务与管理权限；菜单、动作、API 授权分别取并集。角色分配仅超管可执行，账号编辑者不得借机提权；最后启用超管及最后有本地密码超管受保护。两端本人 account API 均针对同一会话账号，identity_realm 仅描述工作台。普通账号遭管理入口拒绝不会撤销有效用户会话，管理 bootstrap/session 不会投影用户会话身份。匿名受保护请求为 401，缺少权限为 403。
 
 | 权限 | API（均在 /api/v1 下） |
 | --- | --- |

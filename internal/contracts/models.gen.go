@@ -573,10 +573,11 @@ type OIDCCheckInfoResponse struct {
 }
 
 type Branding struct {
-	Logo     string  `json:"logo"`
-	LogoDark string  `json:"logo_dark"`
-	Favicon  string  `json:"favicon"`
-	Accent   *string `json:"accent,omitempty"`
+	Logo        string  `json:"logo"`
+	LogoDark    string  `json:"logo_dark"`
+	Favicon     string  `json:"favicon"`
+	Accent      *string `json:"accent,omitempty"`
+	DisplayMode *string `json:"display_mode,omitempty"`
 }
 
 type BrandingInput struct {
@@ -2384,4 +2385,55 @@ type SettingGroup struct {
 	Description   string `json:"description"`
 	DescriptionEn string `json:"description_en"`
 	Order         int    `json:"order"`
+}
+
+type FileCatalogEntry struct {
+	File            FileEntry `json:"file"`
+	Purpose         string    `json:"purpose"`
+	Directory       string    `json:"directory"`
+	CreatorName     string    `json:"creator_name"`
+	CreatorUsername string    `json:"creator_username"`
+}
+
+type FileCatalogList struct {
+	Items    []FileCatalogEntry `json:"items"`
+	Total    int                `json:"total"`
+	Page     int                `json:"page"`
+	PageSize int                `json:"page_size"`
+}
+
+type FileDirectory struct {
+	LocationID string `json:"location_id"`
+	Path       string `json:"path"`
+	FileCount  int    `json:"file_count"`
+	TotalSize  int    `json:"total_size"`
+}
+
+type FileDirectoryList struct {
+	Items []FileDirectory `json:"items"`
+}
+
+type FileCatalogListResponse struct {
+	Code      string          `json:"code"`
+	Data      FileCatalogList `json:"data"`
+	RequestID string          `json:"request_id"`
+	Message   string          `json:"message,omitempty"`
+}
+
+type FileDirectoryListResponse struct {
+	Code      string            `json:"code"`
+	Data      FileDirectoryList `json:"data"`
+	RequestID string            `json:"request_id"`
+	Message   string            `json:"message,omitempty"`
+}
+
+type FileMigrationSelection struct {
+	FileIds []string `json:"file_ids"`
+}
+
+type FileMigrationSelectionResponse struct {
+	Code      string                 `json:"code"`
+	Data      FileMigrationSelection `json:"data"`
+	RequestID string                 `json:"request_id"`
+	Message   string                 `json:"message,omitempty"`
 }

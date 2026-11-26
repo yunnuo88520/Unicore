@@ -11,9 +11,11 @@
 | 界面语言 | `@unicore/web-ui/i18n` | 组件 `useI18n()`，正文/属性/提示 `t()`；静态配置 `defineMessages()` 登记后在渲染处翻译；共享组件经 `@unicore/ui/i18n` 翻译桩渲染 key，宿主在 i18n.ts 注入 setTranslator |
 | 本地偏好 | `@unicore/theme/preferences` / ClientControls | 唯一设备状态入口；不得用业务设置 API 或独立 localStorage |
 | 主题与布局控件 | AppearanceDrawer / AppearanceControls | 选项来自 preferenceOptions，标签满足完整类型映射；控件固定 LTR，工作区统一 LTR |
-| 表单与校验 | `@unicore/form` / useAppForm、AppForm、AppField | 契约约束经 constraintsToZod 生成 Zod schema 驱动 RHF；label/hint 收已翻译 ReactNode；服务端 AppError.fields 用 applyServerError 合并（聚焦限本表单）、pending 防重；新实体用 Modal/ConfirmDialog |
-| 反馈与控件 | `@unicore/ui`（useMessage / Modal / Tabs / Switch / Tooltip / Table 等） | 使用统一消息、焦点/关闭和键盘行为，避免自写重复弹层 |
+| 表单与校验 | `@unicore/form` / useAppForm、AppForm、AppField | 契约约束经 constraintsToZod 生成 Zod schema 驱动 RHF；label/hint 收已翻译 ReactNode；服务端 AppError.fields 用 applyServerError 合并（聚焦限本表单）、pending 防重；新建/编辑实体默认 FormDrawer + AppForm `layout="panel"`，AppFormBody 独立滚动，AppFormFooter 固定操作 |
+| 反馈与控件 | `@unicore/ui`（useMessage / FormDrawer / Modal / ConfirmDialog / Tabs / Switch / Tooltip / Table 等） | 使用统一消息、焦点/关闭和键盘行为，避免自写重复弹层；Modal 用于确认、查看与短临时任务 |
 | 数据列表 | `packages/web-ui/src/components/data-table`（DataTable / DataTableToolbar / DataTablePagination / DataTableSortHeader / DataTableRowActions / DataTableEmpty） | 列表页统一使用共享数据表格套件呈现（工具栏、骨架加载、错误重试、空态、分页），禁止逐页手写 TanStack Table 装配循环；页面仍负责取数、权限与列定义 |
+| 路由加载占位 | `packages/web-ui/src/components/page-loader.tsx` | 按 page key 登记 dashboard/list/cards/feed/form/monitor/editor/content；笔记卡片、事件流与表格分别匹配各自结构，路由 pending 与 lazy fallback 共用类型，特殊路由通过 skeleton 覆盖；未知页面使用中性内容占位。页面请求加载仍由自身数据组件呈现 |
+| 站点页脚 | `SiteFooter` + `WorkspaceLayout` | 版权独立一行居中，备案与自定义内容可换行；短页由 flex + mt-auto 推到底部，末行距底部 12px（compact 为 16px），main 不叠加底部留白；长页随内容延伸，不使用覆盖正文的 fixed 定位 |
 | 富文本 | `@unicore/ui/editor` / RichTextEditor | Tiptap 受限标签、选择范围、变量插入、源码净化、纯文本粘贴；服务端再次校验，场景页复用组件 |
 | 图表与列设置 | widgets/activity.tsx / column-visibility.ts | Recharts 读取真实管理员统计；useColumnVisibility 按表 key 保存设备偏好，列隐藏不影响授权或导出 |
 | 视觉基础 | `@unicore/theme/styles.css` / tokens.json | Tailwind v4 经 `@theme inline` 映射生成令牌；颜色/尺度使用语义令牌类，不写页面专属主题常量 |
@@ -49,4 +51,4 @@ return <button aria-label={t('保存')}>{t('保存')}</button>;
 
 工作区页签使用共享 Tabs（受控 items API）或带同一默认样式的 TabsPrimitive；边框分段栏与强调色选中态统一，长标签在栏内单行滚动，不撑宽页面。className 只作用于容器，不复制到每个 Trigger。面板由调用方提供稳定 id、aria-labelledby，并保留 Radix 的方向键/Home/End 与焦点行为。Standalone 只渲染实际适用能力，不以“不适用”卡片或管理员权限说明暴露平台功能。
 
-表单实现按[表单交互规范](../product/form-interaction.md)：使用共享浮动标签与字段下方帮助，默认失焦校验；候选搜索使用浮层，不改变后续字段位置。新建页面前阅读该规范。
+表单实现按[表单交互规范](../product/form-interaction.md)：实体抽屉使用固定上置标签、surface 底色与细边框，字段间隔 16px，帮助紧随字段，默认失焦校验；候选搜索使用浮层，不改变后续字段位置。新建/编辑实体以 FormDrawer 为默认入口，组合 `AppForm layout="panel"`、`AppFormBody` 与 `AppFormFooter`，不得逐页设置滚动正文、sticky footer 或抽屉宽度。字段默认单列；只在没有长帮助文字且语义相关时成对排列，显式 `grid-cols-1 items-start sm:grid-cols-2`，375px 单列。必要时使用 `size="lg"`。列表不要再套 Card/CardContent；工具栏、单层表格与分页直接排列。确认、查看和短临时任务仍用 Modal，危险操作用 ConfirmDialog；认证、安装、设置按自身流程。新建页面前阅读该规范。

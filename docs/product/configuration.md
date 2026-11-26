@@ -160,9 +160,9 @@ MySQL 个人安全关联键由 platform@2 显式采用 `utf8mb4_0900_ai_ci`，�
 | `site.base_url` | 站点地址，默认空时回退安装地址 | http(s) origin，最多 2048 字符；不带凭据、query、fragment 或子路径；用于邮件链接，不修改 Cookie/OIDC origin |
 | `site.admin_email` | 管理员邮箱，默认空 | 系统告警/通知接收地址配置；不等于本人登录邮箱，不自动创建外部监控告警集成 |
 | `site.copyright` | 默认 `Crafted by Yunnuo` | 页脚版权，最多 160 字符 |
-| `site.icp_number` | ICP 备案号，空 | 最多 80 字符 |
+| `site.icp_number` | ICP 备案号，空 | 最多 40 字符；接受 8–12 位数字主体号，可带省级简称 + `ICP备`、`号` 与 `-序号`（后缀可带 `A`）；只校验格式，不校验备案真实性 |
 | `site.icp_url` | 默认 `https://beian.miit.gov.cn/` | 备案查询 HTTPS 地址 |
-| `site.police_number` | 公安备案号，空 | 最多 80 字符 |
+| `site.police_number` | 公安备案号，空 | 最多 40 字符；接受 12–18 位备案数字，可带省级简称 + `公网安备` 前缀、`-序号` 及 `号`；只校验格式，不校验备案真实性 |
 | `site.footer_html` | 自定义页脚 HTML，空 | 最多 4000 字符，按安全标签/链接白名单验证，不支持脚本、任意嵌入或模板变量 |
 | `branding.logo` / `branding.logo_dark` / `branding.favicon` | 默认产品素材 | 通过品牌上传控件管理 file_id 引用，不手填磁盘路径或私有云 URL |
 | `branding.accent` | 默认主题色 | 品牌主色（#RRGGBB），与三张图同为品牌专用 API 托管，不经通用设置 PATCH |
@@ -177,7 +177,7 @@ MySQL 个人安全关联键由 platform@2 显式采用 `utf8mb4_0900_ai_ci`，�
 | `admin.path` | `/admin` | 后台入口；改后记住新路径，旧入口 404；误配可用 APP_ADMIN_PATH 恢复。`/workspaces` 保留给业务控制台 |
 | `security.login_captcha` | `true` | 登录人机验证（图形验证码），位于 基础设置 → 安全与控制 |
 | `security.register_captcha` | `true` | 注册人机验证（图形验证码），位于 基础设置 → 安全与控制 |
-| `security.session_hours` | `24` | 会话有效期，1–168 小时 |
+| `security.session_hours` | `24` | 登录时签发的会话绝对有效期，1–168 小时；保存后对新登录生效 |
 | `account.registration_enabled` | `false` | 是否开放普通用户注册，与邮箱验证独立；不开放管理员自助注册 |
 | `account.email_verification_required` | `false` | 注册是否必须验证邮箱；开启需 SMTP 测试，关闭无需 SMTP |
 | `account.phone_required` | `false` | 注册绑定手机号：开启后注册必须填写手机号；仅做格式（可选 + 号加 5–20 位数字）与唯一性校验，不发送短信验证码 |
@@ -199,7 +199,7 @@ MySQL 个人安全关联键由 platform@2 显式采用 `utf8mb4_0900_ai_ci`，�
 | `security.login_failure_limit` | `5` | 同一身份域/IP 连续登录失败封禁次数，1–20；成功登录清除计数 |
 | `security.ip_ban_minutes` | `15` | 临时封禁时长，1–1440 分钟；不冻结账号 |
 | `security.user_idle_minutes` | `1440` | 普通用户空闲超时，1–10080 分钟 |
-| `security.admin_idle_minutes` | `360` | 管理员空闲超时，1–10080 分钟 |
+| `security.admin_idle_minutes` | `1440` | 管理员空闲超时，1–10080 分钟；默认 24 小时，与会话有效期和管理员绝对上限共同生效 |
 | `security.admin_max_minutes` | `1440` | 管理员首次登录起最长时间，1–10080 分钟，与会话小时数取较短者 |
 | `security.force_admin_2fa` | `false` | 强制管理员先绑定验证器，且不能自行关闭 |
 | `security.force_user_2fa` | `false` | 强制普通用户先绑定验证器，且不能自行关闭 |
@@ -207,6 +207,8 @@ MySQL 个人安全关联键由 platform@2 显式采用 `utf8mb4_0900_ai_ci`，�
 | `security.allow_disable_2fa` | `true` | 是否允许本人关闭；强制开启时不能关闭 |
 
 新实例关闭邮箱验证时注册成功即可登录，不发验证邮件；旧实例已开放注册且尚无独立验证键时继续要求验证，需管理员明确关闭。列表最多 200 条/16000 字符。
+
+会话过期由绝对有效期和空闲时限共同决定：普通用户在登录时的会话有效期与用户空闲超时取先到者；管理员还受从首次登录起计算的管理员最长登录时间约束。会话有效期改动仅影响之后签发的会话，空闲超时与管理员最长登录时间改动会在下一次服务端请求中按新值检查。空闲判断使用最近一次主动请求，后台轮询不会延长空闲时限。既有实例已保存的设置值会继续生效；默认值调整不会覆盖已有显式配置。
 
 用户登录 /login、注册 /register、忘记密码 /forgot-password 使用相互链接的独立页面，支持浏览器前进/后退。注册和重置密码均需确认密码；完成注册后进入 /registration-success，仅提供一个返回登录主入口。找回密码入口始终可见，实例未开放邮件恢复时提示联系管理员；真正发送和重置仍由服务端策略决定。
 

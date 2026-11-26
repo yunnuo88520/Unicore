@@ -4,7 +4,8 @@
 import { notes } from './modules/notes';
 import {defineMessages} from './i18n';
 import type { Bootstrap } from '@unicore/sdk';
-import { Bell, BookOpen, Activity, Bot, Circle, Cloud, Cpu, FileText, LayoutDashboard, ListChecks, Mail, Megaphone, Network, NotebookPen, PackageCheck, Palette, Radar, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Webhook, Wrench, type LucideIcon } from 'lucide-react';
+import { pageSurfaces } from './module-registry';
+import { Bell, BookOpen, Activity, Bot, Circle, Cloud, Cpu, FileText, Files, LayoutDashboard, ListChecks, Mail, Megaphone, Network, NotebookPen, PackageCheck, Palette, Radar, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Webhook, Wrench, type LucideIcon } from 'lucide-react';
 
 // Dev-only component catalog: define-replaced to false in production builds, so the
 // page facts, route and module are tree-shaken out of shipped bundles. Tests assert
@@ -19,8 +20,9 @@ export const routes = defineMessages({
   overview: { label: '工作台概览', title: '一份核心，无限可能', description: '从这里出发，让同一份业务逻辑运行于 Web、桌面与命令行。', icon: LayoutDashboard },
   site: { label: '基础设置', title: '基础设置', description: '集中管理站点、品牌与适用的实例配置。', permission: 'settings:read', icon: Settings2, group: 'system' },
   storage:{label:'对象存储',title:'对象存储',description:'按需切换本地与云存储，让业务只关心文件。',permission:'storage:read',icon:Cloud,group:'system'},
+  files: { label: '文件管理', title: '文件管理', description: '查看私有文件，管理目录、下载、删除与存储迁移。', icon: Files, group: 'system' },
   users: { label: '用户列表', title: '用户管理', description: '管理账号、角色和状态，权限由服务端逐一校验。', permission: 'users:read', icon: UserRound, group: 'administration' },
-  administrators: { label:'管理员列表',title:'管理员管理',description:'独立的后台账号，管理整个实例。',permission:'administrators:read',icon:UserCog,group:'administration' },
+  administrators: { label:'管理员列表',title:'管理员管理',description:'具有管理权限的账号，管理整个实例。',permission:'administrators:read',icon:UserCog,group:'administration' },
   announcements:{label:'平台公告',title:'平台公告',description:'发布平台消息，让用户及时了解重要动态。',permission:'announcements:read',icon:Megaphone},
   'account-policy': {label:'账户安全',title:'账户安全',description:'配置登录保护、会话超时和管理员与用户的两步验证策略。',permission:'settings:read',icon:ShieldCheck,group:'system'},
   mail: { label:'邮件设置',title:'邮件设置',description:'配置 SMTP、测试投递与账号邮件流程。',permission:'settings:read',icon:Mail,group:'system' },
@@ -52,6 +54,19 @@ export const routes = defineMessages({
   'not-found': { label: '页面不存在', title: '页面不存在', description: '这个地址尚未注册，请通过导航进入已有页面。', icon: Circle },
 } as const);
 export type Page = keyof typeof routes;
+
+const pageHeadingOwners = new Set<string>([
+  'users', 'administrators', 'roles', 'departments', 'announcements', 'posts',
+  'tasks', 'menus', 'access-tokens', 'api-docs',
+  'monitor', 'monitor-services', 'monitor-resources', 'monitor-events', 'files', 'ui-preview', 'not-found',
+  'ai-access', 'ai-tools', 'ai-calls', 'ai-oauth',
+]);
+
+/** Pages with their own PageHeader must not receive a second shell heading. */
+export function pageOwnsHeading(page: string): boolean {
+  return pageHeadingOwners.has(page);
+}
+
 export function pageFromHash(hash: string): Page {
   const path = hash.replace(/^#/, '').split('?')[0];
   if (path === 'settings') return 'site';
@@ -68,13 +83,13 @@ export function isAdministrator(metadata?: Bootstrap): boolean {
   return isAdminRealm(metadata) && !!metadata?.current_user?.roles.includes('super_admin');
 }
 export function canAccess(page: Page, metadata?: Bootstrap): boolean {
+  if (page === 'files') return metadata?.profile === 'web-platform' && isAdministrator(metadata);
   if ((page === 'notes' || page === 'note-management') && (!__FEATURE_NOTES__ || !metadata?.capabilities.features?.notes)) return false;
-  if (page === 'notes' && isAdminRealm(metadata)) return false;
   if (page === 'access-tokens') return isAdministrator(metadata);
-  // Management-flavoured pages never render on the user surface — even when a
-  // persisted menu tree or a custom role still carries them (existing installs).
-  if (metadata?.profile === 'web-platform' && metadata.identity_realm !== 'administrator' &&
-    ['site', 'api-docs', 'announcements', 'monitor', 'monitor-services', 'monitor-resources', 'monitor-events'].includes(page)) return false;
+  // Registration bounds both menu visibility and deep links, including super
+  // administrators and persisted menus from an older build.
+  if (metadata?.profile === 'web-platform' && page !== 'authorize' && page !== 'not-found' &&
+      !pageSurfaces(page, routes[page]).includes(isAdminRealm(metadata) ? 'administrator' : 'user')) return false;
   if (metadata?.profile === 'web-platform' && metadata.current_user &&
     !metadata.current_user.roles.includes('super_admin')) {
     const navigation = metadata.navigation;

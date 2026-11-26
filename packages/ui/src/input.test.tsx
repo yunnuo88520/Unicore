@@ -2,7 +2,7 @@
 // Description: Input family renders native semantics with shared control styling.
 import { render, screen } from '@testing-library/react';
 import { expect, it } from 'vitest';
-import { controlVariants, Input, Label, NativeSelect, Textarea } from './input';
+import { ControlLabelProvider, controlVariants, Input, Label, NativeSelect, Textarea } from './input';
 
 it('input forwards value and type to the native element', () => {
   render(<Input value="文本" type="email" onChange={() => {}} aria-label="邮箱" />);
@@ -45,6 +45,22 @@ it('preserves a host label without duplicating its identifier', () => {
 it('exports the control surface through cva for composition', () => {
   expect(controlVariants()).toContain('focus-visible:ring-focus');
   expect(controlVariants()).toContain('aria-invalid:border-danger');
+  expect(controlVariants()).toContain('border-line');
+  expect(controlVariants()).toContain('bg-surface');
+});
+
+it('keeps aria-label-only textareas visually unlabelled', () => {
+  render(<Textarea aria-label="备注" />);
+  expect(screen.getByRole('textbox', { name: '备注' })).toBeInTheDocument();
+  expect(document.querySelector('label')).not.toBeInTheDocument();
+});
+
+it('uses compact stacked labels when provided by a drawer surface', () => {
+  render(<ControlLabelProvider layout="stacked"><Input label="名称" /><Textarea label="说明" /></ControlLabelProvider>);
+  expect(screen.getByRole('textbox', { name: '名称' })).toHaveClass('h-9');
+  expect(screen.getByRole('textbox', { name: '名称' })).not.toHaveAttribute('placeholder', ' ');
+  expect(screen.getByRole('textbox', { name: '说明' })).toBeInTheDocument();
+  expect(document.querySelectorAll('label')).toHaveLength(2);
 });
 
 it('keeps a real label and preserves a new password while toggling visibility', async () => {

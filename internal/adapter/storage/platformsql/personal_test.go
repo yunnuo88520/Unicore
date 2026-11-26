@@ -29,6 +29,16 @@ func exercisePersonal(t *testing.T, ctx context.Context, store *sqlstore.Store, 
 		if err != nil {
 			t.Fatal(err)
 		}
+		if administrators {
+			realm := "administrator"
+			role, err := r.CreateRole(ctx, contracts.RoleSaveInput{Name: "Personal management entry", Realm: &realm, Permissions: []string{"admin:access"}}, admin.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err = r.UpdateUser(ctx, user.ID, contracts.UserUpdate{Role: &role.ID, Status: "active"}, admin.ID); err != nil {
+				t.Fatal(err)
+			}
+		}
 		must := func(err error) {
 			t.Helper()
 			if err != nil {

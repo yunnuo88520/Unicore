@@ -7,7 +7,8 @@ import {
   MoreHorizontal, MousePointerClick, Pencil, Plus, RotateCcw, Save, SquarePen, Trash2, type LucideIcon,
 } from 'lucide-react';
 import { Accordion, SearchField } from '@unicore/ui/controls';
-import { Alert, Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Modal, PageHeader, SimpleSelect, Switch, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
+import { Alert, Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, FormDrawer, Input, Modal, PageHeader, SimpleSelect, Switch, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useMessage } from '@unicore/ui';
+import { AppFormBody, AppFormFooter } from '@unicore/form';
 import { AppError, type AppClient, type Bootstrap, type MenuList, type MenuSaveInput, type NavigationNode, type NavigationSection, type RoleList, type WebClient } from '@unicore/sdk';
 import {
   buildMenuTree, buildNavigation, copyMenuNode, defaultNavigation, filterMenuTree, flattenNavigation, isRegisteredPage, menuNodeLabel, menuNodeTarget,
@@ -15,7 +16,7 @@ import {
 } from '../../navigation';
 import { NavigationIconPicker, resolveNavigationIcon } from '../../navigation-icons';
 import { routes } from '../../routes';
-import { roleDisplayLabel } from '../../role-display';
+import { roleDisplayLabel, roleDisplayName } from '../../role-display';
 import { invalidateAfter } from '../../queries';
 import { defineMessages, t, useLocale } from '../../i18n';
 import type { PageProps } from '../../router';
@@ -785,9 +786,10 @@ function NodeDialog({ state, draft, pages, onClose, onSubmit }: {
     onSubmit(node, !editing);
     onClose();
   };
-  return <Modal title={editing ? t('编辑节点') : t('添加{{type}}', { type: t(TYPE_LABELS[type]) })} onClose={onClose} contentClassName="sm:max-w-2xl" className="flex min-h-0 flex-col gap-4">
-    <div className="min-h-0 space-y-4 overflow-y-auto overscroll-contain p-1">
-      <div className="grid gap-4 sm:grid-cols-2">
+  return <FormDrawer title={editing ? t('编辑节点') : t('添加{{type}}', { type: t(TYPE_LABELS[type]) })} onClose={onClose} size="lg">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden"><AppFormBody>
+    <div className="flex flex-col gap-5">
+      <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
         {!editing && <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-ink">{t('菜单类型')}
           <SimpleSelect label={t('菜单类型')} value={type} onChange={value => { setType(value as NavigationNode['type']); setErrors({}); }}
             options={CREATABLE_TYPES.map(candidate => ({ value: candidate, label: t(TYPE_LABELS[candidate]) }))} />
@@ -844,12 +846,11 @@ function NodeDialog({ state, draft, pages, onClose, onSubmit }: {
             options={routeOptions.map(id => ({ value: id, label: t(routes[id].label) }))} />
         </label>}
       </div> }]} />
-    </div>
-    <div className="flex shrink-0 justify-end gap-2 border-t border-line pt-3">
+    </div></AppFormBody><AppFormFooter>
       <Button variant="secondary" onClick={onClose}>{t('取消')}</Button>
       <Button onClick={submit}>{t('确定')}</Button>
-    </div>
-  </Modal>;
+    </AppFormFooter></div>
+  </FormDrawer>;
 }
 
 function MoveDialog({ draft, node, onClose, onConfirm }: {
@@ -913,7 +914,7 @@ function LoadedMenuRolesDialog({ web, node, config, roles, onClose, onSaved }: {
     <p className="text-xs text-muted">{t('显式分配角色不等于最终可访问；适用工作台由路由决定，区域或祖先菜单隐藏、禁用时仍不可见。超级管理员默认访问，但不绕过隐藏与禁用约束。')}</p>
     {reserved && <p className="text-sm text-muted">{t('仅超级管理员')}</p>}
     <p className="text-sm text-muted">{t('适用工作台：{{surfaces}}', { surfaces: node.surfaces.map(surface => surface === 'user' ? t('用户工作台') : t('管理工作台')).join(' · ') })}</p>
-    <label className="mt-4 flex items-center gap-2 text-sm"><Checkbox aria-label="super_admin" checked disabled onChange={() => {}} />super_admin<span className="text-xs text-muted">{t('默认访问，不可取消')}</span></label>
+    <label className="mt-4 flex items-center gap-2 text-sm"><Checkbox aria-label={roleDisplayName('super_admin')} checked disabled onChange={() => {}} />{roleDisplayName('super_admin')}<span className="text-xs text-muted">{t('默认访问，不可取消')}</span></label>
     {!roles.items.some(role => !role.builtin) && <p className="text-sm text-muted">{t('还没有自定义角色')}{' '}<a href="roles" className="underline">{t('前往角色管理')}</a></p>}
     {save.error && <p role="alert" className="text-sm text-danger">{t(save.error.message)}</p>}
     <div className="my-4 flex max-h-80 flex-col gap-3 overflow-y-auto" role="group" aria-label={t('角色')}>

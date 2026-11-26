@@ -3,12 +3,12 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { expect, it, vi } from 'vitest';
-import { columnVisibilityFeature, createColumnHelper, tableFeatures, useTable, type TableFeatures } from '@tanstack/react-table';
+import { columnVisibilityFeature, createColumnHelper, tableFeatures, useTable, type ColumnDef, type TableFeatures } from '@tanstack/react-table';
 import { DataTable, DataTablePagination, DataTableRowActions, DataTableSortHeader, DataTableToolbar, type DataTablePager, type DataTableProps } from './index';
 
-type Row = { name: string; count: number };
+type Row = { name: string; count: number; active: boolean };
 
-const ROWS: Row[] = [{ name: 'alpha', count: 1 }, { name: 'beta', count: 2 }];
+const ROWS: Row[] = [{ name: 'alpha', count: 1, active: true }, { name: 'beta', count: 2, active: false }];
 
 const coreFeatures = tableFeatures({});
 const coreHelper = createColumnHelper<typeof coreFeatures, Row>();
@@ -22,6 +22,7 @@ const visibilityHelper = createColumnHelper<typeof visibilityFeatures, Row>();
 const visibilityColumns = visibilityHelper.columns([
   visibilityHelper.accessor('name', { header: () => '名称', cell: info => info.getValue() }),
   visibilityHelper.accessor('count', { header: () => '数量', cell: info => String(info.getValue()) }),
+  visibilityHelper.accessor('active', { header: () => '状态', cell: info => String(info.getValue()) }),
 ]);
 
 function CoreTable({ rows, ...props }: Omit<Partial<DataTableProps<typeof coreFeatures, Row>>, 'table'> & { rows?: Row[] }) {
@@ -43,6 +44,26 @@ it('renders skeleton rows while pending, rows when ready and the empty state wit
   render(<CoreTable rows={ROWS} />);
   expect(screen.getByRole('cell', { name: 'alpha' })).toBeInTheDocument();
   expect(screen.getByRole('columnheader', { name: '数量' })).toBeInTheDocument();
+});
+
+it('keeps loading skeletons aligned to the visible columns', () => {
+  const helper = createColumnHelper<typeof visibilityFeatures, Row>();
+  const grouped: ColumnDef<typeof visibilityFeatures, Row, unknown>[] = [
+    { header: '详情', columns: [
+      helper.accessor('name', { header: '名称', cell: info => info.getValue() }),
+      helper.accessor('count', { header: '数量', cell: info => String(info.getValue()) }),
+      helper.accessor('active', { header: '状态', cell: info => String(info.getValue()) }),
+    ] } as unknown as ColumnDef<typeof visibilityFeatures, Row, unknown>,
+  ];
+  function GroupedTable() {
+    const table = useTable({ features: visibilityFeatures, columns: grouped, data: ROWS, state: { columnVisibility: { count: false } } });
+    return <DataTable table={table} pending />;
+  }
+  render(<GroupedTable />);
+  expect(screen.getByRole('columnheader', { name: '名称' })).toBeInTheDocument();
+  expect(screen.queryByRole('columnheader', { name: '数量' })).not.toBeInTheDocument();
+  expect(screen.getByRole('columnheader', { name: '状态' })).toBeInTheDocument();
+  expect(screen.getAllByRole('row').at(-1)?.querySelector('td')).toHaveAttribute('colspan', '2');
 });
 
 it('renders the empty state with icon title and hint', () => {
@@ -72,6 +93,7 @@ it('drives server-side pagination from explicit page state', async () => {
   const view = render(<DataTablePagination page={2} pageSize={20} total={45} onPageChange={onPageChange} onPageSizeChange={onPageSizeChange} />);
   expect(screen.getByText('共 45 条')).toBeInTheDocument();
   expect(screen.getByText('第 2 / 3 页')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: '上一页' })).toHaveAccessibleName('上一页');
   await userEvent.click(screen.getByRole('button', { name: '上一页' }));
   expect(onPageChange).toHaveBeenCalledWith(1);
   await userEvent.click(screen.getByRole('button', { name: '下一页' }));

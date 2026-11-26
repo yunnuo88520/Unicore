@@ -41,6 +41,7 @@ func fileActionCapabilities(r *http.Request, list *contracts.FileList) {
 }
 
 func mountStorage(api chi.Router, config Config) {
+	mountFileCatalog(api, config)
 	manager := config.Install
 	handler := func(permission string, fn func(http.ResponseWriter, *http.Request, *files.Service, files.Actor)) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

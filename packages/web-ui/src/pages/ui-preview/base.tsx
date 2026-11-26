@@ -3,7 +3,8 @@
 import { useState, type ReactNode } from 'react';
 import themeTokens from '../../../../theme/src/resolved.gen.json';
 import { Plus, Settings2 } from 'lucide-react';
-import { Alert, Avatar, Badge, Breadcrumb, BreadcrumbItem, BreadcrumbSeparator, Button, Checkbox, ConfirmDialog, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Drawer, DrawerContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Input, Kbd, Label, Modal, NativeSelect, Popover, PopoverContent, PopoverTrigger, Progress, RadioGroup, RadioGroupItem, Separator, SimpleSelect, Skeleton, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Tabs, Textarea, Tooltip, useMessage } from '@unicore/ui';
+import { Alert, Avatar, Badge, Breadcrumb, BreadcrumbItem, BreadcrumbSeparator, Button, Checkbox, ConfirmDialog, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Drawer, DrawerContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, FormDrawer, Input, Kbd, Label, Modal, NativeSelect, Popover, PopoverContent, PopoverTrigger, Progress, RadioGroup, RadioGroupItem, Separator, SimpleSelect, Skeleton, Switch, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, Tabs, Textarea, Tooltip, useMessage } from '@unicore/ui';
+import { AppField, AppForm, AppFormBody, AppFormFooter, useAppForm } from '@unicore/form';
 import { Accordion, Announcement, ButtonGroup, Carousel, CloseButton, ColorPicker, Combobox, CommandPalette, ContextMenu, Counter, FileUploadDropzone, IconButton, InputOTP, Cascader, RangeSlider, TagInput, LinkButton, Meter, Notification, NumberField, Pagination, SearchField, SegmentedControl, Slider, SocialButton, Spinner, TagGroup, TimeField, TreeView } from '@unicore/ui/controls';
 import { BirthDatePicker, DateCalendar, DatePicker, MeetingScheduler, type DateRange } from '@unicore/ui/calendar';
 import { t, useLocale } from '../../i18n';
@@ -36,7 +37,7 @@ export function BaseDemo({ id }: { id: BaseId }) {
     case 'date-calendar': demo = <><DateCalendar locale={locale} value={date} onChange={setDate} min="2026-11-01" max="2026-12-31" /><DateCalendar locale={locale} mode="range" value={calendarRange} onChange={setCalendarRange} defaultMonth="2026-11-01" /><Feedback>{date} / {calendarRange.start} – {calendarRange.end}</Feedback></>; break;
     case 'date-picker': demo = <><BirthDatePicker label={t('出生日期')} value={date} onChange={setDate} /><DatePicker label={t('日期')} locale={locale} value={date} onChange={setDate} /><DatePicker label={t('日期范围')} locale={locale} mode="range" value={range} onChange={setRange} /><MeetingScheduler locale={locale} date={date} onDateChange={setDate} timeZone={zone} timeZones={['UTC','Asia/Shanghai']} onTimeZoneChange={setZone} hourCycle={cycle} onHourCycleChange={setCycle} selectedSlotId={text} onSlotSelect={slot => setText(slot.id)} slots={[{ id: 'slot-1', start: '2026-11-13T09:00:00Z', end: '2026-11-13T09:30:00Z' }, { id: 'slot-2', start: '2026-11-13T10:00:00Z', end: '2026-11-13T10:30:00Z', disabled: true }]} /><Feedback>{date} / {range?.start} – {range?.end} / {zone}</Feedback></>; break;
     case 'divider': demo = <><p>{t('概览')}</p><Separator /><p>{t('明细')}</p></>; break;
-    case 'drawer': demo = <><Button onClick={() => setOpen(true)}>{t('打开抽屉')}</Button><Drawer open={open} onOpenChange={setOpen}><DrawerContent title={t('面板标题')}><Label htmlFor="preview-drawer-input">{t('名称')}</Label><Input id="preview-drawer-input" value={text} onChange={event => setText(event.target.value)} /></DrawerContent></Drawer></>; break;
+    case 'drawer': demo = <><Button onClick={() => setOpen(true)}>{t('打开抽屉')}</Button><Drawer open={open} onOpenChange={setOpen}><DrawerContent title={t('面板标题')}><Input label={t('名称')} value={text} onChange={event => setText(event.target.value)} /></DrawerContent></Drawer><FormDrawerSample /></>; break;
     case 'dropdown': demo = <DropdownMenu><DropdownMenuTrigger asChild><Button variant="secondary">{t('打开菜单')}</Button></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuLabel>{t('操作')}</DropdownMenuLabel><DropdownMenuItem onSelect={() => action(t('新建笔记'))}><Plus size={14} />{t('新建笔记')}</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onSelect={() => action(t('删除'))}>{t('删除')}</DropdownMenuItem><DropdownMenuItem disabled>{t('已禁用')}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>; break;
     case 'file-upload': demo = <FileUploadDropzone label={t('选择文件')} description={t('仅列出文件名，不上传文件。')} accept=".txt,.csv" multiple maxFiles={3} maxSize={1024 * 1024} onFiles={files => setText(files.map(file => file.name).join(', '))} onReject={files => setText(files.map(file => `${file.file.name}: ${file.reason}`).join(', '))} />; break;
     case 'icon-button': demo = <IconButton label={t('设置')} onClick={() => setFlag(!flag)}><Settings2 size={16} /></IconButton>; break;
@@ -69,5 +70,24 @@ export function BaseDemo({ id }: { id: BaseId }) {
     case 'tree-view': demo = <><Cascader label={t('级联选择')} value={ids} onValueChange={setIds} options={[{value:'a',label:t('选项一'),children:[{value:'b',label:t('选项二'),children:[{value:'c',label:t('选项三')}]}]}]} /><TreeView label={t('选项')} nodes={[{ id: 'root', label: t('工作空间'), children: options.map(option => ({ id: option.value, label: option.label, disabled: option.disabled })) }]} selectedIds={ids} onSelectionChange={setIds} expandedIds={expanded} onExpandedChange={setExpanded} /></>; break;
   }
   return <Sample id={id}>{demo}{feedback}</Sample>;
+}
+
+function FormDrawerSample() {
+  useLocale();
+  const [open, setOpen] = useState(false);
+  const [saved, setSaved] = useState('');
+  const form = useAppForm({ defaultValues: { title: '', body: '' }, onSubmit: values => { setSaved(values.title); setOpen(false); } });
+  return <><Button variant="secondary" onClick={() => { form.reset(); setOpen(true); }}>{t('新建笔记')}</Button>
+    {open && <FormDrawer title={t('新建笔记')} description={t('合成示例：仅修改本页内存状态，不连接服务。')} onClose={() => setOpen(false)}>
+      <AppForm form={form} layout="panel">
+        <AppFormBody>
+          <AppField name="title" label={t('标题')}><Input required maxLength={120} /></AppField>
+          <AppField name="body" label={t('正文')}><Textarea rows={8} maxLength={5000} /></AppField>
+        </AppFormBody>
+        <AppFormFooter><Button variant="secondary" onClick={() => setOpen(false)}>{t('取消')}</Button><Button type="submit">{t('保存笔记')}</Button></AppFormFooter>
+      </AppForm>
+    </FormDrawer>}
+    {saved && <Feedback>{saved}</Feedback>}
+  </>;
 }
 export default function BaseSection() { useLocale(); return <div className="grid min-w-0 gap-5 lg:grid-cols-2">{baseIds.map(id => <BaseDemo key={id} id={id} />)}<section className="space-y-2"><Alert variant="danger" title={t('保存失败')}>{t('网络超时，请重试。')}</Alert><Alert variant="warning">{t('此操作不可撤销。')}</Alert><Alert variant="info">{t('本地选择示例')}</Alert><Alert variant="success">{t('操作成功')}</Alert></section></div>; }

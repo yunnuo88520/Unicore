@@ -245,6 +245,8 @@ func (m *Manager) attach(store *sqlstore.Store) error {
 		m.settingService.Branding = branding.New(store, m.files.BrandStore())
 		repository := &platformsql.Repository{Store: store, NotificationSecrets: m.secret}
 		admins := &platformsql.Repository{Store: store, Administrators: true, NotificationSecrets: m.secret}
+		m.files.References = []files.ReferenceChecker{repository, notesFileReferenceChecker(store)}
+		m.files.Creators = repository
 		m.settingService.NotificationWriter = admins
 		m.identity = platform.New(repository)
 		m.administrator = m.identity

@@ -1,32 +1,58 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Side sheet over the Radix dialog: slides in from an edge with the shared overlay.
-// Use for preference panels and contextual editors; confirmations stay in Modal/ConfirmDialog.
+// Description: Accessible side panels and entity editors with a fixed header and independently scrolling content.
 import { forwardRef, useRef, type ComponentPropsWithoutRef, type ReactNode } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { cva } from 'class-variance-authority';
 import { X } from 'lucide-react';
-import { t } from './i18n';
+import { t, useLocale } from './i18n';
 import { cn } from './cn';
+import { Button } from './button';
+import { ControlLabelProvider } from './input';
 
 export const Drawer = DialogPrimitive.Root;
 export const DrawerTrigger = DialogPrimitive.Trigger;
 export const DrawerClose = DialogPrimitive.Close;
 
 const SIDES = {
-  end: 'inset-y-0 end-0 start-auto h-dvh max-h-none w-[min(384px,100%)] border-s rounded-none rounded-s-xl border-0',
-  start: 'inset-y-0 start-0 end-auto h-dvh max-h-none w-[min(384px,100%)] border-e rounded-none rounded-e-xl border-0',
+  end: 'end-2 start-auto sm:end-3',
+  start: 'start-2 end-auto sm:start-3',
 } as const;
 
-export const DrawerContent = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { side?: keyof typeof SIDES; title: ReactNode; closeLabel?: string }>(function DrawerContent({ side = 'end', title, closeLabel, className, children, onOpenAutoFocus, onCloseAutoFocus, ...props }, ref) {
+const drawerVariants = cva('fixed inset-y-2 z-50 flex min-h-0 w-[calc(100%-16px)] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-modal outline-none sm:inset-y-3 sm:w-[calc(100%-24px)]', {
+  variants: { size: { sm: 'max-w-96', md: 'max-w-[560px]', lg: 'max-w-[800px]' } },
+  defaultVariants: { size: 'sm' },
+});
+
+type DrawerContentProps = ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+  side?: keyof typeof SIDES;
+  size?: 'sm' | 'md' | 'lg';
+  title: ReactNode;
+  description?: ReactNode;
+  closeLabel?: string;
+  pending?: boolean;
+  bodyClassName?: string;
+};
+
+export const DrawerContent = forwardRef<HTMLDivElement, DrawerContentProps>(function DrawerContent({ side = 'end', size = 'sm', title, description, closeLabel, pending = false, className, bodyClassName, children, onOpenAutoFocus, onCloseAutoFocus, onEscapeKeyDown, ...props }, ref) {
+  useLocale();
   // State-controlled drawers render no Radix trigger; remember what opened the
   // surface so focus returns there on close, like DialogContent.
   const opener = useRef<HTMLElement | null>(null);
   return <DialogPrimitive.Portal>
-    <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-scrim/70 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out" />
+    <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-scrim/50" />
     <DialogPrimitive.Content ref={ref}
-      className={cn('fixed top-0 z-50 flex flex-col overflow-y-auto border-line bg-surface p-4 shadow-modal data-[state=open]:animate-in data-[state=closed]:animate-out', SIDES[side], className)}
+      className={cn(drawerVariants({ size }), SIDES[side], className)}
+      {...(!description ? { 'aria-describedby': undefined } : {})}
+      aria-busy={pending || undefined}
       onOpenAutoFocus={event => {
         opener.current = (event.currentTarget as HTMLElement).ownerDocument.activeElement as HTMLElement | null;
         onOpenAutoFocus?.(event);
+        if (event.defaultPrevented) return;
+        event.preventDefault();
+        const root = event.currentTarget as HTMLElement;
+        const body = root.querySelector<HTMLElement>('[data-drawer-body]');
+        const target = body?.querySelector<HTMLElement>('[data-autofocus]') ?? body?.querySelector<HTMLElement>('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])');
+        (target ?? root).focus({ preventScroll: true });
       }}
       onCloseAutoFocus={event => {
         onCloseAutoFocus?.(event);
@@ -34,14 +60,39 @@ export const DrawerContent = forwardRef<HTMLDivElement, ComponentPropsWithoutRef
         event.preventDefault();
         if (opener.current && opener.current.isConnected) opener.current.focus({ preventScroll: true });
       }}
+      onEscapeKeyDown={event => {
+        onEscapeKeyDown?.(event);
+        if (pending) event.preventDefault();
+      }}
       {...props}>
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <DialogPrimitive.Title className="text-base font-semibold text-ink">{title}</DialogPrimitive.Title>
+      <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6">
+        <div className="min-w-0 flex-1">
+          <DialogPrimitive.Title className="break-words text-lg font-medium leading-7 text-ink">{title}</DialogPrimitive.Title>
+          {description && <DialogPrimitive.Description className="mt-1 text-sm leading-6 text-muted">{description}</DialogPrimitive.Description>}
+        </div>
         <DialogPrimitive.Close asChild>
-          <button type="button" className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-hover hover:text-ink" aria-label={t(closeLabel ?? '关闭面板')}><X size={16} /></button>
+          <Button variant="ghost" size="icon" className="-me-2 -mt-1 shrink-0" disabled={pending} aria-label={t(closeLabel ?? '关闭面板')}><X size={18} /></Button>
         </DialogPrimitive.Close>
       </div>
-      {children}
+      <div data-drawer-body className={cn('flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-contain px-5 py-5 sm:px-6', bodyClassName)}>{children}</div>
     </DialogPrimitive.Content>
   </DialogPrimitive.Portal>;
 });
+
+/** Entity editor recipe. Pair with AppForm layout="panel", AppFormBody and AppFormFooter. */
+export function FormDrawer({ title, description, onClose, pending = false, size = 'md', children }: {
+  title: string;
+  description?: ReactNode;
+  onClose: () => void;
+  pending?: boolean;
+  size?: 'md' | 'lg';
+  children: ReactNode;
+}) {
+  useLocale();
+  return <Drawer open onOpenChange={open => { if (!open && !pending) onClose(); }}>
+    <DrawerContent title={title} description={description} size={size} pending={pending} closeLabel={t('关闭{{v0}}', { v0: title })}
+      bodyClassName="overflow-hidden p-0 sm:px-0" onInteractOutside={event => event.preventDefault()}>
+      <ControlLabelProvider layout="stacked">{children}</ControlLabelProvider>
+    </DrawerContent>
+  </Drawer>;
+}

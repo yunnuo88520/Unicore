@@ -3,16 +3,26 @@
 package files
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"github.com/yunnuo/unicore/internal/blob"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"io"
 	"time"
 )
 
+const maxBrandingObjectBytes = 512 * 1024
+
 type brandStore struct{ s *Service }
 
 func (s *Service) BrandStore() blob.Store { return &brandStore{s} }
+
+// WithReferenceGuard lets branding serialize its setting update with file deletion.
+func (b *brandStore) WithReferenceGuard(ctx context.Context, fn func() error) error {
+	return b.s.WithReferenceGuard(ctx, fn)
+}
+
 func (b *brandStore) lookup(ctx context.Context, key string) (Record, error) {
 	f, e := b.s.Repo.Get(ctx, key)
 	if e == nil {
@@ -67,6 +77,16 @@ func (b *brandStore) Stat(ctx context.Context, key string) (blob.Object, error) 
 	return v, e
 }
 func (b *brandStore) Put(ctx context.Context, key string, r io.Reader, n int64, m string) (blob.Object, error) {
+	if n < 1 || n > maxBrandingObjectBytes {
+		return blob.Object{}, errors.New("invalid branding object size")
+	}
+	data, e := io.ReadAll(io.LimitReader(r, n+1))
+	if e != nil || int64(len(data)) != n {
+		if e != nil {
+			return blob.Object{}, e
+		}
+		return blob.Object{}, errors.New("branding object size mismatch")
+	}
 	b.s.mu.Lock()
 	defer b.s.mu.Unlock()
 	old, e := b.s.Repo.Get(ctx, key)
@@ -82,7 +102,32 @@ func (b *brandStore) Put(ctx context.Context, key string, r io.Reader, n int64, 
 		if e != nil {
 			return blob.Object{}, e
 		}
-		return st.Stat(ctx, old.Key)
+		reader, existing, openErr := st.Open(ctx, old.Key)
+		if openErr == nil {
+			current, readErr := io.ReadAll(io.LimitReader(reader, maxBrandingObjectBytes+1))
+			closeErr := reader.Close()
+			if readErr != nil {
+				return blob.Object{}, readErr
+			}
+			if closeErr != nil {
+				return blob.Object{}, closeErr
+			}
+			if existing.Size == n && bytes.Equal(current, data) {
+				return existing, nil
+			}
+		} else if !errors.Is(openErr, blob.ErrNotFound) {
+			return blob.Object{}, openErr
+		}
+		obj, e := st.Put(ctx, old.Key, bytes.NewReader(data), n, m)
+		if e != nil {
+			return blob.Object{}, e
+		}
+		old.Size = int(n)
+		old.ETag = obj.ETag
+		if e = b.s.Repo.Change(ctx, old, nil, "system"); e != nil {
+			return blob.Object{}, e
+		}
+		return obj, nil
 	}
 	if e != nil && e != ErrNotFound {
 		return blob.Object{}, e
@@ -110,7 +155,7 @@ func (b *brandStore) Put(ctx context.Context, key string, r io.Reader, n int64, 
 	if e != nil {
 		return blob.Object{}, e
 	}
-	obj, e := st.Put(ctx, f.Key, r, n, m)
+	obj, e := st.Put(ctx, f.Key, bytes.NewReader(data), n, m)
 	if e != nil {
 		return blob.Object{}, e
 	}
@@ -133,6 +178,9 @@ func (b *brandStore) Delete(ctx context.Context, key string) error {
 	}
 	if f.Purpose != "branding" {
 		return ErrNotFound
+	}
+	if e = b.s.ensureUnreferenced(ctx, f); e != nil {
+		return e
 	}
 	return b.s.remove(ctx, f, "system")
 }

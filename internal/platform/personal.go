@@ -140,23 +140,38 @@ func (p *Personal) SaveProfile(ctx context.Context, token string, input contract
 	if settings.BlockedText(values["account.nickname_blacklist"], name, false) || settings.BlockedText(values["account.username_blacklist"], state.User.Username, false) {
 		return contracts.AccountProfile{}, ErrInput
 	}
-	if input.AvatarFileID != nil {
-		fileID := strings.TrimSpace(*input.AvatarFileID)
-		input.AvatarFileID = &fileID
-		if len(fileID) > 80 {
-			return contracts.AccountProfile{}, ErrInput
-		}
-		if fileID != "" {
-			if p.AvatarFiles == nil {
-				return contracts.AccountProfile{}, ErrForbidden
+	var saveProfile = func() error {
+		if input.AvatarFileID != nil {
+			fileID := strings.TrimSpace(*input.AvatarFileID)
+			input.AvatarFileID = &fileID
+			if len(fileID) > 80 {
+				return ErrInput
 			}
-			if err := p.AvatarFiles.ValidateAvatar(ctx, files.Actor{ID: state.User.ID, Realm: "avatar"}, fileID); err != nil {
-				return contracts.AccountProfile{}, ErrInput
+			if fileID != "" {
+				if p.AvatarFiles == nil {
+					return ErrForbidden
+				}
+				if err := p.AvatarFiles.ValidateAvatar(ctx, files.Actor{ID: state.User.ID, Realm: "avatar"}, fileID); err != nil {
+					return ErrInput
+				}
 			}
 		}
+		return p.Store.SaveAccountProfile(ctx, Hash(token), name, input.AvatarFileID)
 	}
-	if err := p.Store.SaveAccountProfile(ctx, Hash(token), name, input.AvatarFileID); err != nil {
-		return contracts.AccountProfile{}, err
+	var saveErr error
+	if input.AvatarFileID != nil && *input.AvatarFileID != "" {
+		if guard, ok := p.AvatarFiles.(interface {
+			WithReferenceGuard(context.Context, func() error) error
+		}); ok {
+			saveErr = guard.WithReferenceGuard(ctx, saveProfile)
+		} else {
+			saveErr = saveProfile()
+		}
+	} else {
+		saveErr = saveProfile()
+	}
+	if saveErr != nil {
+		return contracts.AccountProfile{}, saveErr
 	}
 	return p.Profile(ctx, token)
 }

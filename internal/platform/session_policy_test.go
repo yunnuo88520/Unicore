@@ -40,6 +40,28 @@ func TestSessionSecurityPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Exercise the SQL policy with no stored override, rather than only checking
+	// the settings registry's default projection.
+	if _, err = db.DB.ExecContext(ctx, "DELETE FROM unicore_system_settings WHERE setting_key=?", "security.admin_idle_minutes"); err != nil {
+		t.Fatal(err)
+	}
+	_, defaultToken, err := adminIdentity.Issue(ctx, admin, 24)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defaultNow := time.Now().Unix()
+	if _, err = db.DB.ExecContext(ctx, "UPDATE unicore_session_details SET created_at=?,last_seen_at=? WHERE token_hash=?", defaultNow-24*3600+60, defaultNow-24*3600+60, platform.Hash(defaultToken)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = adminIdentity.Session(platform.WithPassive(ctx), defaultToken); err != nil {
+		t.Fatal("default administrator policy must allow almost 24 hours idle", err)
+	}
+	if _, err = db.DB.ExecContext(ctx, "UPDATE unicore_session_details SET created_at=?,last_seen_at=? WHERE token_hash=?", defaultNow, defaultNow-24*3600-60, platform.Hash(defaultToken)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = adminIdentity.Session(ctx, defaultToken); !errors.Is(err, platform.ErrCredentials) {
+		t.Fatal("default administrator idle policy must reject after 24 hours", err)
+	}
 	patch := func(changes ...contracts.SettingChange) {
 		t.Helper()
 		if _, err := config.Patch(ctx, contracts.SettingPatch{Changes: changes}, admin.ID); err != nil {
@@ -47,6 +69,10 @@ func TestSessionSecurityPolicy(t *testing.T) {
 		}
 	}
 	patch(contracts.SettingChange{Key: "security.user_idle_minutes", Value: "1"}, contracts.SettingChange{Key: "security.admin_idle_minutes", Value: "2"}, contracts.SettingChange{Key: "security.admin_max_minutes", Value: "3"}, contracts.SettingChange{Key: "security.force_user_2fa", Value: "true"})
+	_, idleAdminToken, err := adminIdentity.Issue(ctx, admin, 24)
+	if err != nil {
+		t.Fatal(err)
+	}
 	userProfile, err := memberIdentity.Personal.Profile(ctx, memberToken)
 	if err != nil || !userProfile.Force2fa || userProfile.CanDisable2fa {
 		t.Fatal(userProfile, err)
@@ -137,6 +163,10 @@ func TestSessionSecurityPolicy(t *testing.T) {
 	}
 	if _, err = adminIdentity.Session(ctx, adminToken); err != nil {
 		t.Fatal("member idle invalidated admin", err)
+	}
+	exec("UPDATE unicore_session_details SET last_seen_at=? WHERE token_hash=?", now-121, platform.Hash(idleAdminToken))
+	if _, err = adminIdentity.Session(ctx, idleAdminToken); !errors.Is(err, platform.ErrCredentials) {
+		t.Fatal("administrator idle policy bypass", err)
 	}
 	exec("UPDATE unicore_session_details SET created_at=?,last_seen_at=? WHERE token_hash=?", now-181, now, platform.Hash(adminToken))
 	if _, err = adminIdentity.Session(ctx, adminToken); !errors.Is(err, platform.ErrCredentials) {

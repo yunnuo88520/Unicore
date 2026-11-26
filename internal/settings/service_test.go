@@ -19,6 +19,52 @@ type memoryStore struct {
 	fail   bool
 }
 
+func TestAdminIdleDefaultDoesNotOverrideStoredPolicy(t *testing.T) {
+	ctx := context.Background()
+	store := &memoryStore{values: map[string]string{"security.admin_idle_minutes": "360"}}
+	service := &Service{Store: store, Profile: "web-platform"}
+	value, err := service.Value(ctx, "security.admin_idle_minutes")
+	if err != nil || value != "360" {
+		t.Fatalf("explicitly configured idle policy must remain intact: %q %v", value, err)
+	}
+	store.values = map[string]string{}
+	value, err = service.Value(ctx, "security.admin_idle_minutes")
+	if err != nil || value != "1440" {
+		t.Fatalf("new instances should default to 24 hours: %q %v", value, err)
+	}
+}
+
+func TestBrandDisplayModeSettings(t *testing.T) {
+	ctx := context.Background()
+	store := &memoryStore{values: map[string]string{}}
+	service := &Service{Store: store, Profile: "web-platform"}
+	values, err := service.Raw(ctx)
+	if err != nil || values["branding.display_mode"] != "icon-title" {
+		t.Fatal("existing instances need a title-preserving default", values, err)
+	}
+	for _, mode := range []string{"wordmark", "icon-title"} {
+		if _, err = service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "branding.display_mode", Value: mode}}}, "admin"); err != nil {
+			t.Fatal("valid brand layout rejected", err)
+		}
+	}
+	for _, invalid := range []string{"", "auto", "wide", "WORDMARK"} {
+		if _, err = service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "branding.display_mode", Value: invalid}}}, "admin"); !errors.Is(err, ErrInvalid) {
+			t.Fatal("unknown brand layout accepted", invalid, err)
+		}
+	}
+	store.fail = true
+	if _, err = service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "branding.display_mode", Value: "wordmark"}}}, "admin"); err == nil || store.values["branding.display_mode"] != "icon-title" {
+		t.Fatal("failed write changed the active brand layout", err)
+	}
+	store.fail = false
+	for _, profile := range []contracts.Profile{"web-standalone", "desktop"} {
+		service.Profile = profile
+		if _, err = service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "branding.display_mode", Value: "wordmark"}}}, "local"); !errors.Is(err, ErrInvalid) {
+			t.Fatal("runtime branding available outside platform", profile, err)
+		}
+	}
+}
+
 func (m *memoryStore) ReadSettings(context.Context) (map[string]string, error) {
 	copy := map[string]string{}
 	for k, v := range m.values {
@@ -126,8 +172,48 @@ func TestPublicSiteLinks(t *testing.T) {
 			t.Fatalf("unsafe ICP link accepted: %q", value)
 		}
 	}
-	if _, err := service.Patch(context.Background(), contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "site.icp_number", Value: "测试ICP备00000000号"}, {Key: "site.icp_url", Value: "https://beian.miit.gov.cn/"}}}, "test"); err != nil {
+	if _, err := service.Patch(context.Background(), contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "site.icp_number", Value: "京ICP备05034670号-2"}, {Key: "site.icp_url", Value: "https://beian.miit.gov.cn/"}}}, "test"); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestRegistrationNumberFormatsAndLegacyValues(t *testing.T) {
+	ctx := context.Background()
+	store := &memoryStore{values: map[string]string{
+		"site.icp_number":    "legacy custom registration label",
+		"site.police_number": "legacy police label",
+	}}
+	service := &Service{Store: store, Profile: "web-platform"}
+	for key, valid := range map[string][]string{
+		"site.icp_number":    {"", "京ICP备05034670号", "粤ICP备2024159822号-3A", "2021016245号-2", "滇 ICP 备 2021038501 号", "京ICP备05034670号－2"},
+		"site.police_number": {"", "京公网安备110105000722", "44030502000001号", "京 公网 安备 110105000722", "粤公网安备44010402000488-1号"},
+	} {
+		for _, value := range valid {
+			if _, err := service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: key, Value: value}}}, "admin"); err != nil {
+				t.Errorf("valid registration number rejected for %s: %q: %v", key, value, err)
+			}
+		}
+	}
+	for key, invalid := range map[string][]string{
+		"site.icp_number":    {"测试ICP备00000000号", "京ICP备1234567号", "京ICP备1234567890123号", "京ICP备12345678号-12345", strings.Repeat("京", 41)},
+		"site.police_number": {"公网安备110105000722", "京公网安备12345678901", "京公网安备1234567890123456789", "京公网安备110105000722-12345号", strings.Repeat("京", 41)},
+	} {
+		for _, value := range invalid {
+			if _, err := service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: key, Value: value}}}, "admin"); !errors.Is(err, ErrInvalid) {
+				t.Errorf("invalid registration number accepted for %s: %q: %v", key, value, err)
+			}
+		}
+	}
+	store.values["site.icp_number"] = "legacy custom registration label"
+	store.values["site.police_number"] = "legacy police label"
+	if value, err := service.Value(ctx, "site.icp_number"); err != nil || value != "legacy custom registration label" {
+		t.Fatalf("reading legacy configured value must not rewrite it: %q %v", value, err)
+	}
+	if _, err := service.Patch(ctx, contracts.SettingPatch{Changes: []contracts.SettingChange{{Key: "site.copyright", Value: "updated"}}}, "admin"); err != nil {
+		t.Fatal("unrelated setting update rejected by a legacy registration value", err)
+	}
+	if store.values["site.icp_number"] != "legacy custom registration label" || store.values["site.police_number"] != "legacy police label" {
+		t.Fatal("legacy registration values were changed without an explicit edit", store.values)
 	}
 }
 

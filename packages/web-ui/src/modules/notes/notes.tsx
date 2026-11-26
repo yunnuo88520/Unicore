@@ -1,5 +1,5 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Notes workspace: card grid, modal editing, ownership attachments and pagination over AppClient.
+// Description: Notes workspace: card grid, shared drawer editing, ownership attachments and pagination over AppClient.
 import { useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Circle, Download, NotebookPen, Paperclip, Pencil, Plus, Trash2, X } from 'lucide-react';
@@ -7,8 +7,8 @@ import type { AppClient, FileEntry, NoteEntry, NoteQuery } from '@unicore/sdk';
 import { currentLocale, t, useLocale } from '../../i18n';
 import { FileUploadDialog } from '../../file-upload-dialog';
 import { canAction } from '../../permissions';
-import { Badge, Button, Card, CardContent, EmptyState, Input, Modal, Skeleton, SimpleSelect, Textarea, useMessage, selectOptions } from '@unicore/ui';
-import { AppControllerField, AppField, AppForm, useAppForm } from '@unicore/form';
+import { Badge, Button, Card, CardContent, EmptyState, FormDrawer, Input, Modal, Skeleton, SimpleSelect, Textarea, useMessage, selectOptions } from '@unicore/ui';
+import { AppControllerField, AppField, AppForm, AppFormBody, AppFormFooter, useAppForm } from '@unicore/form';
 import { SearchField } from '@unicore/ui/controls';
 import type { PageProps } from '../../router';
 
@@ -47,38 +47,31 @@ export function NotesPage({ client, metadata }: PageProps) {
     },
   });
   return <section className="flex flex-col gap-4" aria-label={administrator ? t('笔记管理') : t('个人笔记')}>
-    <Card>
-      <CardContent className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-accent"><NotebookPen size={19} aria-hidden="true" /></span>
-          <div>
-            <h2 className="text-md font-semibold text-ink">{administrator ? t('笔记管理') : t('个人笔记')}</h2>
-            <p className="text-xs text-muted">{administrator ? t('管理实例内全部用户笔记，可按需编辑或删除。') : t('把想法写下来，按自己的节奏推进。')}</p>
-          </div>
-        </div>
-        {canCreate && <Button onClick={() => setEditing('new')}><Plus size={16} />{t('新建笔记')}</Button>}
-      </CardContent>
-    </Card>
-    <Card>
-      <CardContent>
-        <form className="flex flex-wrap items-center gap-2" onSubmit={event => { event.preventDefault(); setQuery(q => ({ ...q, search, page: 1 })); }}>
-          <SearchField label={t('搜索笔记')} maxLength={128} value={search} onValueChange={setSearch} className="flex-1 sm:max-w-64" />
-          <Button type="submit" variant="secondary">{t('搜索')}</Button>
-          <SimpleSelect presentation="dropdown" aria-label={t('笔记状态')} value={query.status} onChange={event => setQuery(q => ({ ...q, status: event as NoteQuery['status'], page: 1 }))} className="w-28" options={selectOptions(<>
-            <option value="">{t('全部状态')}</option>
-            <option value="open">{t('进行中')}</option>
-            <option value="done">{t('已完成')}</option>
-          </>)} />
-          <SimpleSelect presentation="dropdown" aria-label={t('笔记排序')} value={query.sort} onChange={event => setQuery(q => ({ ...q, sort: event as NoteQuery['sort'], page: 1 }))} className="w-28" options={selectOptions(<>
-            <option value="updated_at">{t('最近更新')}</option>
-            <option value="title">{t('按标题')}</option>
-          </>)} />
-          <Button type="button" variant="secondary" onClick={() => setQuery(q => ({ ...q, direction: q.direction === 'desc' ? 'asc' : 'desc', page: 1 }))}>
-            {query.direction === 'desc' ? t('降序') : t('升序')}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+    <header className="flex flex-wrap items-center justify-between gap-3">
+      <div className="min-w-0">
+        <h2 className="text-sm font-medium text-ink">{administrator ? t('笔记管理') : t('个人笔记')}</h2>
+        <p className="mt-0.5 text-xs text-muted">{administrator ? t('管理实例内全部用户笔记，可按需编辑或删除。') : t('把想法写下来，按自己的节奏推进。')}</p>
+      </div>
+      {canCreate && <Button onClick={() => setEditing('new')}><Plus size={16} />{t('新建笔记')}</Button>}
+    </header>
+    <form className="flex flex-wrap items-center gap-2" onSubmit={event => { event.preventDefault(); setQuery(q => ({ ...q, search, page: 1 })); }}>
+      <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-1 sm:max-w-80">
+        <SearchField label={t('搜索笔记')} maxLength={128} value={search} onValueChange={setSearch} className="min-w-0 flex-1" />
+        <Button type="submit" variant="secondary">{t('搜索')}</Button>
+      </div>
+      <SimpleSelect presentation="dropdown" aria-label={t('笔记状态')} value={query.status} onChange={event => setQuery(q => ({ ...q, status: event as NoteQuery['status'], page: 1 }))} className="min-w-0 flex-1 sm:w-28 sm:flex-none" options={selectOptions(<>
+        <option value="">{t('全部状态')}</option>
+        <option value="open">{t('进行中')}</option>
+        <option value="done">{t('已完成')}</option>
+      </>)} />
+      <SimpleSelect presentation="dropdown" aria-label={t('笔记排序')} value={query.sort} onChange={event => setQuery(q => ({ ...q, sort: event as NoteQuery['sort'], page: 1 }))} className="min-w-0 flex-1 sm:w-28 sm:flex-none" options={selectOptions(<>
+        <option value="updated_at">{t('最近更新')}</option>
+        <option value="title">{t('按标题')}</option>
+      </>)} />
+      <Button type="button" variant="secondary" onClick={() => setQuery(q => ({ ...q, direction: q.direction === 'desc' ? 'asc' : 'desc', page: 1 }))}>
+        {query.direction === 'desc' ? t('降序') : t('升序')}
+      </Button>
+    </form>
     {list.isPending
       ? <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3" role="status" aria-busy="true">
           {Array.from({ length: 6 }, (_, index) => <Card key={index} className="flex flex-col gap-2 p-4">
@@ -89,13 +82,13 @@ export function NotesPage({ client, metadata }: PageProps) {
           </Card>)}
         </div>
       : list.isError
-        ? <Card><EmptyState role="alert" description={t(list.error.message)} className="py-10"
+        ? <Card variant="outlined"><EmptyState role="alert" description={t(list.error.message)} className="py-10"
             action={<Button variant="secondary" onClick={() => void list.refetch()}>{t('重试')}</Button>} /></Card>
         : !list.data.items.length
-          ? <Card><EmptyState icon={NotebookPen} title={query.search || query.status ? t('没有符合条件的笔记') : t('让第一条想法落在这里')} description={t('新建一条笔记，记录值得跟进的事。')} /></Card>
+          ? <Card variant="outlined"><EmptyState icon={NotebookPen} title={query.search || query.status ? t('没有符合条件的笔记') : t('让第一条想法落在这里')} description={t('新建一条笔记，记录值得跟进的事。')} /></Card>
           : <>
               <div className="grid items-start gap-3 transition-opacity duration-200 sm:grid-cols-2 xl:grid-cols-3" aria-busy={list.isFetching || undefined} style={list.isFetching ? { opacity: 0.7 } : undefined}>
-                {list.data.items.map(note => <Card key={note.id} className="flex flex-col gap-2 p-4">
+                {list.data.items.map(note => <Card key={note.id} variant="outlined" className="flex flex-col gap-2 rounded-lg p-4">
                   <div className="flex items-start justify-between gap-2">
                     <Badge variant={note.status === 'done' ? 'success' : 'subtle'} className="gap-1">
                       {note.status === 'done' ? <CheckCircle2 size={13} aria-hidden="true" /> : <Circle size={13} aria-hidden="true" />}
@@ -166,8 +159,9 @@ function NoteEditor({ client, metadata, note, onClose, onSaved }: {
   const unfinished = owned.filter(f => f.state === 'pending' || f.state === 'copying');
   const value = form.watch();
   function setAttachments(next: string[]) { form.setValue('attachment_ids', next, { shouldDirty: true }); }
-  return <><Modal title={note ? t('编辑笔记') : t('新建笔记')} pending={save.isPending} onClose={onClose}>
-    <AppForm form={form} className="note-form flex flex-col gap-3">
+  return <><FormDrawer title={note ? t('编辑笔记') : t('新建笔记')} pending={save.isPending} onClose={onClose}>
+    <AppForm form={form} layout="panel" className="note-form">
+      <AppFormBody>
       {note && <input type="hidden" {...form.register('version')} />}
       <AppField name="title" label={t('标题')}>
         <Input required maxLength={120} placeholder={t('给这条笔记一个名字')} />
@@ -199,12 +193,13 @@ function NoteEditor({ client, metadata, note, onClose, onSaved }: {
           <Button variant="ghost" size="icon" className="ms-auto size-7" aria-label={t('移除附件 {{v0}}', { v0: index + 1 })} onClick={() => setAttachments(value.attachment_ids.filter(f => f !== id))}><X size={15} /></Button>
         </div>)}
       </fieldset>}
-      <div className="mt-1 flex flex-wrap items-center justify-end gap-2">
+      </AppFormBody>
+      <AppFormFooter>
         <Button variant="secondary" disabled={save.isPending} onClick={onClose}>{t('取消')}</Button>
         <Button type="submit" pending={save.isPending}>{save.isPending ? t('保存中…') : t('保存笔记')}</Button>
-      </div>
+      </AppFormFooter>
     </AppForm>
-  </Modal>
+  </FormDrawer>
     {uploading && <FileUploadDialog client={uploadClient} resume={typeof uploading === 'object' ? uploading : undefined} onClose={() => { setUploading(false); void files.refetch(); }} onUploaded={file => {
       const selected = form.getValues('attachment_ids');
       if (selected.length < 5 && !selected.includes(file.file_id)) setAttachments([...selected, file.file_id]);

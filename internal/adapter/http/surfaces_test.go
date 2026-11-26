@@ -9,6 +9,7 @@ import (
 	"github.com/yunnuo/unicore/internal/bootstrap"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/install"
+	"github.com/yunnuo/unicore/internal/platform"
 	"io"
 	"log/slog"
 	"net/http"
@@ -63,7 +64,11 @@ func TestSeparateSurfacesAndCreatedUserLogin(t *testing.T) {
 	}
 	check(request("POST", "/api/v1/admin/users", contracts.UserCreate{Username: "createdmember", Email: "member@example.test", Password: "member-password-strong", Role: "user"}, adminCookie, session.CsrfToken, ""), 200)
 	login := contracts.LoginInput{Username: "createdmember", Password: "member-password-strong"}
-	check(request("POST", "/api/v1/admin/auth/login", login, nil, "", "user"), 200)
+	rejected := request("POST", "/api/v1/admin/auth/login", login, nil, "", "user")
+	check(rejected, 403)
+	if len(rejected.Result().Cookies()) != 0 {
+		t.Fatal("rejected management login issued a session cookie")
+	}
 	w := request("POST", "/api/v1/auth/login", login, nil, "", "administrator")
 	check(w, 200)
 	memberCookie := w.Result().Cookies()[0]
@@ -86,7 +91,8 @@ func TestSeparateSurfacesAndCreatedUserLogin(t *testing.T) {
 	check(request("POST", "/api/v1/admin/updates/check", nil, adminCookie, session.CsrfToken, ""), 200)
 	check(request("POST", "/api/v1/admin/updates/apply", contracts.UpdateApplyInput{Version: "1.1.0", BackupConfirmed: true}, adminCookie, session.CsrfToken, ""), 200)
 	check(request("GET", "/api/v1/updates", nil, memberCookie, "", ""), 404)
-	check(request("GET", "/api/v1/admin/auth/session", nil, memberCookie, "", "administrator"), 200)
+	check(request("GET", "/api/v1/admin/auth/session", nil, memberCookie, "", "administrator"), 403)
+	check(request("GET", "/api/v1/auth/session", nil, memberCookie, "", ""), 200)
 	check(request("GET", "/api/v1/auth/session", nil, adminCookie, "", "administrator"), 200)
 	check(request("GET", "/api/v1/admin/auth/session", nil, adminCookie, "", "user"), 200)
 	w = request("GET", "/api/v1/bootstrap", nil, memberCookie, "", "administrator")
@@ -98,6 +104,14 @@ func TestSeparateSurfacesAndCreatedUserLogin(t *testing.T) {
 	if boot.Data.CurrentUser == nil || boot.Data.CurrentUser.Username != "createdmember" || boot.Data.AdminPath != "" || boot.Data.Version == "" || boot.Data.Commit != "" || boot.Data.BuildTime != "" || boot.Data.Capabilities.Updater {
 		t.Fatal(w.Body.String())
 	}
+	w = request("GET", "/api/v1/admin/bootstrap", nil, memberCookie, "", "user")
+	check(w, 200)
+	boot = contracts.BootstrapResponse{}
+	_ = json.Unmarshal(w.Body.Bytes(), &boot)
+	if boot.Data.CurrentUser != nil || boot.Data.Navigation != nil || boot.Data.CsrfToken != nil || boot.Data.MfaPending != nil || boot.Data.IdentityRealm == nil || *boot.Data.IdentityRealm != "administrator" {
+		t.Fatalf("ordinary session projected into management workspace: %s", w.Body.String())
+	}
+	check(request("GET", "/api/v1/auth/session", nil, memberCookie, "", ""), 200)
 	for path, entry := range map[string]string{"/": "USER_ENTRY", "/login": "USER_ENTRY", "/register": "USER_ENTRY", "/admin": "ADMIN_ENTRY"} {
 		w = request("GET", path, nil, nil, "", "")
 		check(w, 200)
@@ -130,6 +144,26 @@ func TestSeparateSurfacesAndCreatedUserLogin(t *testing.T) {
 	_ = json.Unmarshal(w.Body.Bytes(), &memberSession)
 	check(request("PUT", "/api/v1/notes/"+note.Data.ID, contracts.NoteUpdate{Title: "Stolen", Status: "open", Version: 1, AttachmentIds: []string{}}, memberCookie, memberSession.Data.CsrfToken, "administrator"), 404)
 	check(request("POST", "/api/v1/notes", contracts.NoteInput{Title: "Invalid attachment", Status: "open", AttachmentIds: &[]string{"foreign-file"}}, memberCookie, memberSession.Data.CsrfToken, ""), 400)
-	check(request("POST", "/api/v1/admin/auth/logout", nil, adminCookie, session.CsrfToken, ""), 200)
 	check(request("GET", "/api/v1/auth/session", nil, memberCookie, "", ""), 200)
+	store, _, _, _ := manager.Services()
+	if _, err := store.Exec(ctx, store.DB, "INSERT INTO unicore_personal_accounts(user_id,display_name,totp_secret,recovery_digests,last_step,setup_secret,setup_session,setup_expires,setup_attempts) VALUES(?,'',?,'',-1,'','',0,0)", memberSession.Data.User.ID, manager.Mail().Secrets.Seal("JBSWY3DPEHPK3PXP")); err != nil {
+		t.Fatal(err)
+	}
+	pending, pendingRaw, err := manager.Identity(false).Issue(ctx, memberSession.Data.User, 1)
+	if err != nil || pending.MfaPending == nil || !*pending.MfaPending {
+		t.Fatalf("pending session: %+v %v", pending, err)
+	}
+	pendingCookie := &http.Cookie{Name: sessionCookie, Value: pendingRaw}
+	w = request("GET", "/api/v1/admin/bootstrap", nil, pendingCookie, "", "")
+	check(w, 200)
+	boot = contracts.BootstrapResponse{}
+	_ = json.Unmarshal(w.Body.Bytes(), &boot)
+	if boot.Data.CurrentUser != nil || boot.Data.CsrfToken != nil || boot.Data.MfaPending != nil {
+		t.Fatalf("ordinary MFA session projected into management workspace: %s", w.Body.String())
+	}
+	check(request("POST", "/api/v1/admin/auth/mfa", contracts.SecurityCodeInput{Code: "000000"}, pendingCookie, platform.CSRF(pendingRaw), ""), 403)
+	if _, err := manager.Identity(false).Personal.Pending(ctx, pendingRaw); err != nil {
+		t.Fatalf("management rejection invalidated the shared pending session: %v", err)
+	}
+	check(request("POST", "/api/v1/admin/auth/logout", nil, adminCookie, session.CsrfToken, ""), 200)
 }

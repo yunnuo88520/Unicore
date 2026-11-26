@@ -12,7 +12,8 @@ import { buildMenuTree, directoryTitle, isRegisteredPage, sectionTitle, type Men
 import { routes } from '../../routes';
 import { buildDepartmentTree, flattenDepartmentTree, useDepartmentsQuery } from '../../queries';
 import { operationPermissionsAllow } from '../../permissions';
-import { Alert, Badge, Button, Checkbox, ConfirmDialog, Input, Modal, SimpleSelect, useMessage, selectOptions } from '@unicore/ui';
+import { Alert, Badge, Button, Checkbox, ConfirmDialog, FormDrawer, Input, SimpleSelect, useMessage, selectOptions } from '@unicore/ui';
+import { AppFormBody, AppFormFooter } from '@unicore/form';
 
 // Data scopes apply to the resource permissions held by each role.
 const dataScopeLabels = defineMessages({ self: '仅本人', dept: '本部门', dept_and_below: '本部门及以下', custom: '自定义', all: '全部' });
@@ -364,9 +365,8 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
       {!collapsed.has(node.id) && hasChildren && menuChildren.map(child => renderRow(child, depth + 1))}
     </div>;
   };
-  return <Modal title={t(role ? '编辑角色' : '新建角色')} onClose={onClose} pending={pending}
-    className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden pe-0" contentClassName="h-[85dvh] max-w-6xl overflow-hidden">
-    <form className="flex min-h-0 flex-1 flex-col gap-3" onSubmit={event => { event.preventDefault(); submit(); }}>
+  return <FormDrawer title={t(role ? '编辑角色' : '新建角色')} onClose={onClose} pending={pending} size="lg">
+    <form className="flex min-h-0 flex-1 flex-col overflow-hidden" onSubmit={event => { event.preventDefault(); submit(); }}>
       {/* Guarded saves (403 PERMISSION_DENIED, version conflicts) render inside
         * the dialog: the modal marks outside toasts aria-hidden, so an inline
         * alert is the only reliably reachable feedback while editing. */}
@@ -374,7 +374,7 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
       {conflicted && <Alert action={<Button variant="secondary" onClick={() => setConfirmRefresh(true)}>{t('刷新角色并重新确认')}</Button>}>{t('角色已被修改，草稿已保留。请刷新最新角色并重新确认后保存。')}</Alert>}
       {confirmRefresh && <ConfirmDialog title={t('刷新角色并重新确认')} description={t('刷新会丢弃当前草稿并载入最新角色，不会自动提交。')} confirmLabel={t('确认刷新')} cancelLabel={t('保留草稿')} pending={reload.isPending} onConfirm={() => reload.mutate()} onCancel={() => setConfirmRefresh(false)} />}
       {reload.error && <Alert variant="danger">{t(reload.error.message)}</Alert>}
-      <div className="flex flex-col gap-1.5">
+      <AppFormBody className="gap-4 pe-5 sm:pe-6"><div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-3">
           <Input label={t('角色名称')} id="role-editor-name" required maxLength={80} autoComplete="off" value={name} aria-invalid={!!nameError} className="max-w-sm"
             disabled={pending || !!role?.builtin} placeholder={t('例如 运营')}
@@ -387,12 +387,14 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
         </p>
       </div>
       <fieldset disabled={pending} className="flex min-w-0 flex-col gap-1.5">
-        <div className="flex items-center gap-3">
-          <span className="w-16 shrink-0 text-sm font-medium text-ink">{t('数据范围')}</span>
-          <SimpleSelect aria-label={t('数据范围')} className="max-w-44" disabled={scopeLocked} value={scopeLocked ? 'self' : dataScope} onChange={event => setDataScope(event as Role['data_scope'])} options={selectOptions(<>
+        <div className="flex min-w-0 flex-col gap-2">
+          <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-ink">
+            {t('数据范围')}
+            <SimpleSelect aria-label={t('数据范围')} className="w-full max-w-64" disabled={scopeLocked} value={scopeLocked ? 'self' : dataScope} onChange={event => setDataScope(event as Role['data_scope'])} options={selectOptions(<>
             {DATA_SCOPES.map(scope => <option key={scope} value={scope}>{t(dataScopeLabels[scope])}</option>)}
-          </>)} />
-          <small className="min-w-0 text-xs text-muted">{t('数据范围决定角色成员在笔记、文件等业务列表中能看到的数据。')}</small>
+            </>)} />
+          </label>
+          <small className="text-xs leading-5 text-muted">{t('数据范围决定角色成员在笔记、文件等业务列表中能看到的数据。')}</small>
         </div>
         {scopeLocked && <small className="text-xs text-muted">{t('内置用户角色的数据范围固定为仅本人；复制为自定义角色后可调整。')}</small>}
         {!scopeLocked && dataScope === 'custom' && <div className="flex flex-col gap-1.5">
@@ -473,10 +475,10 @@ export function RoleEditor({ web, realm, role, source, permissions, onClose, onS
           </>}
         </fieldset>
       </div>
-      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">
+      </AppFormBody><AppFormFooter>
         <Button variant="secondary" disabled={pending} onClick={onClose}>{t('取消')}</Button>
         <Button type="submit" pending={pending} disabled={navigation.isPending || navigation.isError || conflicted || (!!role && version === undefined)}>{pending ? t('处理中…') : t('保存')}</Button>
-      </div>
+      </AppFormFooter>
     </form>
-  </Modal>;
+  </FormDrawer>;
 }

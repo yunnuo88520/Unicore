@@ -290,8 +290,8 @@ func (r *Repository) Referenced(ctx context.Context, location, key string, now i
 	e := r.Store.Row(ctx, r.Store.DB, "SELECT (SELECT COUNT(*) FROM unicore_file_metadata WHERE location_id=? AND state<>'deleted' AND (file_key=? OR staging_key=?))+(SELECT COUNT(*) FROM unicore_file_cleanup_jobs WHERE location_id=? AND file_key=? AND due_at>?)", location, key, key, location, key, now).Scan(&n)
 	return n > 0, e
 }
-func (r *Repository) Expired(ctx context.Context, now int64) ([]files.Record, error) {
-	rows, e := r.Store.Rows(ctx, r.Store.DB, "SELECT "+columns+" FROM unicore_file_metadata WHERE state<>'deleted' AND ((state<>'ready' AND cleanup_at<=?) OR (expires_at>0 AND expires_at<=?)) LIMIT 25", now, now)
+func (r *Repository) Expired(ctx context.Context, now int64, afterID string) ([]files.Record, error) {
+	rows, e := r.Store.Rows(ctx, r.Store.DB, "SELECT "+columns+" FROM unicore_file_metadata WHERE id>? AND state<>'deleted' AND ((state<>'ready' AND cleanup_at<=?) OR (expires_at>0 AND expires_at<=?)) ORDER BY id LIMIT 25", afterID, now, now)
 	if e != nil {
 		return nil, e
 	}

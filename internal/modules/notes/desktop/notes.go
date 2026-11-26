@@ -24,6 +24,7 @@ func init() {
 		}
 		notes := &usecase.Notes{Repo: &notessql.Repository{Store: deps.Store}}
 		if deps.Files != nil {
+			notes.ReferenceGuard = deps.Files.WithReferenceGuard
 			notes.Attachments = func(ctx context.Context, _ string, id string) error {
 				return deps.Files.ValidateAttachment(ctx, files.Actor{ID: "local", Realm: "local"}, id)
 			}

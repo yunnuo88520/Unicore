@@ -2171,6 +2171,13 @@ export const constraints = {
       "accent": {
         "type": "string",
         "pattern": "^#[0-9a-f]{6}$"
+      },
+      "display_mode": {
+        "type": "string",
+        "enum": [
+          "icon-title",
+          "wordmark"
+        ]
       }
     }
   },
@@ -2193,7 +2200,7 @@ export const constraints = {
       },
       "content": {
         "type": "string",
-        "maxLength": 349528
+        "maxLength": 682668
       }
     }
   },
@@ -9546,6 +9553,208 @@ export const constraints = {
       },
       "order": {
         "type": "integer"
+      }
+    }
+  },
+  "FileCatalogEntry": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "file",
+      "purpose",
+      "directory",
+      "creator_name",
+      "creator_username"
+    ],
+    "properties": {
+      "file": {
+        "$ref": "#/components/schemas/FileEntry"
+      },
+      "purpose": {
+        "type": "string",
+        "maxLength": 32
+      },
+      "directory": {
+        "type": "string",
+        "maxLength": 512
+      },
+      "creator_name": {
+        "type": "string",
+        "maxLength": 128
+      },
+      "creator_username": {
+        "type": "string",
+        "maxLength": 128
+      }
+    }
+  },
+  "FileCatalogList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items",
+      "total",
+      "page",
+      "page_size"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/FileCatalogEntry"
+        }
+      },
+      "total": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "page": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "page_size": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 50
+      }
+    }
+  },
+  "FileDirectory": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "location_id",
+      "path",
+      "file_count",
+      "total_size"
+    ],
+    "properties": {
+      "location_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "path": {
+        "type": "string",
+        "maxLength": 512
+      },
+      "file_count": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "total_size": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      }
+    }
+  },
+  "FileDirectoryList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/FileDirectory"
+        }
+      }
+    }
+  },
+  "FileCatalogListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "data": {
+        "$ref": "#/components/schemas/FileCatalogList"
+      },
+      "request_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "message": {
+        "type": "string"
+      }
+    }
+  },
+  "FileDirectoryListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "data": {
+        "$ref": "#/components/schemas/FileDirectoryList"
+      },
+      "request_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "message": {
+        "type": "string"
+      }
+    }
+  },
+  "FileMigrationSelection": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "file_ids"
+    ],
+    "properties": {
+      "file_ids": {
+        "type": "array",
+        "maxItems": 100000,
+        "items": {
+          "type": "string",
+          "maxLength": 80
+        }
+      }
+    }
+  },
+  "FileMigrationSelectionResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "data": {
+        "$ref": "#/components/schemas/FileMigrationSelection"
+      },
+      "request_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "message": {
+        "type": "string"
       }
     }
   }

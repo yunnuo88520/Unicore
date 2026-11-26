@@ -13,6 +13,8 @@
 html, body { overflow-x: clip; }
 
 .app-shell {
+  --shell-titlebar-height: 0px;
+  --shell-frame-block-margin: 0px;
   --shell-sidebar-width: var(--sidebar);
   --shell-sidebar-gap: 24px;
   --shell-navigation-space: calc(var(--shell-sidebar-width) + var(--shell-sidebar-gap));
@@ -24,7 +26,12 @@ html, body { overflow-x: clip; }
   inline-size: 100%;
   min-block-size: 100dvh;
 }
-.app-shell > .main-shell { grid-column: 2; min-inline-size: 0; inline-size: 100%; }
+.app-shell > .main-shell {
+  grid-column: 2;
+  min-inline-size: 0;
+  inline-size: 100%;
+  min-block-size: calc(100dvh - var(--shell-titlebar-height) - var(--shell-frame-block-margin));
+}
 .app-shell > .sidebar {
   position: fixed;
   inset-block: 12px;
@@ -64,7 +71,7 @@ html, body { overflow-x: clip; }
    disabled so the whole page cannot be pulled down. */
 .titlebar-strip { display: none; }
 :root[data-desktop=mac] { overscroll-behavior: none; }
-:root[data-desktop=mac] .app-shell { padding-block-start: 28px; }
+:root[data-desktop=mac] .app-shell { --shell-titlebar-height: 28px; padding-block-start: 28px; }
 :root[data-desktop=mac] .app-shell :where(*) { --wails-draggable: no-drag; }
 :root[data-desktop=mac] .app-shell > .sidebar { inset-block-start: 40px; }
 :root[data-desktop=mac] .app-shell .titlebar-strip {
@@ -81,8 +88,8 @@ html, body { overflow-x: clip; }
 /* Keep the inset geometry without framing the header and content as separate panels. */
 @media (min-width: 768px) {
   :root:not([data-layout=full]):is([data-sidebar=inset], [data-sidebar=floating]) .main-shell {
+    --shell-frame-block-margin: 16px;
     inline-size: auto;
-    min-block-size: calc(100dvh - 16px);
     margin-block: 8px;
     margin-inline-end: 8px;
     border-radius: var(--radius-16);
@@ -105,10 +112,43 @@ html, body { overflow-x: clip; }
 :root[data-layout=full] .mobile-menu { display: inline-flex; }
 
 /* Instance brand images: only the theme-matching variant is rendered (restored with the Tailwind shell). */
-.instance-brand { display: inline-flex; flex-shrink: 0; }
-.instance-brand-dark { display: none; }
-:root[data-theme=dark] .instance-brand-light { display: none; }
-:root[data-theme=dark] .instance-brand-dark { display: inline-flex; }
+.instance-brand,
+.instance-brand-light,
+.instance-brand-dark { display: inline-flex; min-width: 0; max-width: 100%; max-height: 100%; align-items: center; justify-content: center; }
+.instance-brand { flex: 0 1 auto; overflow: hidden; }
+.instance-brand-light,
+.instance-brand-dark { width: 100%; height: 100%; }
+.brand-image { display: block; width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain; }
+/* Full logos keep their intrinsic ratio inside a fixed-height, bounded slot.
+ * A square image still takes 32px; a landscape image may use up to 120px. */
+.brand-logo { --brand-logo-size: 32px; --brand-logo-max-width: 120px; width: auto; height: var(--brand-logo-size); max-width: var(--brand-logo-max-width); flex-shrink: 0; }
+.brand-logo.logo-mode-icon { max-width: var(--brand-logo-size, 32px); }
+.brand-logo.logo-mode-text { max-width: var(--brand-logo-max-width, 120px); }
+.brand-logo > span { width: auto; max-width: inherit; }
+.brand-logo .brand-image { width: auto; height: auto; max-width: inherit; max-height: 100%; object-fit: contain; }
+
+/* The logo and control never shrink; only the text consumes remaining width. */
+.sidebar-header { display: flex; flex-direction: row; flex-shrink: 0; min-width: 0; min-height: 36px; align-items: center; gap: 8px; padding-inline: 4px; }
+.brand-area { display: flex; flex: 1; min-width: 0; flex-direction: row; align-items: center; gap: 8px; }
+.sidebar-header-logo { display: flex; width: auto; max-width: 120px; height: 32px; flex-shrink: 0; align-items: center; justify-content: flex-start; }
+/* The compact 218px sidebar still reserves readable title/version space.
+ * The logo's limit follows available geometry without becoming a square. */
+.sidebar-header[data-brand-header=icon-title] .brand-logo.logo-mode-text { max-width: min(100px, calc(var(--shell-sidebar-width) - 132px)); }
+/* min-width: 0 lets this flex item shrink below its title's intrinsic width. */
+.brand-info { display: flex; flex: 1; min-width: 0; max-width: 100%; flex-direction: column; align-items: flex-start; }
+.brand-info .version-badge > span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.brand-info .version-badge > i { flex-shrink: 0; }
+.sidebar-header-title { display: block; width: 100%; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-header-toggle { display: flex; width: 32px; height: 32px; margin-left: auto; flex-shrink: 0; align-items: center; justify-content: center; }
+/* A complete wordmark shares the default header row: the logo keeps its slot
+ * and the version badge sits beside it, left of the in-flow collapse toggle.
+ * Only shrink brand-info so the badge hugs the logo instead of stretching. */
+.sidebar-header.logo-mode-text:not(.show-title) .brand-info { flex: 0 1 auto; }
+/* Keep the same 32px logo slot centered, with no hidden control taking space. */
+.sidebar-header.collapsed-mode { justify-content: center; padding-inline: 0; gap: 0; }
+.sidebar-header.collapsed-mode .sidebar-header-logo { width: 32px; max-width: 32px; justify-content: center; }
+.sidebar-header.collapsed-mode .brand-info,
+.sidebar-header.collapsed-mode .sidebar-header-toggle { display: none; }
 
 /* Page headings live in the content flow. Breadcrumbs remain visible regardless
  * of scroll position; shell styling never infers page structure from the DOM. */

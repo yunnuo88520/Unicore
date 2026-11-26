@@ -26,7 +26,7 @@ type Store interface {
 	ResetUserPassword(context.Context, string, string, string) (contracts.User, error)
 	ListUsers(context.Context, string, int, int, ...string) (contracts.UserList, error)
 	ListUsersScoped(context.Context, contracts.User, string, int, int, ...string) (contracts.UserList, error)
-	CreateSession(context.Context, string, string, int, string) error
+	CreateSession(context.Context, string, string, int, string, bool) error
 	Session(context.Context, string) (contracts.User, int, error)
 	DeleteSession(context.Context, string) error
 	SystemLogs(context.Context, ...contracts.AuditLogQuery) (contracts.AuditLogList, error)
@@ -133,6 +133,12 @@ func Has(user contracts.User, permission string) bool {
 }
 
 func (s *Service) Login(ctx context.Context, input contracts.LoginInput, ip string, captcha, humanCheck bool, hours int) (contracts.Session, string, error) {
+	return s.LoginForWorkspace(ctx, input, ip, captcha, humanCheck, hours, false)
+}
+
+// LoginForWorkspace uses the shared identity and session store, while requiring
+// management access before a management-entry session can be created.
+func (s *Service) LoginForWorkspace(ctx context.Context, input contracts.LoginInput, ip string, captcha, humanCheck bool, hours int, administrator bool) (contracts.Session, string, error) {
 	if err := s.LoginAllowed(ctx, ip); err != nil {
 		return contracts.Session{}, "", err
 	}
@@ -169,19 +175,23 @@ func (s *Service) Login(ctx context.Context, input contracts.LoginInput, ip stri
 		s.loginResult(ctx, ip, false)
 		return contracts.Session{}, "", ErrCredentials
 	}
-	session, token, err := s.issue(ctx, account.User, hours, account.PasswordHash)
+	if administrator && !HasManagementAccess(account.User) {
+		s.loginResult(ctx, ip, false)
+		return contracts.Session{}, "", ErrForbidden
+	}
+	session, token, err := s.issue(ctx, account.User, hours, account.PasswordHash, administrator)
 	if err == nil && (session.MfaPending == nil || !*session.MfaPending) {
 		s.loginResult(ctx, ip, true)
 	}
 	return session, token, err
 }
 func (s *Service) Issue(ctx context.Context, user contracts.User, hours int) (contracts.Session, string, error) {
-	return s.issue(ctx, user, hours, "")
+	return s.issue(ctx, user, hours, "", false)
 }
-func (s *Service) issue(ctx context.Context, user contracts.User, hours int, credentialHash string) (contracts.Session, string, error) {
+func (s *Service) issue(ctx context.Context, user contracts.User, hours int, credentialHash string, administrator bool) (contracts.Session, string, error) {
 	token := Token()
 	expires := int(time.Now().Add(time.Duration(hours) * time.Hour).Unix())
-	if err := s.Store.CreateSession(ctx, Hash(token), user.ID, expires, credentialHash); err != nil {
+	if err := s.Store.CreateSession(ctx, Hash(token), user.ID, expires, credentialHash, administrator); err != nil {
 		return contracts.Session{}, "", err
 	}
 	pending := false

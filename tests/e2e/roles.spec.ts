@@ -153,7 +153,8 @@ test('custom roles assign through the console, echo the three grant sets and sur
   await page.goto(`${instance.url}/admin/users`);
   const memberRow = page.getByRole('row').filter({ hasText: 'member' });
   const openDialog = async () => {
-    await memberRow.getByRole('button', { name: '编辑', exact: true }).click();
+    await memberRow.getByRole('button', { name: '操作', exact: true }).click();
+    await page.getByRole('menuitem', { name: '编辑', exact: true }).click();
     return page.getByRole('dialog', { name: '编辑member', exact: true });
   };
   let dialog = await openDialog();
@@ -184,10 +185,12 @@ test('custom roles assign through the console, echo the three grant sets and sur
   expect(echoed.menu_ids).toEqual([notesNode.id]);
   expect(echoed.operation_ids).toEqual([]);
   // Disable then re-enable the member: the role assignment must survive both toggles.
-  await memberRow.getByRole('button', { name: '禁用', exact: true }).click();
-  await expect(memberRow.getByRole('button', { name: '启用', exact: true })).toBeVisible();
-  await memberRow.getByRole('button', { name: '启用', exact: true }).click();
-  await expect(memberRow.getByRole('button', { name: '禁用', exact: true })).toBeVisible();
+  await memberRow.getByRole('button', { name: '操作', exact: true }).click();
+  await page.getByRole('menuitem', { name: '禁用', exact: true }).click();
+  await expect(memberRow).toContainText('已禁用');
+  await memberRow.getByRole('button', { name: '操作', exact: true }).click();
+  await page.getByRole('menuitem', { name: '启用', exact: true }).click();
+  await expect(memberRow).toContainText('已启用');
   await loginClient(admin, 'admin', adminPassword);
   const restored = await admin.web!.users('', 1);
   expect(restored.items.find(item => item.id === memberID)?.roles).toEqual([recorder!.id]);
@@ -282,14 +285,17 @@ test('restricted administrators keep user administration without role management
     // The restricted administrator toggles ordinary users both ways.
     await ops.goto(`${instance.url}/admin/users`);
     const memberRow = ops.getByRole('row').filter({ hasText: 'member' });
-    await memberRow.getByRole('button', { name: '禁用', exact: true }).click();
-    await expect(memberRow.getByRole('button', { name: '启用', exact: true })).toBeVisible();
-    await memberRow.getByRole('button', { name: '启用', exact: true }).click();
-    await expect(memberRow.getByRole('button', { name: '禁用', exact: true })).toBeVisible();
+    await memberRow.getByRole('button', { name: '操作', exact: true }).click();
+    await ops.getByRole('menuitem', { name: '禁用', exact: true }).click();
+    await expect(memberRow).toContainText('已禁用');
+    await memberRow.getByRole('button', { name: '操作', exact: true }).click();
+    await ops.getByRole('menuitem', { name: '启用', exact: true }).click();
+    await expect(memberRow).toContainText('已启用');
     // The super administrator cannot disable the last active super admin.
     await page.goto(`${instance.url}/admin/administrators`);
     const adminRow = page.getByRole('row').filter({ hasText: 'admin@example.test' });
-    await adminRow.getByRole('button', { name: '禁用', exact: true }).click();
+    await adminRow.getByRole('button', { name: '操作', exact: true }).click();
+    await page.getByRole('menuitem', { name: '禁用', exact: true }).click();
     await expect(page.locator('[role="alert"]').filter({ hasText: '不能禁用或降权最后一个启用且可用本地密码登录的管理员' })).toBeVisible();
     expect((await page.request.get(`${instance.url}/api/v1/admin/bootstrap`, { headers })).status()).toBe(200);
   } finally {

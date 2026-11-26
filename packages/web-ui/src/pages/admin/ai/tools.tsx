@@ -5,9 +5,9 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { createColumnHelper, createPaginatedRowModel, rowPaginationFeature, tableFeatures, useTable, type PaginationState, type TableOptions } from '@tanstack/react-table';
 import { ChevronDown, ChevronRight, ListChecks, Lock, ShieldCheck, Wrench } from 'lucide-react';
 import type { McpTool } from '@unicore/sdk';
-import { Badge, Button, Card, CardContent, Input, Modal, PageHeader, SimpleSelect, Table, TableCell, TableRow, useMessage, selectOptions } from '@unicore/ui';
+import { Badge, Button, Modal, PageHeader, SimpleSelect, Table, TableCell, TableRow, useMessage, selectOptions } from '@unicore/ui';
 import { currentLocale, t, useI18n, useLocale } from '../../../i18n';
-import { DataTable, DataTablePagination } from '../../../components/data-table';
+import { DataTable, DataTablePagination, DataTableToolbar } from '../../../components/data-table';
 import type { PageProps } from '../../../router';
 
 const PAGE_SIZE = 50;
@@ -107,15 +107,11 @@ export function AdminAiToolsPage({ client }: PageProps) {
   } as TableOptions<typeof features, McpTool>);
   return <div className="flex min-w-0 flex-col gap-6">
     <PageHeader title={t('工具目录')} description={t('能力由代码注册、指纹固定；开放前必须审查输入输出与权限绑定，新版本会要求重新审查。')} />
-    <Card><CardContent className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="w-44"><Input label={t('按名称筛选')} value={filters.search} maxLength={96} onChange={event => { setFilters(current => ({ ...current, search: event.target.value })); setPage(1); }} /></div>
-        <div className="w-44"><label className="flex flex-col gap-1.5 text-sm font-medium"><span>{t('按状态筛选')}</span>
-          <SimpleSelect value={filters.state} onChange={value => { setFilters(current => ({ ...current, state: value })); setPage(1); }} className="max-w-full" aria-label={t('按状态筛选')}
+    <div className="flex min-w-0 flex-col gap-4">
+      <DataTableToolbar summary={{ label: t('能力'), value: total }} search={{ label: t('按名称筛选'), placeholder: t('按名称筛选'), value: filters.search, maxLength: 96, onChange: value => { setFilters(current => ({ ...current, search: value })); setPage(1); } }}>
+          <SimpleSelect label={t('按状态筛选')} value={filters.state} onChange={value => { setFilters(current => ({ ...current, state: value })); setPage(1); }} className="h-9 w-44" aria-label={t('按状态筛选')}
             options={selectOptions(<>{<option value="">{t('全部状态')}</option>}{states.map(state => <option key={state} value={state}>{state === 'open' ? t('已开放') : state === 'disabled' ? t('未开放') : state === 'unreviewed' ? t('未审查') : state === 'needs_review' ? t('需要重新审查') : t('模块未装配')}</option>)}</>)} />
-        </label></div>
-        <span className="ms-auto text-xs text-muted">{t('{{count}} 个能力', { count: total })}</span>
-      </div>
+      </DataTableToolbar>
       <DataTable table={table} pending={list.isPending} busy={list.isFetching || policy.isPending}
         error={list.isError ? { message: list.error.message } : null} onRetry={() => void list.refetch()}
         empty={{ icon: Wrench, title: t('暂无能力'), hint: t('已装配模块通过代码注册能力后，会出现在这里等待审查。') }}
@@ -136,7 +132,7 @@ export function AdminAiToolsPage({ client }: PageProps) {
         className="min-w-[880px]" />
       <DataTablePagination page={page} pageSize={PAGE_SIZE} total={total}
         onPageChange={next => setPage(next)} disabled={list.isFetching} />
-    </CardContent></Card>
+    </div>
     {detail && <Modal title={t('能力详情')} onClose={() => setDetail(null)}>
       <div className="flex flex-col gap-3 text-sm">
         <p><strong className="font-medium">{title(detail)}</strong> <code className="ms-2 font-mono text-xs text-muted">{detail.name}</code></p>

@@ -7,13 +7,13 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
-	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"mime"
 	"net/url"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -560,14 +560,26 @@ func (s *Service) AccessScoped(ctx context.Context, a Actor, fileID string, scop
 	if e != nil {
 		return contracts.FileAccess{}, e
 	}
+	return s.signAccess(ctx, f)
+}
+
+func (s *Service) signAccess(ctx context.Context, f Record) (contracts.FileAccess, error) {
 	if f.State != "ready" {
 		return contracts.FileAccess{}, ErrBusy
 	}
+	now := s.now()
 	ttl := s.policy(ctx, "url_ttl", 300)
 	if f.ExpiresAt > 0 {
-		ttl = min(ttl, f.ExpiresAt-int(s.now().Unix()))
+		remaining := f.ExpiresAt - int(now.Unix())
+		if remaining <= 0 {
+			return contracts.FileAccess{}, ErrNotFound
+		}
+		ttl = min(ttl, remaining)
 	}
-	expires := s.now().Add(time.Duration(ttl) * time.Second).Unix()
+	if ttl <= 0 {
+		return contracts.FileAccess{}, ErrNotFound
+	}
+	expires := now.Add(time.Duration(ttl) * time.Second).Unix()
 	l, e := s.location(ctx, f.LocationID)
 	if e != nil {
 		return contracts.FileAccess{}, e
@@ -578,7 +590,7 @@ func (s *Service) AccessScoped(ctx context.Context, a Actor, fileID string, scop
 	}
 	var target string
 	if l.Provider == "local" {
-		payload := fmt.Sprintf("%s:%s:%d", f.FileID, f.Key, expires)
+		payload := fmt.Sprintf("unicore-file-access:v2:%s:%d", f.FileID, expires)
 		target = "/api/v1/files/" + f.FileID + "/content?expires=" + strconv.FormatInt(expires, 10) + "&signature=" + url.QueryEscape(s.Secrets.Seal(payload))
 	} else {
 		target, e = st.SignGet(ctx, f.Key, f.OriginalName, time.Duration(ttl)*time.Second)
@@ -596,12 +608,26 @@ func (s *Service) Download(ctx context.Context, fileID, signature string, expire
 		return nil, f, ErrNotFound
 	}
 	now := s.now().Unix()
-	if f.Purpose != "user" || f.State != "ready" || f.StorageType != "local" || expires <= now || expires > now+3600 || f.ExpiresAt > 0 && int64(f.ExpiresAt) <= now {
+	if (f.Purpose != "user" && f.Purpose != "branding") || f.State != "ready" || f.FileID != fileID || expires <= now || expires > now+3600 || f.ExpiresAt > 0 && int64(f.ExpiresAt) <= now {
 		return nil, f, ErrNotFound
 	}
 	raw, e := s.Secrets.Open(signature)
-	expected := fmt.Sprintf("%s:%s:%d", f.FileID, f.Key, expires)
-	if e != nil || subtle.ConstantTimeCompare([]byte(raw), []byte(expected)) != 1 {
+	if e != nil {
+		return nil, f, ErrNotFound
+	}
+	valid := false
+	parts := strings.Split(raw, ":")
+	if len(parts) == 4 && parts[0] == "unicore-file-access" && parts[1] == "v2" && parts[2] == fileID {
+		signedExpiry, parseErr := strconv.ParseInt(parts[3], 10, 64)
+		valid = parseErr == nil && signedExpiry == expires
+	} else {
+		first, last := strings.IndexByte(raw, ':'), strings.LastIndexByte(raw, ':')
+		if first > 0 && last > first+1 {
+			signedExpiry, parseErr := strconv.ParseInt(raw[last+1:], 10, 64)
+			valid = parseErr == nil && raw[:first] == fileID && signedExpiry == expires && blob.ValidKey(raw[first+1:last])
+		}
+	}
+	if !valid {
 		return nil, f, ErrNotFound
 	}
 	l, e := s.location(ctx, f.LocationID)
@@ -630,27 +656,93 @@ func (s *Service) remove(ctx context.Context, f Record, actor string) error {
 	f.State = "deleted"
 	return s.Repo.Remove(ctx, f, jobs, actor)
 }
+func (s *Service) ReferenceStatus(ctx context.Context, fileID string) (bool, error) {
+	for _, checker := range s.References {
+		if checker == nil {
+			continue
+		}
+		referenced, err := checker.Referenced(ctx, fileID)
+		if err != nil {
+			return false, ErrUnavailable
+		}
+		if referenced {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+func (s *Service) ensureUnreferenced(ctx context.Context, f Record) error {
+	referenced, err := s.ReferenceStatus(ctx, f.FileID)
+	if err != nil {
+		return err
+	}
+	if referenced {
+		return ErrBusy
+	}
+	return nil
+}
+
+// WithReferenceGuard coordinates a business write that validates and persists a
+// file reference with file deletion. Callers must keep validation and persistence
+// inside fn so either the reference commits before deletion checks, or deletion
+// completes before validation begins.
+func (s *Service) WithReferenceGuard(ctx context.Context, fn func() error) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	s.referenceMu.Lock()
+	defer s.referenceMu.Unlock()
+	return fn()
+}
+
 func (s *Service) Delete(ctx context.Context, a Actor, fileID string) error {
+	s.referenceMu.Lock()
+	defer s.referenceMu.Unlock()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	f, e := s.owned(ctx, fileID, a)
 	if e != nil {
 		return e
 	}
+	if e = s.ensureUnreferenced(ctx, f); e != nil {
+		return e
+	}
 	return s.remove(ctx, f, a.ID)
 }
-func (s *Service) Cleanup(ctx context.Context) error {
+func (s *Service) expireFiles(ctx context.Context) error {
+	s.referenceMu.Lock()
+	defer s.referenceMu.Unlock()
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	expired, e := s.Repo.Expired(ctx, s.now().Unix())
+	expired, e := s.Repo.Expired(ctx, s.now().Unix(), s.cleanupCursor)
 	if e != nil {
 		return ErrUnavailable
 	}
 	for _, f := range expired {
+		referenced, err := s.ReferenceStatus(ctx, f.FileID)
+		if err != nil {
+			return err
+		}
+		if referenced {
+			continue
+		}
 		if e = s.remove(ctx, f, "system"); e != nil {
 			return ErrUnavailable
 		}
 	}
+	s.cleanupCursor = ""
+	if len(expired) == 25 {
+		s.cleanupCursor = expired[len(expired)-1].FileID
+	}
+	return nil
+}
+
+func (s *Service) Cleanup(ctx context.Context) error {
+	if err := s.expireFiles(ctx); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	jobs, e := s.Repo.Jobs(ctx, s.now().Unix())
 	if e != nil {
 		return ErrUnavailable
@@ -686,14 +778,15 @@ func (s *Service) Cleanup(ctx context.Context) error {
 
 // Migrate streams between providers; cloud-internal upload confirmation uses Copy instead.
 func (s *Service) Migrate(ctx context.Context, a Actor, fileID, target string) (contracts.FileEntry, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	lock := s.fileLock(fileID)
+	lock.Lock()
+	defer lock.Unlock()
 	if !a.Admin {
 		return contracts.FileEntry{}, ErrNotFound
 	}
-	f, e := s.owned(ctx, fileID, a)
-	if e != nil {
-		return f.FileEntry, e
+	f, e := s.Repo.Get(ctx, fileID)
+	if e != nil || f.State == "deleted" || (f.Purpose != "user" && f.Purpose != "branding") {
+		return f.FileEntry, ErrNotFound
 	}
 	if f.State != "ready" {
 		return f.FileEntry, ErrBusy
@@ -712,6 +805,9 @@ func (s *Service) Migrate(ctx context.Context, a Actor, fileID, target string) (
 	if !dest.Tested || target == "legacy-brand" {
 		return f.FileEntry, ErrNotReady
 	}
+	if source.Provider != "local" && dest.Provider != "local" {
+		return f.FileEntry, ErrInvalid
+	}
 	from, e := s.store(source)
 	if e != nil {
 		return f.FileEntry, e
@@ -720,7 +816,7 @@ func (s *Service) Migrate(ctx context.Context, a Actor, fileID, target string) (
 	if e != nil {
 		return f.FileEntry, e
 	}
-	key := "objects/" + id()
+	key := path.Join(path.Dir(f.Key), id())
 	orphan := s.job(target, key, s.now().Add(2*time.Hour).Unix())
 	if e = s.Repo.Queue(ctx, []Job{orphan}); e != nil {
 		return f.FileEntry, ErrUnavailable
@@ -730,6 +826,9 @@ func (s *Service) Migrate(ctx context.Context, a Actor, fileID, target string) (
 		return f.FileEntry, ErrUnavailable
 	}
 	defer r.Close()
+	if obj.Size != int64(f.Size) || f.ETag != "" && obj.ETag != f.ETag {
+		return f.FileEntry, ErrUnavailable
+	}
 	h := sha256.New()
 	written, e := to.Put(ctx, key, io.TeeReader(r, h), int64(f.Size), f.MimeType)
 	if e != nil || written.Size != int64(f.Size) || obj.Size != int64(f.Size) {
@@ -744,6 +843,15 @@ func (s *Service) Migrate(ctx context.Context, a Actor, fileID, target string) (
 	verify.Close()
 	if e != nil || n != int64(f.Size) || info.Size != n || !bytes.Equal(h.Sum(nil), h2.Sum(nil)) {
 		return f.FileEntry, ErrUnavailable
+	}
+	// Copying can take minutes. Keep reads and unrelated uploads available, then
+	// recheck metadata under the transition lock so a concurrent deletion cannot
+	// be resurrected by the completed copy. Failed copies remain queued orphans.
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	current, err := s.Repo.Get(ctx, fileID)
+	if err != nil || current.State != "ready" || current.LocationID != f.LocationID || current.Key != f.Key || current.ETag != f.ETag || current.Size != f.Size {
+		return f.FileEntry, ErrBusy
 	}
 	old := s.job(f.LocationID, f.Key, s.now().Add(3660*time.Second).Unix())
 	f.LocationID = dest.ID

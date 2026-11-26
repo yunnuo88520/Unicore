@@ -3,9 +3,9 @@ import { useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { columnVisibilityFeature, createColumnHelper, createPaginatedRowModel, rowPaginationFeature, tableFeatures, useTable, type PaginationState } from '@tanstack/react-table';
 import { NotebookPen, Save } from 'lucide-react';
-import { AppField, AppForm, useAppForm } from '@unicore/form';
+import { AppField, AppForm, AppFormBody, AppFormFooter, useAppForm } from '@unicore/form';
 import { AppError, type ManagedNoteDetail, type ManagedNoteEditInput, type NoteManagementEntry } from '@unicore/sdk';
-import { Badge, Button, Card, CardContent, ConfirmDialog, DialogFooter, Input, Modal, SimpleSelect, Textarea, useMessage } from '@unicore/ui';
+import { Badge, Button, ConfirmDialog, DialogFooter, FormDrawer, Input, Modal, SimpleSelect, Textarea, useMessage } from '@unicore/ui';
 import { useColumnVisibility } from '../../column-visibility';
 import { DataTable, DataTablePagination, DataTableRowActions, DataTableToolbar, type DataTableAction } from '../../components/data-table';
 import { currentLocale, defineMessages, t, useI18n } from '../../i18n';
@@ -125,8 +125,7 @@ export default function NoteManagementPage({ client, metadata }: PageProps) {
     state: { columnVisibility, pagination }, onPaginationChange: setPagination, manualPagination: true,
     pageCount: list.data ? Math.max(1, Math.ceil(list.data.total / list.data.page_size)) : 1,
   });
-  return <Card className="min-w-0">
-    <CardContent className="flex flex-col gap-4">
+  return <div className="flex min-w-0 flex-col gap-4">
       <DataTableToolbar
         summary={{ label: filtered ? t('筛选结果') : t('笔记总数'), value: <span role="status">
           {list.isFetching ? t('加载中…') : list.data ? t('共 {{count}} 条', { count: list.data.total }) : '–'}
@@ -141,7 +140,6 @@ export default function NoteManagementPage({ client, metadata }: PageProps) {
       <DataTable table={table} pending={list.isPending} busy={list.isFetching} error={list.error} onRetry={() => void list.refetch()}
         compactHiddenColumns={compactHiddenColumns} empty={{ icon: NotebookPen, title: t('没有符合条件的笔记') }} />
       <DataTablePagination table={table} disabled={list.isFetching} />
-    </CardContent>
     {web && opened && canPreview && <ManagedNoteDialog web={web} opened={opened}
       edit={canEdit && opened.edit} onClose={() => setOpened(null)} onSaved={() => { setOpened(null); void refresh(); }} />}
     {confirm && <ConfirmDialog
@@ -150,7 +148,7 @@ export default function NoteManagementPage({ client, metadata }: PageProps) {
         : t('删除「{{title}}」后，作者也将无法再查看。', { title: confirm.note.title })}
       confirmLabel={t(confirm.status ? '确定' : '确认删除')} cancelLabel={t('取消')} danger={!confirm.status} pending={mutation.isPending}
       onCancel={() => setConfirm(null)} onConfirm={() => mutation.mutate(confirm)} />}
-  </Card>;
+  </div>;
 }
 
 function ManagedNoteDialog({ web, opened, edit, onClose, onSaved }: {
@@ -165,13 +163,19 @@ function ManagedNoteDialog({ web, opened, edit, onClose, onSaved }: {
     mutationFn: (values: ManagedNoteEditInput) => web.editManagedNote(note.owner_id, note.id, values),
     onSuccess: () => { message.success(t('笔记已保存')); onSaved(); },
   });
-  return <Modal title={t(edit ? '编辑笔记' : '预览笔记')} pending={save.isPending} onClose={onClose}>
+  if (edit) return <FormDrawer title={t('编辑笔记')} pending={save.isPending} onClose={onClose}>
+    {detail.isPending ? <AppFormBody><p role="status" className="text-sm text-muted">{t('加载中…')}</p></AppFormBody>
+      : detail.isError ? <AppFormBody><div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-danger">
+        <span>{t(detail.error.message)}</span><Button variant="secondary" onClick={() => void detail.refetch()}>{t('重试')}</Button>
+      </div></AppFormBody>
+      : <ManagedNoteForm detail={detail.data} pending={save.isPending} onClose={onClose} onSubmit={save.mutate} />}
+  </FormDrawer>;
+  return <Modal title={t('预览笔记')} onClose={onClose}>
     {detail.isPending ? <p role="status" className="text-sm text-muted">{t('加载中…')}</p>
       : detail.isError ? <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-danger">
         <span>{t(detail.error.message)}</span><Button variant="secondary" onClick={() => void detail.refetch()}>{t('重试')}</Button>
       </div>
-      : edit ? <ManagedNoteForm detail={detail.data} pending={save.isPending} onClose={onClose} onSubmit={save.mutate} />
-        : <>
+      : <>
           <div className="space-y-3">
             <h3 className="font-semibold text-ink [overflow-wrap:anywhere]">{detail.data.title}</h3>
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
@@ -193,12 +197,14 @@ function ManagedNoteForm({ detail, pending, onClose, onSubmit }: {
     schema: 'ManagedNoteEditInput', defaultValues: { title: detail.title, body: detail.body, version: detail.version },
     onSubmit: values => onSubmit({ ...values, title: values.title.trim() }, { onError: error => form.applyServerError(error) }),
   });
-  return <AppForm form={form} className="flex min-w-0 flex-col gap-3">
+  return <AppForm form={form} layout="panel">
+    <AppFormBody>
     <AppField name="title" label={t('标题')}><Input autoFocus required maxLength={120} /></AppField>
     <AppField name="body" label={t('正文')}><Textarea maxLength={5000} rows={8} /></AppField>
-    <DialogFooter className="mt-1">
+    </AppFormBody>
+    <AppFormFooter>
       <Button variant="secondary" onClick={onClose} disabled={pending}>{t('取消')}</Button>
       <Button type="submit" pending={pending}>{!pending && <Save size={14} aria-hidden="true" />}{t('保存笔记')}</Button>
-    </DialogFooter>
+    </AppFormFooter>
   </AppForm>;
 }

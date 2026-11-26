@@ -83,6 +83,10 @@ func webError(w http.ResponseWriter, err error) {
 		code = "STORAGE_NOT_READY"
 	case errors.Is(err, files.ErrUnavailable):
 		code = "STORAGE_UNAVAILABLE"
+	case errors.Is(err, branding.ErrUploadTooLarge):
+		code = "BRAND_UPLOAD_TOO_LARGE"
+	case errors.Is(err, branding.ErrImageTooLarge):
+		code = "BRAND_IMAGE_TOO_LARGE"
 	case errors.Is(err, branding.ErrInvalid):
 		code = "BRAND_INVALID"
 	case errors.Is(err, platform.ErrOIDCUnavailable):
@@ -382,7 +386,7 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 		}
 	}
 	if identity != nil {
-		if session, err := requestIdentitySession(r, identity); err == nil {
+		if session, err := requestIdentitySession(r, identity); err == nil && (!administratorRequest(r) || platform.HasManagementAccess(session.User)) {
 			data.CurrentUser = &session.User
 			if platform.HasManagementAccess(session.User) {
 				data.AdminPath = config.Install.AdminPath(r.Context())
@@ -405,7 +409,7 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 				}
 			}
 		} else if errors.Is(err, platform.ErrMFA) && identity.Personal != nil {
-			if pending, e := identity.Personal.Pending(r.Context(), rawSession(r)); e == nil {
+			if pending, e := identity.Personal.Pending(r.Context(), rawSession(r)); e == nil && (!administratorRequest(r) || platform.HasManagementAccess(pending.User)) {
 				yes := true
 				data.MfaPending = &yes
 				data.CsrfToken = &pending.CsrfToken

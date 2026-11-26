@@ -88,11 +88,20 @@ type Repository interface {
 	Jobs(context.Context, int64) ([]Job, error)
 	JobDone(context.Context, Job, bool) error
 	Referenced(context.Context, string, string, int64) (bool, error)
-	Expired(context.Context, int64) ([]Record, error)
+	Expired(context.Context, int64, string) ([]Record, error)
 	BrandKeys(context.Context) ([]string, error)
 }
 type Settings interface {
 	Value(context.Context, string) (string, error)
+}
+type ReferenceChecker interface {
+	Referenced(context.Context, string) (bool, error)
+}
+
+// CreatorDirectory supplies account labels without coupling file metadata to identity storage.
+type Creator struct{ Name, Username string }
+type CreatorDirectory interface {
+	FileCreators(context.Context, []string) (map[string]Creator, error)
 }
 type Secrets interface {
 	Seal(string) string
@@ -104,15 +113,21 @@ type BrowserStore interface {
 	Origin() string
 }
 type Service struct {
-	Repo     Repository
-	Settings Settings
-	Secrets  Secrets
-	Factory  Factory
-	Activate func(context.Context, string, string) error
-	Now      func() time.Time
+	Repo       Repository
+	Settings   Settings
+	Secrets    Secrets
+	Factory    Factory
+	Activate   func(context.Context, string, string) error
+	References []ReferenceChecker
+	Creators   CreatorDirectory
+	Now        func() time.Time
 	// Single-instance composition holds a process lock; all metadata transitions use this mutex.
-	mu          sync.Mutex
+	mu sync.Mutex
+	// referenceMu serializes business-reference writes with destructive file transitions.
+	referenceMu sync.Mutex
 	uploadLocks [64]sync.Mutex
+	// Rotate bounded expiry scans past referenced records without starving later files.
+	cleanupCursor string
 }
 
 func (s *Service) fileLock(id string) *sync.Mutex {

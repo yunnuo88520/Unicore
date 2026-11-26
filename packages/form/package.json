@@ -10,7 +10,7 @@
     "./fields": "./src/fields.tsx"
   },
   "dependencies": {
-    "@hookform/resolvers": "^7.0.6",
+    "@hookform/resolvers": "^7.0.8",
     "@unicore/sdk": "workspace:*",
     "@unicore/ui": "workspace:*"
   },

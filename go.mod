@@ -12,7 +12,7 @@ require (
 	github.com/energye/systray v1.0.3
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-jose/go-jose/v4 v4.1.9
-	github.com/go-sql-driver/mysql v1.10.1
+	github.com/go-sql-driver/mysql v1.10.2
 	github.com/gofrs/flock v0.13.2
 	github.com/jackc/pgx/v5 v5.13.0
 	github.com/minio/minio-go/v7 v7.4.1
@@ -23,18 +23,18 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v4 v4.26.10
 	github.com/spf13/cobra v1.10.2
-	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/captcha v1.3.182
-	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.3.212
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/captcha v1.3.214
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.3.214
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.77
 	github.com/wailsapp/wails/v2 v2.17.1
 	github.com/xuri/excelize/v2 v2.11.1
 	github.com/yuin/goldmark v1.8.7
 	golang.org/x/crypto v0.59.0
 	golang.org/x/image v0.44.0
-	golang.org/x/net v0.62.0
+	golang.org/x/net v0.63.0
 	golang.org/x/oauth2 v0.38.0
 	golang.org/x/sys v0.50.0
-	modernc.org/sqlite v1.62.0
+	modernc.org/sqlite v1.63.0
 )
 
 require (

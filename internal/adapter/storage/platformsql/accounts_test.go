@@ -180,7 +180,7 @@ func exerciseMailLifecycle(t *testing.T, ctx context.Context, store *sqlstore.St
 	if _, err = identity.Session(ctx, session); !errors.Is(err, platform.ErrCredentials) {
 		t.Fatal("old session survived reset", err)
 	}
-	if err = repository.CreateSession(ctx, platform.Hash(platform.Token()), before.User.ID, now+3600, before.PasswordHash); !errors.Is(err, platform.ErrCredentials) {
+	if err = repository.CreateSession(ctx, platform.Hash(platform.Token()), before.User.ID, now+3600, before.PasswordHash, false); !errors.Is(err, platform.ErrCredentials) {
 		t.Fatal("old-password login race created session", err)
 	}
 	if err = accounts.Complete(ctx, reset, "reset", "changed-password-strong", "test"); !errors.Is(err, platform.ErrAccountToken) {

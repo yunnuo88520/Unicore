@@ -44,7 +44,7 @@ export function DataTableToolbar({ search, summary, children, actions, columnMen
   columnMenu?: { entries: readonly ColumnMenuEntry[]; onToggle: (id: string, visible: boolean) => void };
   className?: string;
 }) {
-  const field = search && <div className={cn('flex min-w-40 items-center', summary ? 'w-full max-w-56 sm:w-56 sm:min-w-0 sm:flex-none' : 'min-w-44 flex-1 sm:max-w-xs')}>
+  const field = search && <div className={cn('flex min-w-0 items-center', summary ? 'w-full max-w-none sm:w-56 sm:flex-none' : 'w-full flex-1 sm:max-w-xs')}>
     <SearchField label={search.label} maxLength={search.maxLength ?? 128} autoComplete="off" value={search.value} onValueChange={search.onChange} className="min-w-0 flex-1" />
   </div>;
   // The summary layout mirrors the showcase pattern: the count leads on the
@@ -54,12 +54,12 @@ export function DataTableToolbar({ search, summary, children, actions, columnMen
     const fieldNode = search?.onSubmit
       ? <form className="contents" onSubmit={event => { event.preventDefault(); search.onSubmit?.(); }}>{field}</form>
       : field;
-    return <div className={cn('flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2', className)}>
+    return <div className={cn('flex min-w-0 flex-wrap items-center gap-x-4 gap-y-3', className)}>
       <div className="flex flex-col justify-center">
         <p className="whitespace-nowrap text-xs text-muted">{summary.label}</p>
         <p className="whitespace-nowrap text-sm font-medium text-ink">{summary.value}</p>
       </div>
-      <div className="ms-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
+      <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:ms-auto sm:w-auto sm:justify-end">
         {children}
         {fieldNode}
         {actions}

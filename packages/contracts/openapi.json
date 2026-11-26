@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Unicore platform foundation API",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "description": "Unified accounts with multiple roles and independent API grants. Browser clients use a shared session Cookie plus CSRF; native/API clients may use JWT access tokens or scoped personal Bearer tokens. Credential-management endpoints require a browser session.",
     "contact": {
       "name": "yunnuo",
@@ -2893,11 +2893,11 @@
           "permissionMode": "all",
           "superAdmin": true,
           "csrf": true,
-          "maxBodyBytes": 393216,
+          "maxBodyBytes": 786432,
           "identityRealm": "administrator"
         },
         "summary": "adminPatchSettings",
-        "description": "替换品牌图片；空 content 恢复默认。只接受 PNG/JPEG，服务端重新编码为 PNG。",
+        "description": "替换品牌图片；空 content 恢复默认。Logo 仅接受不超过 500 KB 的 PNG/JPEG，支持任意尺寸和比例；站点图标另接受有界 ICO，服务端重新编码为 PNG。",
         "parameters": []
       }
     },
@@ -4315,7 +4315,7 @@
             }
           }
         },
-        "description": "管理员流式迁移并校验摘要，保持 file_id，成功后切换引用并延迟清理原对象。"
+        "description": "Migrates only between local and cloud storage (or local locations). Cloud-to-cloud transfer is rejected. Verifies size and SHA-256 before changing the stable file reference."
       }
     },
     "/api/v1/files/{id}/content": {
@@ -4389,15 +4389,27 @@
               "type": "string",
               "maxLength": 128
             }
+          },
+          {
+            "name": "disposition",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "attachment",
+                "inline"
+              ]
+            },
+            "description": "Serve the bytes inline with the real Content-Type for whitelisted safe MIME types (common images, PDF, plain text). Any other type, and any missing or unexpected value, falls back to an attachment download. CSP sandbox is always applied."
           }
         ],
-        "description": "校验文件状态、有效期与加密签名后，以 attachment 下载本地文件。"
+        "description": "校验文件状态、有效期与加密签名后下载本地文件；默认 attachment，仅安全 MIME 白名单允许 disposition=inline 内联预览。"
       }
     },
     "/api/v1/admin/auth/oidc/callback": {
       "get": {
         "operationId": "administratorOIDCCallback",
-        "description": "One-time state + browser proof, PKCE, nonce, signed ID token. Fixed local redirect only.",
+        "description": "One-time state + browser proof, PKCE, nonce, signed ID token. Fixed local redirect only. 管理登录仅允许具有管理工作台访问权的账号；凭据验证成功后仍须在会话签发事务内检查当前权限，无权账号返回 403 且不签发会话。",
         "parameters": [
           {
             "name": "state",
@@ -4495,7 +4507,7 @@
         "security": [],
         "summary": "管理员端：bootstrap",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。 不具备管理工作台访问权时只返回管理登录所需公共元数据，不投影 current_user、导航、CSRF 或待完成 MFA。"
       }
     },
     "/api/v1/admin/core/execute": {
@@ -4599,7 +4611,7 @@
         ],
         "summary": "管理员端：execute",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/auth/captcha": {
@@ -4641,7 +4653,7 @@
         "security": [],
         "summary": "管理员端：captcha",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/auth/login": {
@@ -4693,7 +4705,7 @@
         "security": [],
         "summary": "管理员端：login",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。 管理登录仅允许具有管理工作台访问权的账号；凭据验证成功后仍须在会话签发事务内检查当前权限，无权账号返回 403 且不签发会话。"
       }
     },
     "/api/v1/admin/auth/session": {
@@ -4739,7 +4751,7 @@
         },
         "summary": "管理员端：session",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。 普通账号的有效共享会话不能进入管理工作台，此接口返回 403；原用户工作台会话保持有效。"
       }
     },
     "/api/v1/admin/auth/logout": {
@@ -4786,7 +4798,7 @@
         },
         "summary": "管理员端：logout",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/auth/policy": {
@@ -4828,7 +4840,7 @@
         "security": [],
         "summary": "管理员端：authPolicy",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/auth/password/request": {
@@ -4881,7 +4893,7 @@
         "security": [],
         "summary": "管理员端：requestPasswordReset",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/auth/password/reset": {
@@ -4934,7 +4946,7 @@
         "security": [],
         "summary": "管理员端：resetPassword",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/auth/email/reset/request": {
@@ -4986,7 +4998,7 @@
         "security": [],
         "summary": "管理员端：requestEmailReset",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/auth/email/reset/complete": {
@@ -5038,7 +5050,7 @@
         "security": [],
         "summary": "管理员端：completeEmailReset",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/auth/email/login/request": {
@@ -5090,7 +5102,7 @@
         "security": [],
         "summary": "管理员端：requestEmailLogin",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/auth/email/login/complete": {
@@ -5142,13 +5154,13 @@
         "security": [],
         "summary": "管理员端：completeEmailLogin",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。 管理登录仅允许具有管理工作台访问权的账号；凭据验证成功后仍须在会话签发事务内检查当前权限，无权账号返回 403 且不签发会话。"
       }
     },
     "/api/v1/admin/auth/oidc": {
       "get": {
         "operationId": "adminOidcInfo",
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。public",
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。public",
         "responses": {
           "200": {
             "description": "Success",
@@ -5250,7 +5262,7 @@
     "/api/v1/admin/auth/oidc/start": {
       "post": {
         "operationId": "adminOidcStart",
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。public; same-origin; rate limited",
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。public; same-origin; rate limited",
         "responses": {
           "200": {
             "description": "Success",
@@ -5352,7 +5364,7 @@
     "/api/v1/admin/account/oidc": {
       "get": {
         "operationId": "adminOidcAccount",
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。authenticated self",
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。authenticated self",
         "responses": {
           "200": {
             "description": "Success",
@@ -5461,7 +5473,7 @@
     "/api/v1/admin/account/oidc/link": {
       "post": {
         "operationId": "adminOidcLink",
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。authenticated self; CSRF; local password",
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。authenticated self; CSRF; local password",
         "responses": {
           "200": {
             "description": "Success",
@@ -5581,7 +5593,7 @@
     "/api/v1/admin/account/oidc/unlink": {
       "post": {
         "operationId": "adminOidcUnlink",
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。authenticated self; CSRF; local password",
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。authenticated self; CSRF; local password",
         "responses": {
           "200": {
             "description": "Success",
@@ -5755,7 +5767,7 @@
           }
         },
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/files": {
@@ -5825,7 +5837,7 @@
             }
           }
         ],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。普通用户只读取本人所属身份域的文件；管理员可查看实例文件。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。普通用户只读取本人所属身份域的文件；管理员可查看实例文件。"
       }
     },
     "/api/v1/admin/files/uploads": {
@@ -5888,7 +5900,7 @@
             }
           }
         },
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。生成仅可写临时对象的上传凭证，云存储使用浏览器直传；无需携带实例 Cookie/CSRF 至云。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。生成仅可写临时对象的上传凭证，云存储使用浏览器直传；无需携带实例 Cookie/CSRF 至云。"
       }
     },
     "/api/v1/admin/files/uploads/{id}/content": {
@@ -5964,7 +5976,7 @@
             }
           }
         },
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。仅本地模式：带身份和 CSRF 的原始二进制 PUT，长度必须与申请一致。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。仅本地模式：带身份和 CSRF 的原始二进制 PUT，长度必须与申请一致。"
       }
     },
     "/api/v1/admin/files/uploads/{id}/complete": {
@@ -6028,7 +6040,7 @@
             }
           }
         ],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。校验临时对象，以 ETag 条件复制到正式对象后标记可用；可幂等重试。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。校验临时对象，以 ETag 条件复制到正式对象后标记可用；可幂等重试。"
       }
     },
     "/api/v1/admin/files/{id}/access": {
@@ -6102,7 +6114,7 @@
             }
           }
         ],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。验证本人或管理员后发放短期下载地址，默认 300 秒。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。验证本人或管理员后发放短期下载地址，默认 300 秒。"
       }
     },
     "/api/v1/admin/files/{id}": {
@@ -6166,7 +6178,7 @@
             }
           }
         ],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。关闭文件访问，待既有签名到期后清理；匿名或他人文件统一返回 404。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。关闭文件访问，待既有签名到期后清理；匿名或他人文件统一返回 404。"
       }
     },
     "/api/v1/notes": {
@@ -10143,7 +10155,7 @@
         },
         "summary": "Read own profile and security policy",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       },
       "patch": {
         "operationId": "adminSaveAccountProfile",
@@ -10201,7 +10213,7 @@
           }
         },
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/account/totp/setup": {
@@ -10261,7 +10273,7 @@
           }
         },
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       },
       "get": {
         "operationId": "adminPendingTOTP",
@@ -10358,7 +10370,7 @@
         },
         "summary": "Cancel authenticator setup",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/account/totp/enable": {
@@ -10418,7 +10430,7 @@
           }
         },
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/account/totp/disable": {
@@ -10478,7 +10490,7 @@
           }
         },
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/auth/mfa": {
@@ -10535,7 +10547,7 @@
           }
         },
         "parameters": [],
-        "description": "Restricted identity-realm session and matching CSRF required. No workspace access until successful verification."
+        "description": "Restricted identity-realm session and matching CSRF required. No workspace access until successful verification. The management entry additionally requires current management-workspace access; a pending user session alone cannot complete management sign-in."
       }
     },
     "/api/v1/admin/auth/mfa/cancel": {
@@ -10631,7 +10643,7 @@
         },
         "summary": "List own active devices",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/account/sessions/revoke": {
@@ -10691,7 +10703,7 @@
           }
         },
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/account/sessions/revoke-others": {
@@ -10741,7 +10753,7 @@
         },
         "summary": "Revoke all other sessions",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/account/email/current": {
@@ -10791,7 +10803,7 @@
         },
         "summary": "Send a code to the current mailbox",
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/account/email/verify-current": {
@@ -10851,7 +10863,7 @@
           }
         },
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/account/email/new": {
@@ -10911,7 +10923,7 @@
           }
         },
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/admin/account/email/confirm": {
@@ -10971,7 +10983,7 @@
           }
         },
         "parameters": [],
-        "description": "固定管理员身份域；不接受普通用户 Cookie，不通过请求头切换身份。"
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。"
       }
     },
     "/api/v1/announcements/{id}/read": {
@@ -17817,6 +17829,721 @@
           }
         ]
       }
+    },
+    "/api/v1/admin/file-catalog": {
+      "get": {
+        "operationId": "fileCatalog",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileCatalogListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "fileCatalog",
+        "x-permission": "storage:read; super administrator only",
+        "description": "Instance-wide metadata catalog, including business uploads and normalized branding. Does not scan buckets or disclose object credentials. The object key is exposed only to super administrators for governance audits.",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "name": "location_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "purpose",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "user",
+                "branding"
+              ]
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "image",
+                "document",
+                "archive",
+                "other"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/file-catalog/{id}/access": {
+      "post": {
+        "operationId": "fileCatalogAccess",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileAccessResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": [],
+            "CSRFToken": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "fileCatalogAccess",
+        "x-permission": "storage:read; super administrator only",
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。普通用户只读取本人所属身份域的文件；管理员可查看实例文件。disposition=inline 仅对安全 MIME 白名单（常见图片、PDF、纯文本）签发内联预览链接，其余一律回退为附件下载。",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          },
+          {
+            "name": "disposition",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "attachment",
+                "inline"
+              ]
+            },
+            "description": "Request an inline preview link. Only granted for whitelisted safe MIME types; otherwise the link stays an attachment download."
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/file-catalog/{id}": {
+      "delete": {
+        "operationId": "deleteCatalogFile",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": [],
+            "CSRFToken": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "deleteCatalogFile",
+        "x-permission": "storage:write; super administrator only",
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。普通用户只读取本人所属身份域的文件；管理员可查看实例文件。",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/storage/migrations/summary": {
+      "get": {
+        "operationId": "storageMigrationSummary",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageMigrationSummaryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "storageMigrationSummary",
+        "x-permission": "storage:read; super administrator only",
+        "description": "Ready file counts and total bytes grouped by every non-active storage location. Files already migrated keep their original location until the record changes, so the summary reflects remaining work.",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/storage/migrations": {
+      "get": {
+        "operationId": "listStorageMigrations",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageMigrationListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "listStorageMigrations",
+        "x-permission": "storage:read; super administrator only",
+        "description": "Recent storage migration jobs, newest first. Only one running or paused job may exist at a time.",
+        "parameters": []
+      },
+      "post": {
+        "operationId": "createStorageMigration",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageMigrationJobResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "createStorageMigration",
+        "x-permission": "storage:write; super administrator only",
+        "description": "Create and start one asynchronous storage migration job. The target must be tested, the legacy brand store is never a target, and cloud-to-cloud transfers are rejected. Set the global default storage to the target before creating the job so new files land there during the run. The job scans ready files of the source location with a resumable cursor; files uploaded after the cursor passed are not guaranteed to join the run. The job auto-resumes as paused after a service restart.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorageMigrationCreateInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/storage/migrations/current": {
+      "get": {
+        "operationId": "currentStorageMigration",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageMigrationCurrentResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "currentStorageMigration",
+        "x-permission": "storage:read; super administrator only",
+        "description": "The running or paused migration job with its first failed files; the job field is omitted when no job is active.",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/storage/migrations/{id}/pause": {
+      "post": {
+        "operationId": "pauseStorageMigration",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "pauseStorageMigration",
+        "x-permission": "storage:write; super administrator only",
+        "description": "Pause a running migration job between file batches; in-flight copies finish first.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/storage/migrations/{id}/resume": {
+      "post": {
+        "operationId": "resumeStorageMigration",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "resumeStorageMigration",
+        "x-permission": "storage:write; super administrator only",
+        "description": "Resume a paused migration job from its saved cursor.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/storage/migrations/{id}/cancel": {
+      "post": {
+        "operationId": "cancelStorageMigration",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "cancelStorageMigration",
+        "x-permission": "storage:write; super administrator only",
+        "description": "Cancel a running or paused migration job. Files already migrated stay migrated; remaining files keep their original location.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/storage/migrations/{id}/retry-failed": {
+      "post": {
+        "operationId": "retryFailedStorageMigration",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "retryFailedStorageMigration",
+        "x-permission": "storage:write; super administrator only",
+        "description": "Re-run every failed file of a non-active migration job before its saved cursor is resumed.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -20049,6 +20776,14 @@
             "type": "string",
             "pattern": "^#[0-9a-f]{6}$",
             "description": "Optional instance accent overriding the compiled brand color; users still win with an explicit preset."
+          },
+          "display_mode": {
+            "type": "string",
+            "enum": [
+              "icon-title",
+              "wordmark"
+            ],
+            "description": "Brand layout: icon-title reserves a fixed icon slot beside the site title (default); wordmark gives the full logo a bounded slot without a duplicate title. Configured through branding.display_mode in settings."
           }
         }
       },
@@ -20071,8 +20806,8 @@
           },
           "content": {
             "type": "string",
-            "maxLength": 349528,
-            "description": "Raw base64 PNG/JPEG; favicon also accepts ICO (PNG or uncompressed DIB frames). Up to 256 KiB; empty restores default. The accent slot takes a #RRGGBB color instead."
+            "maxLength": 682668,
+            "description": "Raw base64 PNG/JPEG; favicon also accepts ICO (PNG or uncompressed DIB frames). Up to 500 KB; logo dimensions and aspect ratio are unrestricted; empty restores default. The accent slot takes a #RRGGBB color instead."
           }
         }
       },
@@ -27475,6 +28210,459 @@
             "type": "integer"
           }
         }
+      },
+      "FileCatalogEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "file",
+          "purpose",
+          "directory",
+          "referenced",
+          "file_key",
+          "storage_path",
+          "etag",
+          "creator_name",
+          "creator_username"
+        ],
+        "properties": {
+          "file": {
+            "$ref": "#/components/schemas/FileEntry"
+          },
+          "purpose": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "directory": {
+            "type": "string",
+            "maxLength": 512
+          },
+          "referenced": {
+            "type": "boolean",
+            "description": "True while any business record still references the file; referenced files cannot be deleted."
+          },
+          "file_key": {
+            "type": "string",
+            "maxLength": 1024,
+            "description": "Physical object key inside the storage location; governance audit only."
+          },
+          "storage_path": {
+            "type": "string",
+            "maxLength": 1200,
+            "description": "Human-readable logical path relative to the storage root: files/{file_key} for local storage, {bucket}/{prefix}/{file_key} for object storage. Never a host-absolute path."
+          },
+          "etag": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Stored ETag; a sha256 hex digest for local objects, provider-defined for cloud objects."
+          },
+          "creator_name": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "Current account display name; empty for system or removed accounts."
+          },
+          "creator_username": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "Current account username; never an internal identifier."
+          }
+        }
+      },
+      "FileCatalogList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileCatalogEntry"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        }
+      },
+      "FileCatalogListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "data": {
+            "$ref": "#/components/schemas/FileCatalogList"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message; clients translate known catalog messages.",
+            "x-go-value": true
+          }
+        }
+      },
+      "StorageMigrationCreateInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target_location_id"
+        ],
+        "properties": {
+          "source_location_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Storage location to drain; defaults to the current non-active leftover with files. The active default location and the legacy brand store are not valid sources."
+          },
+          "target_location_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "description": "Tested destination location. Cloud-to-cloud transfers are rejected. Set the global default to the target before migrating so new files land there during the run."
+          }
+        }
+      },
+      "StorageMigrationSummaryItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "location_id",
+          "provider",
+          "name",
+          "file_count",
+          "total_size"
+        ],
+        "properties": {
+          "location_id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "provider": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "file_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "total_size": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      },
+      "StorageMigrationSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "active_location_id",
+          "items"
+        ],
+        "properties": {
+          "active_location_id": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "Current global default storage location that new uploads follow."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StorageMigrationSummaryItem"
+            }
+          }
+        }
+      },
+      "StorageMigrationSummaryResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "data": {
+            "$ref": "#/components/schemas/StorageMigrationSummary"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message; clients translate known catalog messages.",
+            "x-go-value": true
+          }
+        }
+      },
+      "StorageMigrationFailure": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "file_id",
+          "original_name",
+          "reason",
+          "created_at"
+        ],
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "original_name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Stable error code explaining why the file was not migrated."
+          },
+          "created_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      },
+      "StorageMigrationJob": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "source_location_id",
+          "target_location_id",
+          "status",
+          "mode",
+          "activate_on_complete",
+          "total_count",
+          "succeeded_count",
+          "failed_count",
+          "created_by",
+          "created_at",
+          "updated_at",
+          "finished_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "source_location_id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "target_location_id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "paused",
+              "completed",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "scan",
+              "retry"
+            ],
+            "description": "scan walks the resumable source cursor; retry re-processes recorded failures first."
+          },
+          "activate_on_complete": {
+            "type": "boolean"
+          },
+          "total_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "succeeded_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "failed_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "created_by": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "created_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "updated_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "finished_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "failures": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/StorageMigrationFailure"
+            },
+            "description": "First recorded failures, bounded; only populated by the current-job query."
+          }
+        }
+      },
+      "StorageMigrationJobResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "data": {
+            "$ref": "#/components/schemas/StorageMigrationJob"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message; clients translate known catalog messages.",
+            "x-go-value": true
+          }
+        }
+      },
+      "StorageMigrationCurrent": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "job": {
+            "$ref": "#/components/schemas/StorageMigrationJob",
+            "description": "The running or paused migration job; omitted when no job is active."
+          }
+        }
+      },
+      "StorageMigrationCurrentResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "data": {
+            "$ref": "#/components/schemas/StorageMigrationCurrent"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message; clients translate known catalog messages.",
+            "x-go-value": true
+          }
+        }
+      },
+      "StorageMigrationList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/components/schemas/StorageMigrationJob"
+            }
+          }
+        }
+      },
+      "StorageMigrationListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "data": {
+            "$ref": "#/components/schemas/StorageMigrationList"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message; clients translate known catalog messages.",
+            "x-go-value": true
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -27650,7 +28838,15 @@
     },
     "BRAND_INVALID": {
       "status": 400,
-      "message": "请选择不超过 256 KiB、尺寸 16–2048 像素的 PNG/JPEG；站点图标也支持 16–256 像素 ICO"
+      "message": "图片无法读取，请选择有效的 PNG/JPEG；站点图标另支持 16–256 像素 ICO"
+    },
+    "BRAND_UPLOAD_TOO_LARGE": {
+      "status": 400,
+      "message": "图片文件不能超过 500 KB"
+    },
+    "BRAND_IMAGE_TOO_LARGE": {
+      "status": 400,
+      "message": "图片解码所需内存超过 128 MB，请缩小图片后重试"
     },
     "DATABASE_NOT_EMPTY": {
       "status": 409,

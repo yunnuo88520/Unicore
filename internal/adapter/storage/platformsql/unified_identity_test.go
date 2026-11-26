@@ -33,7 +33,7 @@ func TestUnifiedIdentityMultipleRoles(t *testing.T) {
 	if err != nil || account.User.ID != user.ID || len(account.User.Roles) != 2 {
 		t.Fatalf("workspace account mismatch: %+v %v", account, err)
 	}
-	if err = repo.CreateSession(ctx, "shared", user.ID, int(time.Now().Unix())+3600, "hash"); err != nil {
+	if err = repo.CreateSession(ctx, "shared", user.ID, int(time.Now().Unix())+3600, "hash", false); err != nil {
 		t.Fatal(err)
 	}
 	if _, _, err = adminSurface.Session(ctx, "shared"); err != nil {

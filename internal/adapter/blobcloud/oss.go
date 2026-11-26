@@ -79,8 +79,8 @@ func (s *ossStore) SignPut(ctx context.Context, k string, n int64, m string, ttl
 	u, e := s.signer.SignURL(s.key(k), oss.HTTPPut, int64(ttl.Seconds()), oss.WithContext(ctx), oss.ContentType(m), oss.ContentLength(n))
 	return blob.Grant{URL: u, Method: "PUT", Headers: map[string]string{"Content-Type": m}, Fields: map[string]string{}}, e
 }
-func (s *ossStore) SignGet(ctx context.Context, k, name string, ttl time.Duration) (string, error) {
-	return s.bucket.SignURL(s.key(k), oss.HTTPGet, int64(ttl.Seconds()), oss.WithContext(ctx), oss.ResponseContentDisposition(disposition(name)))
+func (s *ossStore) SignGet(ctx context.Context, k, name string, ttl time.Duration, inline bool) (string, error) {
+	return s.bucket.SignURL(s.key(k), oss.HTTPGet, int64(ttl.Seconds()), oss.WithContext(ctx), oss.ResponseContentDisposition(disposition(name, inline)))
 }
 func (s *ossStore) Browser(ctx context.Context, origin string) error {
 	v, e := s.client.GetBucketCORS(s.config.Bucket, oss.WithContext(ctx))

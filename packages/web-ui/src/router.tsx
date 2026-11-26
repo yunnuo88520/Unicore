@@ -4,12 +4,12 @@
 import { Suspense, Component, createContext, lazy, useContext, useMemo, type ReactNode } from 'react';
 import { createRootRoute, createRoute, createRouter, redirect, useRouterState, useSearch, Outlet, createBrowserHistory, createHashHistory, type AnyRoute, type RouterHistory } from '@tanstack/react-router';
 import type { AppClient, Bootstrap } from '@unicore/sdk';
-import { routes, type Page } from './routes';
+import { pageOwnsHeading, routes, type Page } from './routes';
 import type { DashboardWidgetRegistry } from './registry';
 import type { Theme } from '@unicore/theme';
 import { NotFoundPage } from './pages/not-found';
 import { ServerErrorPage } from './pages/error';
-import { NavigationProgressBar, PageLoader, navigationFinish, navigationStart } from './components/page-loader';
+import { NavigationProgressBar, PageLoader, navigationFinish, navigationStart, pageSkeletonForPath, type PageSkeletonVariant } from './components/page-loader';
 
 export type PageProps = { page: Page; client: AppClient; metadata: Bootstrap; registry: DashboardWidgetRegistry; theme: Theme; setTheme: (theme: Theme) => void; refresh: () => void };
 export type PageComponent = (props: PageProps) => ReactNode;
@@ -69,14 +69,14 @@ class PageErrorBoundary extends Component<{ children: ReactNode }, { error: Erro
 }
 
 /** A route body that swaps in the administrator implementation for matching realms. */
-function frame(userLoader: () => Promise<{ default: PageComponent }>, adminEligible = false) {
+function frame(userLoader: () => Promise<{ default: PageComponent }>, adminEligible = false, skeleton: PageSkeletonVariant = 'content', showHeading = true) {
   function Frame() {
     const props = usePageProps();
     const { administratorPage } = useShellOptions();
     const administration = props.metadata.identity_realm === 'administrator';
     if (administration && adminEligible && administratorPage) return <PageErrorBoundary>{administratorPage(props)}</PageErrorBoundary>;
     const Component = pageComponent(userLoader);
-    return <Suspense fallback={<PageLoader />}><PageErrorBoundary><Component {...props} /></PageErrorBoundary></Suspense>;
+    return <Suspense fallback={<PageLoader variant={skeleton} showHeading={showHeading} />}><PageErrorBoundary><Component {...props} /></PageErrorBoundary></Suspense>;
   }
   return Frame;
 }
@@ -89,7 +89,9 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     component: () => <><NavigationProgressBar />{options.shell()}</>,
   });
   // Route helpers erase per-route generics; the tree is assembled dynamically so runtime wiring stays authoritative.
-  function pageRoute(path: string, loader: () => Promise<{ default: PageComponent }>, routeOptions?: { adminEligible?: boolean; search?: Record<string, unknown> }): AnyRoute {
+  function pageRoute(path: string, loader: () => Promise<{ default: PageComponent }>, routeOptions?: { adminEligible?: boolean; search?: Record<string, unknown>; skeleton?: PageSkeletonVariant }): AnyRoute {
+    const skeleton = routeOptions?.skeleton ?? pageSkeletonForPath(path);
+    const showHeading = pageOwnsHeading(pageFromPath(path));
     return createRoute({
       getParentRoute: () => rootRoute,
       path,
@@ -100,8 +102,8 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
       // the shared skeleton covers first entries and deep links instead of a
       // blank shell between the boot placeholder and the page.
       loader: async () => { moduleCache.set(loader, await loader()); },
-      pendingComponent: PageLoader,
-      component: frame(loader, routeOptions?.adminEligible),
+      pendingComponent: () => <PageLoader variant={skeleton} showHeading={showHeading} />,
+      component: frame(loader, routeOptions?.adminEligible, skeleton, showHeading),
     }) as unknown as AnyRoute;
   }
   const tree = rootRoute.addChildren([
@@ -119,7 +121,7 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     pageRoute('/reset-password', () => import('./pages/auth').then(module => ({ default: module.ResetPasswordPage })), { search: { token: '' } }),
     ...(__FEATURE_NOTES__ ? [
       pageRoute('/notes', () => import('./modules/notes/notes').then(module => ({ default: module.NotesPage }))),
-      pageRoute('/note-management', () => import('./modules/notes/management')),
+      pageRoute('/note-management', () => import('./modules/notes/management'), { adminEligible: true }),
     ] : []),
     pageRoute('/access-tokens', () => import('./pages/admin/access-tokens').then(module => ({ default: module.AdminAccessTokensPage })), { adminEligible: true }),
     pageRoute('/site', () => import('./pages/appearance').then(module => ({ default: module.AdminMailSettingsPage })), { adminEligible: true, search: { tab: '' } }),
@@ -138,6 +140,7 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     pageRoute('/mail-templates', () => import('./pages/admin/mail-templates').then(module => ({ default: module.AdminMailTemplatesPage })), { adminEligible: true }),
     pageRoute('/announcements', () => import('./pages/admin/announcements').then(module => ({ default: module.AdminAnnouncementsPage })), { adminEligible: true }),
     pageRoute('/storage', () => import('./pages/admin/storage').then(module => ({ default: module.AdminStoragePage })), { adminEligible: true, search: { provider: '', tab: 'config' } }),
+    pageRoute('/files', () => import('./pages/admin/files').then(module => ({ default: module.AdminFilesPage })), { adminEligible: true, search: { tab: '' } }),
     pageRoute('/logs', () => import('./pages/admin/logs').then(module => ({ default: module.AdminLogsPage })), { adminEligible: true }),
     pageRoute('/tasks', () => import('./pages/admin/tasks').then(module => ({ default: module.AdminTasksPage })), { adminEligible: true }),
     pageRoute('/monitor', () => import('./pages/monitor').then(module => ({ default: module.MonitorPage })), { adminEligible: true }),

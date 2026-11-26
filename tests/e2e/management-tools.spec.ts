@@ -25,9 +25,10 @@ test('administrator audit filters, sort, pagination, export and member denial',a
  const context=await browser.newContext();try{
  const user=context.request;
  const input={username:'member0',password:'test-password-strong',captcha_id:'',captcha_answer:''};
- expect((await user.post(`${instance.url}/api/v1/admin/auth/login`,{data:input})).status()).toBe(200);
- expect((await user.get(`${instance.url}/api/v1/admin/logs`)).status()).toBe(403);
+ // Management admission refuses members on the admin surface before any page authz.
+ expect((await user.post(`${instance.url}/api/v1/admin/auth/login`,{data:input})).status()).toBe(403);
  expect((await user.post(`${instance.url}/api/v1/auth/login`,{data:input})).status()).toBe(200);
+ expect((await user.get(`${instance.url}/api/v1/admin/logs`)).status()).toBe(403);
  for(const path of ['logs','logs/export','settings/mail/templates'])expect((await user.get(`${instance.url}/api/v1/admin/${path}`)).status()).toBe(403);
  const member=await context.newPage();await member.goto(`${instance.url}/mail-templates`);await expect(member.getByRole('button',{name:'邮件模板',exact:true})).toHaveCount(0);await expect(member.getByRole('tab',{name:'注册验证',exact:true})).toHaveCount(0);
  }finally{await context.close();}

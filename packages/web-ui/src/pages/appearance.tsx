@@ -97,7 +97,7 @@ function AdminSettings({ section = 'base', client, metadata, onSaved }: AdminSet
       onChange={id => { save.reset(); void navigate({ to: '/site', search: { tab: id }, replace: true }); }}
     />}
     {client.branding && client.updateBranding && <div role="tabpanel" id="instance-settings-panel-branding" aria-labelledby="instance-settings-tab-branding" hidden={active.id !== 'branding'}>
-      <BrandingPanel client={client} canWrite onSaved={onSaved} />
+      <BrandingPanel client={client} canWrite onSaved={onSaved} siteName={metadata.site_name} />
     </div>}
     {plainSection && <Card>
       <CardHeader className="flex-row items-start justify-between gap-3">
@@ -322,6 +322,7 @@ function SettingField({ entry, draft, cleared, onValue, onClear }: {
           ? <Textarea label={label} id={id} rows={4} maxLength={entry.multiline || entry.key.startsWith('account.') ? 16000 : entry.key === 'site.footer_html' ? 4000 : 1000} value={current} onChange={event => onValue(entry.key, event.target.value)} />
         : <Input label={label} strength={false} id={id}
             type={entry.sensitive ? 'password' : entry.value_type === 'integer' ? 'number' : ['site.icp_url', 'site.base_url'].includes(entry.key) ? 'url' : entry.key === 'site.admin_email' ? 'email' : 'text'}
+            maxLength={['site.icp_number', 'site.police_number'].includes(entry.key) ? 40 : undefined}
             autoComplete={entry.sensitive ? 'new-password' : undefined}
             aria-describedby={entry.sensitive ? `${id}-help` : undefined}
             value={current}
@@ -335,6 +336,8 @@ function SettingField({ entry, draft, cleared, onValue, onClear }: {
     </div>}
     {entry.key === 'account.registration_enabled' && <small className="text-xs text-muted">{t('默认关闭。开启后允许用户自行注册；邮箱验证由独立开关控制。')}</small>}
     {entry.key === 'account.phone_required' && <small className="text-xs text-muted">{t('开启后注册必须填写手机号；仅做格式与唯一性校验，不发送短信验证码。')}</small>}
+    {entry.key === 'site.icp_number' && <small className="text-xs text-muted">{t('格式：8–12 位 ICP 数字主体号，可加省级简称 + ICP备前缀、“号”和 -序号（末尾可带 A）；仅校验格式，不代表工信部备案真实有效。最多 40 个字符。')}</small>}
+    {entry.key === 'site.police_number' && <small className="text-xs text-muted">{t('格式：12–18 位公安备案数字，可带省级简称 + 公网安备前缀、-序号及“号”；仅校验格式，不代表公安备案真实有效。最多 40 个字符。')}</small>}
     {['account.register_rate_minutes', 'account.register_rate_max'].includes(entry.key) && <small className="text-xs text-muted">{t('同一 IP 在窗口分钟数内最多注册上限次数，超出后返回“尝试过于频繁”；两者配合调节注册防刷强度。')}</small>}
     {entry.key === 'security.login_captcha' && <small className="text-xs text-muted">{t('开启后登录页要求输入图形验证码，拦截脚本批量尝试。')}</small>}
     {entry.key === 'security.register_captcha' && <small className="text-xs text-muted">{t('开启后注册页要求输入图形验证码，拦截机器人批量注册。')}</small>}
@@ -344,6 +347,7 @@ function SettingField({ entry, draft, cleared, onValue, onClear }: {
     {entry.key === 'security.login_failure_limit' && <small className="text-xs text-muted">{t('同一 IP 连续登录失败达到此次数后临时封禁，不冻结账号。')}</small>}
     {entry.key === 'security.ip_ban_minutes' && <small className="text-xs text-muted">{t('封禁期间拒绝新的登录尝试；成功登录会清除连续失败计数。')}</small>}
     {['security.user_idle_minutes', 'security.admin_idle_minutes'].includes(entry.key) && <small className="text-xs text-muted">{t('超过此时间没有主动请求时会话失效；后台状态轮询不会延长空闲时间。')}</small>}
+    {entry.key === 'security.session_hours' && <small className="text-xs text-muted">{t('此时长从登录时开始计算，活动不会延长；保存后对新登录生效。实际会话还受对应身份的空闲超时限制。')}</small>}
     {entry.key === 'security.admin_max_minutes' && <small className="text-xs text-muted">{t('从管理员首次登录计算，活动不会延长此上限；会话有效期同时生效，取较短者。')}</small>}
     {['security.force_admin_2fa', 'security.force_user_2fa'].includes(entry.key) && <small className="text-xs text-muted">{t('对应身份的账号必须先绑定验证器才能使用业务功能，并且不能自行关闭两步验证。')}</small>}
     {entry.key === 'account.email_verification_required' && <small className="text-xs text-muted">{t('开启后需验证邮箱才能激活账号，须先配置并测试 SMTP；关闭后注册立即生效，无需 SMTP。')}</small>}

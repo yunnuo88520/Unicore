@@ -153,12 +153,14 @@ func (r *Repository) navigationInitialized(ctx context.Context, q sqlstore.Runne
 // EnsureNavigation seeds the shared tree on first boot and tops it up for
 // newer builds: action nodes the current contract catalogue derives but the
 // persisted tree lacks become grantable, and the monitor and AI-management
-// regions join trees seeded before those capabilities existed. There are no
-// legacy conversions: an instance is either freshly seeded from the current
-// default or already carries the shared tree, and revoked grants stay revoked
-// while new operations stay denied until granted explicitly.
+// regions join trees seeded before those capabilities existed. Changed page
+// workspace registrations also reconcile persisted reach. Revoked grants stay
+// revoked while new operations stay denied until granted explicitly.
 func (r *Repository) EnsureNavigation(ctx context.Context) error {
 	if err := r.initializeNavigation(ctx); err != nil {
+		return err
+	}
+	if err := r.reconcileNavigationSurfaces(ctx); err != nil {
 		return err
 	}
 	if err := r.backfillRegisteredActions(ctx); err != nil {
@@ -180,8 +182,9 @@ const monitorSeedMarker = "_navigation_monitor_seeded"
 
 // aiSeedOrder lists the AI-management entries in seed order; the top-up adds
 // nodes a tree seeded before the MCP capability lacks, mirroring the monitor
-// seed contract.
-var aiSeedOrder = []string{"ai-management", "ai-access", "ai-tools", "ai-calls"}
+// seed contract. The adjacent file-governance entry uses the same one-time
+// marker, so old instances receive it and operator deletions remain respected.
+var aiSeedOrder = []string{"files", "ai-management", "ai-access", "ai-tools", "ai-calls"}
 
 const aiSeedMarker = "_navigation_ai_seeded"
 
@@ -325,6 +328,9 @@ func (r *Repository) ensureAINavigation(ctx context.Context) error {
 		}
 	}
 	if len(missing) > 0 {
+		for _, id := range added {
+			received[id] = true
+		}
 		n.Nodes = append(n.Nodes, missing...)
 		if err = r.writeNavigation(ctx, tx, n); err != nil {
 			return err

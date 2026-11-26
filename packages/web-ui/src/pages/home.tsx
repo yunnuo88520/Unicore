@@ -49,7 +49,7 @@ export function HomePage({ metadata, client }: PageProps) {
     <a href="#home-main" className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-surface focus:p-3">{t('跳到主要内容')}</a>
     <header className="sticky top-0 z-40 border-b border-line bg-background">
       <nav aria-label={t('站点导航')} className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-3 px-4 md:px-8">
-        <a href="/home" aria-label={metadata.site_name} className="flex shrink-0 items-center gap-2 text-lg font-semibold"><BrandLockup name={metadata.site_name} /></a>
+        <a href="/home" aria-label={metadata.site_name} title={metadata.site_name} className="flex min-w-0 shrink items-center gap-2 text-lg font-semibold"><BrandLockup name={metadata.site_name} size={32} maxWidth={180} /></a>
         <div className="hidden items-center gap-1 lg:flex">
           <button type="button" className={buttonVariants({ variant: 'ghost' })} onClick={() => scrollTo('home-features')}>{t('产品特性')}</button>
           <button type="button" className={buttonVariants({ variant: 'ghost' })} onClick={() => scrollTo('home-how')}>{t('快速开始')}</button>
@@ -116,7 +116,7 @@ export function HomePage({ metadata, client }: PageProps) {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-6"><div><h2 className="text-2xl font-medium">{t('下一步，进入你的工作空间')}</h2><p className="mt-2 text-sm text-muted">{t('继续已有工作，或阅读文档了解部署与扩展。')}</p></div><a href={destination} className={cn(buttonVariants({ size: 'lg' }), 'h-11')}>{action}<ArrowRight size={16} aria-hidden="true" /></a></div>
       </section>
     </main>
-    <div className="px-4 pb-8 md:px-8"><SiteFooter metadata={metadata} /></div>
+    <SiteFooter metadata={metadata} />
   </div>;
 }
 

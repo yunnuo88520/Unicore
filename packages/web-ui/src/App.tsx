@@ -9,7 +9,8 @@ import { useLocale, t } from './i18n';
 import { productName } from './product.gen';
 import { WorkspaceLayout } from './workspace-layout';
 import { consoleAccess, consoleHref, consoleRoute, ConsoleView, type ConsoleDefinition } from './console-registry';
-export { defineConsoles, type ConsoleDefinition, type ConsoleShellProps, type ConsolePageProps } from './console-registry';
+export { defineConsoles, consoleHref, consolePageHref, type ConsoleDefinition, type ConsoleShellProps, type ConsolePageProps, type WorkspaceDestination } from './console-registry';
+export { WorkspaceSwitcher } from './workspace-switcher';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbSeparator, MessageProvider, PageHeader } from '@unicore/ui';
 import { SiteFooter } from './site-footer';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -17,17 +18,17 @@ import { RouterProvider, Outlet, Navigate, createBrowserHistory, useRouter, useR
 import { ChevronRight, ChevronsUpDown, ExternalLink, FlaskConical, Info, KeyRound, LayoutDashboard, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Radio, RotateCcw, Settings2, ShieldCheck, UserRound } from 'lucide-react';
 import { buildNavigation, isLinkEntry, routePath, type NavEntry } from './navigation';
 import { NavigationTree } from './navigation-view';
-import { BrandProvider, BrandMark } from './brand';
+import { BrandProvider, BrandMark, BrandLockup } from './brand';
 import type { AppClient, Bootstrap } from '@unicore/sdk';
 import { AppError } from '@unicore/sdk';
-import { setCustomAccent, useTheme, type Theme } from '@unicore/theme';
+import { setCustomAccent, useResolvedTheme, useTheme, type Theme } from '@unicore/theme';
 import { DashboardWidgetRegistry } from './registry';
 import { PasswordDialog } from './password-dialog';
 import { AccountSettingsModal, type AccountSettingsPage } from './account-settings/modal';
 import { roleDisplayLabels } from './role-display';
 import { UserAvatar, displayLabel } from './user-avatar';
 import { SessionBoundary, useSession } from './session';
-import { routes, canAccess, isAdminRealm, isAdministrator, type Page } from './routes';
+import { routes, canAccess, isAdminRealm, isAdministrator, pageOwnsHeading, type Page } from './routes';
 import { LiveLogsButton } from './live-logs';
 import { Modal, Button, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, Tooltip } from '@unicore/ui';
 import { setPreferences, usePreferences } from '@unicore/theme/preferences';
@@ -83,16 +84,6 @@ function BrandedApp({ client, registry, notice, administratorPage, history, base
     </NoticeProvider>
   </ShellOptionsProvider>;
 }
-
-// These routes compose their own PageHeader with primary actions. All others
-// receive the route label here, including module pages and loading/error states.
-// Explicit ownership avoids querying rendered DOM and keeps navigation stable.
-const pageHeadingOwners = new Set<string>([
-  'users', 'administrators', 'roles', 'departments', 'announcements', 'posts',
-  'tasks', 'menus', 'access-tokens',
-  'monitor', 'monitor-services', 'monitor-resources', 'monitor-events', 'ui-preview', 'not-found',
-  'ai-access', 'ai-tools', 'ai-calls', 'ai-oauth',
-]);
 
 /** The root route component: gates, chrome and the page outlet. Server authorization remains authoritative. */
 function WorkspaceShell() {
@@ -209,7 +200,7 @@ function WorkspaceShell() {
     const Flow = basename === 'verify-email' ? VerifyEmailPage : basename === 'reset-password' ? ResetPasswordPage : !data.current_user && !knownPath ? NotFoundPage : LoginPage;
     return <PagePropsProvider value={props}>
       <div className="flex min-h-dvh flex-col bg-background">
-        <div className="flex flex-1 items-center justify-center px-4 py-8 sm:px-6 lg:py-12">
+        <div className="flex flex-1 items-center justify-center px-4 py-8 sm:px-6 sm:py-6">
           <div className="relative w-full max-w-[1200px] overflow-hidden rounded-3xl border border-line bg-surface shadow-card">
             <div className="absolute end-4 top-4 z-[45]"><ClientControls /></div>
             <Flow {...props} />
@@ -223,7 +214,7 @@ function WorkspaceShell() {
   if (custom) {
     if (data.mfa_enrollment_required) return <Navigate to="/" replace />;
     const access = consoleAccess(custom, data);
-    return access ? <ConsoleView selection={custom} access={access} client={client} metadata={data} /> : <ForbiddenPage />;
+    return access ? <ConsoleView selection={custom} access={access} client={client} metadata={data} consoles={consoles ?? []} /> : <ForbiddenPage />;
   }
 
   // The OAuth consent page renders without workspace chrome for signed-in
@@ -265,7 +256,7 @@ function WorkspaceShell() {
               action={<Button onClick={() => void metadata.refetch()}><RotateCcw size={15} />{t('重新连接')}</Button>} />
           : enrollment ? <StateCard tone="pending" icon={<ShieldCheck size={24}/>} title={t('正在打开安全设置')} detail={t('实例要求启用双重验证，请先完成安全设置。')}/>
           : <div className="flex min-w-0 flex-col gap-3">
-              {!pageHeadingOwners.has(page) && <PageHeader title={t(routes[page].label)} />}
+              {!pageOwnsHeading(page) && <PageHeader title={t(routes[page].label)} />}
               <Outlet />
             </div>}
       <SiteFooter metadata={data} />
@@ -280,6 +271,7 @@ function SideNavigation({ page, data, client, onNavigate, onAbout, administratio
   useLocale();
   const router = useRouter();
   const { navCollapsed, layout } = usePreferences();
+  const appearance = useResolvedTheme();
   const desktop = useMinWidth(768);
   const rail = navCollapsed && desktop && layout !== 'full';
   function goPage(next: Page) { onNavigate(); void router.navigate({ to: routePath(next) }); }
@@ -295,22 +287,30 @@ function SideNavigation({ page, data, client, onNavigate, onAbout, administratio
       else goPage(node.routeId);
     }
   }
-  const toggle = <Tooltip label={rail ? t('展开导航') : t('收起导航')}>
+  const wordmarkLogo = appearance === 'dark' ? data.branding?.logo_dark || data.branding?.logo : data.branding?.logo;
+  const wordmark = data.branding?.display_mode === 'wordmark' && !!wordmarkLogo;
+  const logoMode = !rail && wordmarkLogo ? 'logo-mode-text' : 'logo-mode-icon';
+  const toggle = <Tooltip label={t('收起导航')}>
     <button type="button" className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted transition-colors outline-none hover:bg-surface-inset hover:text-ink focus-visible:ring-2 focus-visible:ring-focus"
-      aria-label={rail ? t('展开导航') : t('收起导航')} aria-expanded={!rail} aria-controls="workspace-navigation" onClick={() => setPreferences({ navCollapsed: !rail })}>
-      {rail ? <PanelLeftOpen size={18} aria-hidden="true" /> : <PanelLeftClose size={18} aria-hidden="true" />}
+      aria-label={t('收起导航')} aria-expanded="true" aria-controls="workspace-navigation" onClick={() => setPreferences({ navCollapsed: true })}>
+      <PanelLeftClose size={18} aria-hidden="true" />
     </button>
   </Tooltip>;
   return <>
-    <div className={`flex shrink-0 gap-2 ${rail ? 'flex-col-reverse items-center' : 'items-center px-1'}`}>
-      <a href="/" aria-label={data.site_name} className="flex size-8 shrink-0 items-center justify-center" onClick={event => { event.preventDefault(); goPage('overview'); }}>
-        <BrandMark size={28} />
-      </a>
-      {!rail && <div className="min-w-0 flex-1">
-        <a href="/" aria-label={data.site_name} className="block truncate text-md font-medium text-ink" onClick={event => { event.preventDefault(); goPage('overview'); }}>{data.site_name}</a>
-        {data.version && <VersionBadge client={client} metadata={data} onOpen={() => goPage('edition')} />}
-      </div>}
-      {desktop && layout !== 'full' && toggle}
+    <div className={`sidebar-header ${logoMode}${rail ? ' collapsed-mode' : wordmark ? '' : ' show-title'}`} data-brand-header={rail ? 'compact' : wordmark ? 'wordmark' : 'icon-title'}>
+      {rail ? <a href="/" aria-label={data.site_name} title={data.site_name} className="sidebar-header-logo" onClick={event => { event.preventDefault(); goPage('overview'); }}>
+        <BrandLockup name={data.site_name} size={32} maxWidth={32} compact />
+      </a> : <div className="brand-area">
+          <a href="/" aria-label={data.site_name} title={data.site_name} className="sidebar-header-logo" onClick={event => { event.preventDefault(); goPage('overview'); }}>
+            {wordmark ? <BrandLockup name={data.site_name} size={32} maxWidth={100} />
+              : <BrandMark size={32} maxWidth={100} branding={data.branding} name={data.site_name} />}
+          </a>
+          <div className="brand-info">
+            {!wordmark && <a href="/" title={data.site_name} className="sidebar-header-title text-md font-medium text-ink" onClick={event => { event.preventDefault(); goPage('overview'); }}>{data.site_name}</a>}
+            {data.version && <VersionBadge client={client} metadata={data} onOpen={() => goPage('edition')} />}
+          </div>
+        </div>}
+      {desktop && layout !== 'full' && !rail && <div className="sidebar-header-toggle">{toggle}</div>}
     </div>
     <NavigationTree navigation={buildNavigation(data)} page={page} rail={rail} onNavigate={activate} onExpand={() => setPreferences({ navCollapsed: false })} />
     {data.current_user && <div className="sidebar-utilities shrink-0">
@@ -399,6 +399,7 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
 }) {
   useLocale();
   const desktop = useMinWidth(768);
+  const { navCollapsed } = usePreferences();
   // The account menu labels the identity realm, not the super_admin grant.
   const administration = isAdminRealm(data);
   const user = data.current_user;
@@ -406,6 +407,11 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
   return <>
     <div className="flex min-w-0 items-center gap-2 text-[length:var(--font-11)] text-muted max-md:gap-1.5">
       {(!desktop || !navToggleVisible) && <button className="mobile-menu size-8 items-center justify-center rounded-md text-muted hover:bg-surface-hover hover:text-ink max-md:-ms-1" aria-label={t('打开导航')} aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={onOpenMobile}><Menu size={18} /></button>}
+      {desktop && navToggleVisible && navCollapsed && <Tooltip label={t('展开导航')}>
+        <button type="button" className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted outline-none hover:bg-surface-hover hover:text-ink focus-visible:ring-2 focus-visible:ring-focus" aria-label={t('展开导航')} aria-expanded="false" aria-controls="workspace-navigation" onClick={() => setPreferences({ navCollapsed: false })}>
+          <PanelLeftOpen size={18} aria-hidden="true" />
+        </button>
+      </Tooltip>}
       <Breadcrumb>
         <BreadcrumbItem className="max-w-32 truncate">{data.site_name}</BreadcrumbItem>
         <BreadcrumbSeparator />

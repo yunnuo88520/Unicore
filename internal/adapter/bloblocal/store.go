@@ -112,23 +112,61 @@ func (s *Store) Open(ctx context.Context, key string) (io.ReadCloser, blob.Objec
 		f.Close()
 		return nil, blob.Object{}, errors.New("invalid object")
 	}
+	// Streaming read: hashes are only computed by Put while writing or by Hash
+	// at explicit verification moments, never on the download path.
+	return f, blob.Object{Size: info.Size()}, nil
+}
+
+// Stat reports size metadata from the filesystem without reading object bytes.
+func (s *Store) Stat(_ context.Context, key string) (blob.Object, error) {
+	if err := checked(key); err != nil {
+		return blob.Object{}, err
+	}
+	root, err := s.root()
+	if err != nil {
+		return blob.Object{}, err
+	}
+	defer root.Close()
+	info, err := root.Stat(key)
+	if errors.Is(err, fs.ErrNotExist) {
+		return blob.Object{}, blob.ErrNotFound
+	}
+	if err != nil {
+		return blob.Object{}, err
+	}
+	if !info.Mode().IsRegular() {
+		return blob.Object{}, errors.New("invalid object")
+	}
+	return blob.Object{Size: info.Size()}, nil
+}
+
+// Hash streams the object once and returns its sha256 hex digest.
+func (s *Store) Hash(ctx context.Context, key string) (string, error) {
+	if err := checked(key); err != nil {
+		return "", err
+	}
+	root, err := s.root()
+	if err != nil {
+		return "", err
+	}
+	defer root.Close()
+	f, err := root.Open(key)
+	if errors.Is(err, fs.ErrNotExist) {
+		return "", blob.ErrNotFound
+	}
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil || !info.Mode().IsRegular() {
+		return "", errors.New("invalid object")
+	}
 	h := sha256.New()
 	if _, err = io.Copy(h, contextual{ctx, f}); err != nil {
-		f.Close()
-		return nil, blob.Object{}, err
+		return "", err
 	}
-	if _, err = f.Seek(0, io.SeekStart); err != nil {
-		f.Close()
-		return nil, blob.Object{}, err
-	}
-	return f, blob.Object{Size: info.Size(), ETag: hex.EncodeToString(h.Sum(nil))}, nil
-}
-func (s *Store) Stat(ctx context.Context, key string) (blob.Object, error) {
-	r, obj, err := s.Open(ctx, key)
-	if r != nil {
-		r.Close()
-	}
-	return obj, err
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
 func (s *Store) Delete(_ context.Context, key string) error {
 	if err := checked(key); err != nil {
@@ -145,22 +183,22 @@ func (s *Store) Delete(_ context.Context, key string) error {
 	}
 	return err
 }
-func (s *Store) Copy(ctx context.Context, source, target, etag string) error {
+
+// Copy streams source into target; the etag argument is accepted for interface
+// parity and ignored because verification happens at Put time or via Hash.
+func (s *Store) Copy(ctx context.Context, source, target, _ string) error {
 	r, obj, err := s.Open(ctx, source)
 	if err != nil {
 		return err
 	}
 	defer r.Close()
-	if etag != "" && obj.ETag != etag {
-		return blob.ErrChanged
-	}
 	_, err = s.Put(ctx, target, r, obj.Size, obj.MIME)
 	return err
 }
 func (s *Store) SignPut(context.Context, string, int64, string, time.Duration) (blob.Grant, error) {
 	return blob.Grant{}, blob.ErrUnsupported
 }
-func (s *Store) SignGet(context.Context, string, string, time.Duration) (string, error) {
+func (s *Store) SignGet(context.Context, string, string, time.Duration, bool) (string, error) {
 	return "", blob.ErrUnsupported
 }
 func (s *Store) Keys(ctx context.Context) ([]string, error) {

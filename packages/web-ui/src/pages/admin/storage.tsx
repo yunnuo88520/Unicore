@@ -113,6 +113,7 @@ function StoragePanel({ client, storage }: { client: AppClient; storage: Storage
           <p className="min-w-0 flex-1 leading-relaxed">{t('请使用浏览器可访问的 Endpoint；HTTPS 站点需使用 HTTPS 地址。部分 MinIO 版本需在服务端配置本站 CORS。')}</p>
           <Button variant="ghost" size="sm" disabled={!item || action.isPending || saving} pending={pending === 'browser'} onClick={() => action.mutate({ kind: 'browser', item })}><Globe size={15} />{t('配置本站跨域')}</Button>
         </div>}
+        <p className="text-xs leading-relaxed text-muted">{t('全局同时只有一个生效位置，新文件随当前配置上传。历史文件保留原引用；可在文件管理中进行本地与云端迁移。')}</p>
       </TabsPrimitive.Content>
       <TabsPrimitive.Content value="rules" forceMount hidden={section !== 'rules'} className="data-[state=inactive]:hidden">
         {client.settings && <StoragePolicy client={client} cleanup={<Button type="button" variant="secondary" disabled={action.isPending} pending={pending === 'cleanup'} onClick={() => action.mutate({ kind: 'cleanup' })}><RefreshCw size={14} />{t('执行到期清理')}</Button>} />}

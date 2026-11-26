@@ -24,7 +24,7 @@
 | 数据字典 | 已实现（管理端 CRUD + 用户端只读） | 不装配 | 不装配 | unicore_dict_types | `internal/adapter/http/dictionaries.go` |
 | 个人中心（资料/换邮箱/TOTP/会话设备，账号菜单弹窗承载） | 已实现，双域各自 19 operation | 不装配 | 不装配 | unicore_personal_accounts | `internal/platform/personal.go`、[个人中心](../03-runbooks/personal-center.md) |
 | 人机验证（Turnstile/腾讯/阿里） | 已实现，设置门控 | 不装配 | 不装配 | security.human_check_* | `internal/platform/humancheck.go` |
-| 登录防护（IP 封禁/会话策略/强制 2FA） | 已实现 | 不装配 | 不装配 | settings security.* | `internal/platform/login_guard.go` |
+| 登录防护（IP 封禁/会话策略/强制 2FA） | 已实现：会话有效期、用户/管理员空闲时限及管理员绝对上限默认均为 24 小时；超管在账户安全配置，保留旧实例显式值 | 不装配 | 不装配 | settings security.* | `internal/platform/login_guard.go`、`internal/platform/service.go` |
 
 客户端 JWT / Refresh Token 与个人 API 令牌：Platform 已实现；Standalone / CLI 不装配。持久化为 platform@1 的 unicore_api_credentials、unicore_api_refresh_tokens、unicore_api_token_keys；个人中心弹窗的访问令牌分区管理单角色令牌，支持固定有效期、永久、备注、续期和作废；超级管理员管理全部令牌并可代用户签发；创建时先输入用户名或邮箱搜索，空搜索不枚举用户，选择后才加载绑定角色。客户端认证与刷新走独立 API，见 [API 认证](../product/api-authentication.md) 与 [ADR-0044](../adr/ADR-0044-role-bound-personal-tokens.md)。
 
@@ -50,10 +50,11 @@
 
 | 功能单元 | Platform | Standalone | CLI | 持久化 | 证据 |
 | --- | --- | --- | --- | --- | --- |
-| 文件服务（上传/下载/签名访问/清理，无管理页面） | 已实现，支持本地及云位置、授权迁移 | 已实现：固定本地位置，Web/原生桥等效 | 不装配 | core 的文件四表 + blob | `internal/files/service.go`、`internal/bootstrap/filelocal/service.go`、[ADR-0043](../adr/ADR-0043-business-file-boundaries.md) |
+| 文件服务（上传/下载/签名访问/清理） | 已实现，支持本地及云位置；物理对象键统一由服务端生成（`objects/{目录}/{年}/{月}/{随机ID}.{扩展名}`，业务相对目录受白名单与穿越清洗约束），服务端异步迁移任务（暂停/恢复/取消/失败重试，仅平台），任务终态写入创建者通知中心并保留最近 20 条历史记录 | 已实现：固定本地位置，Web/原生桥等效 | 不装配 | core 的文件六表（含迁移任务与失败明细）+ blob | `internal/files/service.go`、`internal/files/migration.go`、`internal/files/worker.go`、`internal/bootstrap/filelocal/service.go`、[ADR-0043](../adr/ADR-0043-business-file-boundaries.md) |
+| 平台文件治理 | 已实现：超级管理员全实例目录、用途/类型/位置筛选、内联预览（安全 MIME 白名单）、详情审计、引用保护删除；一级菜单位于监控与 AI 之间 | 不装配 | 不装配 | 复用文件元数据和位置，无新增表 | `internal/files/catalog.go`、`packages/web-ui/src/pages/admin/files/`、[ADR-0051](../adr/ADR-0051-platform-file-governance.md) |
 | 分片断点续传 | 已实现 | 已实现：本地分片与重启续传 | 不装配 | unicore_file_upload_sessions | `internal/files/multipart.go`、`internal/adapter/desktop/files.go` |
 | 对象存储位置管理（local/minio/s3/oss/cos） | 已实现 | 不装配 | 不装配 | unicore_storage_locations | `internal/blob/store.go`、`internal/adapter/blobcloud/` |
-| 品牌图片资源（logo/favicon/accent） | 已实现（运行时上传） | 不装配：使用构建期品牌 | 不适用 | branding.* + 对象命名空间 | `internal/branding/service.go` |
+| 品牌图片资源（logo/favicon/accent） | 已实现：Logo 最大 500 KB，按解码内存预算接收高分辨率图片并等比规范化，错误区分格式/文件大小/解码容量；高度 32px、宽度自适应至 120px 的 Logo + 单行省略名称或独立字标，字标与版本纵向间距 8px、版本左内边距 2px、收起按钮固定于 Header 右上角；折叠时仅方形站点图标或名称首字居中、顶栏展开；真实组件预览 | 不装配运行时品牌：使用构建期品牌与共享侧栏布局 | 不适用 | branding.*（含 display_mode）+ 对象命名空间 | `internal/branding/service.go` |
 | 业务附件（如笔记附件 file_id 校验） | 已实现：笔记内直接上传/选择，按 notes 权限，服务端校验归属 | 已实现：两载体上传、下载、ready/归属校验 | 不装配 | file_id 随业务表，元数据在 core | `internal/files/attachment.go`、`internal/adapter/http/notes.go`、`internal/modules/notes/desktop/notes.go` |
 
 ## E. 安装、设置与运维
@@ -89,8 +90,8 @@
 | 文本分析 Execute | 已实现（会话内） | 已实现（本地开放）¹² | 已实现（`unicore execute`） | 无 | `internal/usecase/execute.go`、`internal/adapter/cli/command.go` |
 | Bootstrap 元数据 | 已实现 | 已实现¹² | 不适用（无 HTTP/桥） | 无 | `internal/runtime/profile.go`、`internal/adapter/desktop/bridge.go` |
 | 健康检查 | 已实现 | 已实现¹ | 不适用 | 无 | `internal/adapter/http/policy.go` |
-| Notes 业务模块 | 「我的笔记」只列本人；「笔记管理」按标题、作者及状态即时筛选，列显隐使用设备偏好，列表不返回正文或附件；按权限和数据范围预览正文、编辑标题和正文、修改状态、软删除；写入留审计；管理入口在用户工作台业务区，不进入管理员工作台；FEATURE_NOTES 可裁剪 | 已实现（local scope）；两载体同开关¹²，不提供管理页 | 不装配（模块特性关闭） | unicore_example_notes（复用，无迁移） | `internal/modules/notes/`、[业务样板](../03-runbooks/business-example.md) |
-| 可注册业务控制台 | Platform 派生应用可注册独立入口、布局、导航和页面准入；复用统一会话与既有 API 权限 | 不装配 | 不装配 | 代码注册，无新持久化 | `packages/web-ui/src/console-registry.tsx` |
+| Notes 业务模块 | 「我的笔记」只列本人；「笔记管理」按标题、作者及状态即时筛选，列显隐使用设备偏好，列表不返回正文或附件；按权限和数据范围预览正文、编辑标题和正文、修改状态、软删除；写入留审计；管理入口仅在管理员工作台业务区；用户工作区只呈现「我的笔记」；FEATURE_NOTES 可裁剪 | 已实现（local scope）；两载体同开关¹²，不提供管理页 | 不装配（模块特性关闭） | unicore_example_notes（复用，无迁移） | `internal/modules/notes/`、[业务样板](../03-runbooks/business-example.md) |
+| 可注册业务控制台 | Platform 派生应用可注册独立入口、布局、导航和页面准入；`ConsoleShellProps.workspaces` 与 `WorkspaceSwitcher` 提供会话权限过滤后的 user/admin/custom 工作台切换目标；复用统一会话与既有 API 权限 | 不装配 | 不装配 | 代码注册，无新持久化 | `packages/web-ui/src/console-registry.tsx`、`packages/web-ui/src/workspace-switcher.tsx` |
 
 ### 共享设计系统（UI 基础能力，非新增业务）
 
@@ -142,9 +143,9 @@ Platform 两工作台与 Standalone 两载体共用连续的顶栏/正文背景�
 以下条目为「当前实现与设计目标可能存在差距」的功能级记录，详情与候选方案见 [待维护者决策清单](pending-decisions.md)：
 
 - D1/D12 已解决：本地业务附件与平台存储治理分离，见 ADR-0043。
-- files:* 不再作为默认用户业务权限（Assignable=false），保留文件 API 的显式授权；无文件管理页面。头像使用本人账号接口，业务附件使用对应业务授权。
+- files:* 不再作为默认用户业务权限（Assignable=false），保留文件 API 的显式授权；全局文件治理仅超级管理员可用。头像使用本人账号接口，业务附件使用对应业务授权。
 - Standalone(GUI) 文件服务已使用实例 secret.Store；设置仍无敏感值，新增敏感设置前须按 D4 接线。
 - 更新兼容性使用 Catalog 世代与完整 SQL 指纹（D5 已解决）；包含迁移的版本需停服备份后人工升级。
 - 实例默认外观（appearance.theme）、bootstrap theme 和外观页面已移除（D13）：单机/桌面外观只走设备级偏好，右上角切换不受影响。
 
-共享表单交互在 Platform 与 Standalone 两载体统一提供浮动标签、六格一次性代码（邮箱/短信/动态口令）、普通图形验证码输入与刷新图片、常驻帮助、失焦校验、按候选数量选控件、范围/出生日期、双端滑块、自动补全、级联、标签与真实文件进度。认证与安装页使用可辨认的共享输入区域。仅为 UI 能力，无新增身份、短信服务或业务资料持久化；CLI 不适用。见 [表单交互规范](../product/form-interaction.md)。
+共享表单交互在 Platform 与 Standalone 两载体统一提供上置/浮动标签、六格一次性代码（邮箱/短信/动态口令）、普通图形验证码输入与刷新图片、常驻帮助、失焦校验、按候选数量选控件、范围/出生日期、双端滑块、自动补全、级联、标签与真实文件进度；实体编辑默认使用固定头尾、正文独立滚动的 FormDrawer 表单模式，字段采用单列、固定上置标签、surface 底色与细边框。数据列表统一为工具栏、单层边框表格与分页。认证与安装页使用可辨认的共享输入区域。仅为 UI 能力，无新增身份、短信服务或业务资料持久化；CLI 不适用。见 [表单交互规范](../product/form-interaction.md)。

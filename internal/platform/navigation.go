@@ -18,6 +18,7 @@ var baseNavigationPages = []contracts.NavigationPage{
 	{ID: "announcements", Surfaces: []string{"administrator"}, Permission: "announcements:read"},
 	{ID: "api-docs", Surfaces: []string{"administrator"}},
 	{ID: "site", Surfaces: []string{"administrator"}, Permission: "settings:read", Group: "system"},
+	{ID: "files", Surfaces: []string{"administrator"}, Permission: "storage:read", Group: "system"},
 	{ID: "storage", Surfaces: []string{"administrator"}, Permission: "storage:read", Group: "system"},
 	{ID: "account-policy", Surfaces: []string{"administrator"}, Permission: "settings:read", Group: "system"},
 	{ID: "mail", Surfaces: []string{"administrator"}, Permission: "settings:read", Group: "system"},
@@ -53,7 +54,7 @@ func NavigationPages() []contracts.NavigationPage {
 // the shared stable display order both seeds and editors rely on.
 var defaultPageOrder = []string{
 	"overview", "users", "roles", "departments", "posts", "menus", "dictionaries",
-	"announcements", "tasks", "api-docs", "site", "storage", "account-policy", "mail", "mail-templates",
+	"announcements", "tasks", "api-docs", "site", "storage", "files", "account-policy", "mail", "mail-templates",
 	"notification-channels", "notification-templates", "system-notifications", "logs", "edition", "access-tokens",
 	"monitor", "monitor-services", "monitor-resources", "monitor-events",
 	"ai-access", "ai-tools", "ai-calls", "ai-oauth",
@@ -97,7 +98,7 @@ func navigationIcon(id string) string {
 // navigationIcons mirrors the frontend defaultIcons table so a seeded tree and
 // a client-computed default render identically.
 var navigationIcons = map[string]string{
-	"overview": "LayoutDashboard", "site": "Settings2", "storage": "Cloud",
+	"overview": "LayoutDashboard", "site": "Settings2", "storage": "Cloud", "files": "Files",
 	"users": "UserRound", "administrators": "UserCog", "announcements": "Megaphone", "account-policy": "ShieldCheck", "mail": "Mail", "mail-templates": "Mail",
 	"notification-channels": "Webhook", "notification-templates": "FileText", "system-notifications": "Bell", "logs": "ScrollText", "edition": "PackageCheck",
 	"roles": "ShieldCheck", "departments": "Network", "tasks": "ListChecks", "menus": "LayoutDashboard", "dictionaries": "FileText", "posts": "UserCog",
@@ -173,6 +174,9 @@ func DefaultNavigation() contracts.Navigation {
 			section = "system"
 			sort = 30
 		}
+		if page.ID == "files" {
+			section, parent, sort = "system", "", 27
+		}
 		node := contracts.NavigationNode{
 			ID: page.ID, SectionID: section, Surfaces: append([]string{}, page.Surfaces...), Type: "page", RouteID: &page.ID,
 			Sort: sort, Visible: true, OpenMode: "same_tab", OperationIds: []string{},
@@ -222,8 +226,18 @@ func NavigationFor(n contracts.Navigation, user contracts.User, surface string) 
 	}
 	// Resolve parents strictly inside the projected workspace.
 	nodes := map[string]contracts.NavigationNode{}
+	eligible := func(node contracts.NavigationNode) bool {
+		if !sections[node.SectionID] || !contains(node.Surfaces, surface) {
+			return false
+		}
+		if node.Type == "page" {
+			_, registered := NavigationPage(text(node.RouteID), surface)
+			return registered
+		}
+		return true
+	}
 	for _, node := range n.Nodes {
-		if sections[node.SectionID] && contains(node.Surfaces, surface) {
+		if eligible(node) {
 			nodes[node.ID] = node
 		}
 	}
@@ -233,6 +247,9 @@ func NavigationFor(n contracts.Navigation, user contracts.User, surface string) 
 		}
 		if IsSuper(user) {
 			return true
+		}
+		if node.Type == "page" && text(node.RouteID) == "files" {
+			return false
 		}
 		if node.Type == "action" {
 			if !Has(user, text(node.Permission)) {
@@ -249,7 +266,7 @@ func NavigationFor(n contracts.Navigation, user contracts.User, surface string) 
 	}
 	projected := map[string]bool{}
 	for _, node := range n.Nodes {
-		if !sections[node.SectionID] || !contains(node.Surfaces, surface) || !allowed(node) {
+		if !eligible(node) || !allowed(node) {
 			continue
 		}
 		valid := true

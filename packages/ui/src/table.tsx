@@ -4,13 +4,13 @@ import { forwardRef, type HTMLAttributes, type TdHTMLAttributes, type ThHTMLAttr
 import { cn } from './cn';
 
 export const Table = forwardRef<HTMLTableElement, HTMLAttributes<HTMLTableElement>>(function Table({ className, ...props }, ref) {
-  return <div className="w-full overflow-x-auto">
+  return <div className="w-full min-w-0 overflow-x-auto overscroll-x-contain">
     <table ref={ref} className={cn('w-full caption-bottom border-collapse text-sm', className)} {...props} />
   </div>;
 });
 
 export const TableHeader = forwardRef<HTMLTableSectionElement, HTMLAttributes<HTMLTableSectionElement>>(function TableHeader({ className, ...props }, ref) {
-  return <thead ref={ref} className={cn('bg-surface-hover [&_tr]:border-y [&_tr]:border-line', className)} {...props} />;
+  return <thead ref={ref} className={cn('bg-transparent [&_tr]:border-y [&_tr]:border-line', className)} {...props} />;
 });
 
 export const TableBody = forwardRef<HTMLTableSectionElement, HTMLAttributes<HTMLTableSectionElement>>(function TableBody({ className, ...props }, ref) {
@@ -18,15 +18,15 @@ export const TableBody = forwardRef<HTMLTableSectionElement, HTMLAttributes<HTML
 });
 
 export const TableRow = forwardRef<HTMLTableRowElement, HTMLAttributes<HTMLTableRowElement>>(function TableRow({ className, ...props }, ref) {
-  return <tr ref={ref} className={cn('border-b border-line transition-colors hover:bg-surface-hover data-[state=selected]:bg-primary-soft', className)} {...props} />;
+  return <tr ref={ref} className={cn('border-b border-line transition-colors hover:bg-surface-hover data-[state=selected]:bg-primary-soft focus-within:bg-surface-hover', className)} {...props} />;
 });
 
 export const TableHead = forwardRef<HTMLTableCellElement, ThHTMLAttributes<HTMLTableCellElement>>(function TableHead({ className, ...props }, ref) {
-  return <th ref={ref} scope="col" className={cn('h-9 px-3 text-start align-middle text-xs font-medium text-muted whitespace-nowrap', className)} {...props} />;
+  return <th ref={ref} scope="col" className={cn('h-10 px-4 text-start align-middle text-xs font-medium text-muted whitespace-nowrap', className)} {...props} />;
 });
 
 export const TableCell = forwardRef<HTMLTableCellElement, TdHTMLAttributes<HTMLTableCellElement>>(function TableCell({ className, ...props }, ref) {
-  return <td ref={ref} className={cn('px-3 py-2.5 align-middle text-ink', className)} {...props} />;
+  return <td ref={ref} className={cn('px-4 py-3 align-middle text-ink', className)} {...props} />;
 });
 
 export function TableEmpty({ colSpan, children }: { colSpan: number; children: React.ReactNode }) {

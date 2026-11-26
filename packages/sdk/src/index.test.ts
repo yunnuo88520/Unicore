@@ -48,6 +48,25 @@ it('preserves field errors and distinguishes cancellation from unavailable netwo
   await expect(cancelled.bootstrap({ signal: controller.signal })).rejects.toMatchObject({ code: 'REQUEST_CANCELLED' });
 });
 
+it('classifies timeout and cancellation while reading a response body', async () => {
+  const pendingBody = (signal: AbortSignal) => new Response(new ReadableStream<Uint8Array>({
+    start(controller) {
+      const abort = () => controller.error(signal.reason);
+      if (signal.aborted) abort();
+      else signal.addEventListener('abort', abort, { once: true });
+    },
+  }), { headers: { 'Content-Type': 'application/json' } });
+
+  const timeoutClient = new HttpTransport('', vi.fn((_url, init) => Promise.resolve(pendingBody(init!.signal!))));
+  await expect(timeoutClient.call('adminBranding', undefined, { timeoutMs: 5 })).rejects.toMatchObject({ code: 'REQUEST_TIMEOUT' });
+
+  const controller = new AbortController();
+  const cancelledClient = new HttpTransport('', vi.fn((_url, init) => Promise.resolve(pendingBody(init!.signal!))));
+  const request = cancelledClient.call('adminBranding', undefined, { signal: controller.signal, timeoutMs: 1000 });
+  setTimeout(() => controller.abort(), 5);
+  await expect(request).rejects.toMatchObject({ code: 'REQUEST_CANCELLED' });
+});
+
 it('retains the current session when local password confirmation fails', async () => {
   const fetcher=vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({...response,data:{profile:'web-platform',current_user:{id:'current'},csrf_token:'current-csrf'}})))
     .mockResolvedValueOnce(new Response(JSON.stringify({code:'INVALID_CREDENTIALS',message:'账号或密码不正确',request_id:'password'}),{status:401}))

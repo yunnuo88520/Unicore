@@ -129,6 +129,9 @@ func (r *Repository) oidcSession(ctx context.Context, tx *sql.Tx, id, sessionHas
 	if err != nil {
 		return user, err
 	}
+	if r.Administrators && !platform.HasManagementAccess(user) {
+		return user, platform.ErrForbidden
+	}
 	if user.Status != "active" {
 		return user, platform.ErrCredentials
 	}

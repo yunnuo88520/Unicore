@@ -14,14 +14,17 @@ import (
 // NormalizeIcon accepts PNG/JPEG plus Windows icons containing PNG or BI_RGB DIB frames.
 func NormalizeIcon(content string) ([]byte, error) {
 	if len(content) > base64.StdEncoding.EncodedLen(MaxBytes) {
-		return nil, ErrInvalid
+		return nil, ErrUploadTooLarge
 	}
 	raw, err := base64.StdEncoding.Strict().DecodeString(content)
-	if err != nil || len(raw) > MaxBytes || len(raw) < 6 {
+	if err != nil || len(raw) < 6 {
 		return nil, ErrInvalid
 	}
+	if len(raw) > MaxBytes {
+		return nil, ErrUploadTooLarge
+	}
 	if !bytes.Equal(raw[:4], []byte{0, 0, 1, 0}) {
-		return Normalize(content)
+		return normalizeSquare(content)
 	}
 	count := int(binary.LittleEndian.Uint16(raw[4:6]))
 	if count < 1 || count > 64 || len(raw) < 6+16*count {
@@ -65,7 +68,7 @@ func NormalizeIcon(content string) ([]byte, error) {
 			return nil, err
 		}
 	}
-	return encode(src, 256)
+	return encodeSquare(src, 256)
 }
 
 func decodeDIB(data []byte, width, height int) (image.Image, error) {

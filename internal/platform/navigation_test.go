@@ -98,6 +98,10 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 			wantSort := sortRank[*node.RouteID]
 			if *node.RouteID == "api-docs" {
 				wantSort = 30
+			} else if *node.RouteID == "files" {
+				// The file catalog is a top-level system entry at sort 27 on
+				// both seeded and client-computed navigation trees.
+				wantSort = 27
 			}
 			if node.Sort != wantSort {
 				t.Fatal("page sort drifted from defaultRank", node.ID, node.Sort)
@@ -138,7 +142,11 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 				t.Fatal("administration page parent", page.ID, parentOf[page.ID])
 			}
 		case "system":
-			if parentOf[page.ID] != "settings" {
+			wantParent := "settings"
+			if page.ID == "files" {
+				wantParent = ""
+			}
+			if parentOf[page.ID] != wantParent {
 				t.Fatal("system page parent", page.ID, parentOf[page.ID])
 			}
 		case "monitor":

@@ -496,9 +496,17 @@ func verifyLocalFiles(ctx context.Context, db *sqlstore.Store, directory string)
 		if location == "legacy-brand" {
 			folder = "brand-assets"
 		}
-		object, e := bloblocal.New(filepath.Join(directory, folder)).Stat(ctx, key)
-		if e != nil || object.Size != size || (etag != "" && object.ETag != etag) {
+		store := bloblocal.New(filepath.Join(directory, folder))
+		object, e := store.Stat(ctx, key)
+		if e != nil || object.Size != size {
 			return errors.New("a managed local file is missing or differs from its metadata")
+		}
+		// Cheap stats carry no digest; verify content explicitly when recorded.
+		if etag != "" {
+			digest, e := store.Hash(ctx, key)
+			if e != nil || digest != etag {
+				return errors.New("a managed local file is missing or differs from its metadata")
+			}
 		}
 	}
 	return rows.Err()

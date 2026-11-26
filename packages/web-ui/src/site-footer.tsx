@@ -13,14 +13,16 @@ export function SiteFooter({ metadata, compact = false }: { metadata?: Bootstrap
     const url = new URL(metadata?.site_icp_url ?? '');
     if (url.protocol === 'https:' && !url.username && !url.password) link = url.href;
   } catch { /* Empty or legacy invalid links render as plain text. */ }
-  return <footer className={cn('flex flex-wrap items-center gap-2.5 px-1 py-6 text-2xs text-subtle', compact && 'justify-center py-5 text-center')}>
-    <div className="flex flex-wrap items-center gap-2.5" dir="ltr">
-      <span>© {new Date().getFullYear()} {metadata?.site_name ?? productName}{credit && ` · ${credit}`}</span>
+  return <footer className={cn('mt-auto flex w-full min-w-0 flex-col items-center gap-1 px-4 py-3 text-center text-xs text-muted', compact && 'py-4')}>
+    <div className="w-full min-w-0 [overflow-wrap:anywhere]" dir="ltr">
+      © {new Date().getFullYear()} {metadata?.site_name ?? productName}{credit && ` · ${credit}`}
+    </div>
+    {(metadata?.site_icp_number || metadata?.site_police_number) && <div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-x-3 gap-y-1 [overflow-wrap:anywhere]" dir="ltr">
       {metadata?.site_icp_number && (link
         ? <a href={link} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 transition-colors hover:text-muted">{metadata.site_icp_number}</a>
         : <span>{metadata.site_icp_number}</span>)}
       {metadata?.site_police_number && <span>{metadata.site_police_number}</span>}
-    </div>
-    {metadata?.site_footer_html && <div className="w-full break-words"><RichContent html={metadata.site_footer_html} /></div>}
+    </div>}
+    {metadata?.site_footer_html && <div className="w-full min-w-0 break-words text-center [overflow-wrap:anywhere]"><RichContent html={metadata.site_footer_html} /></div>}
   </footer>;
 }

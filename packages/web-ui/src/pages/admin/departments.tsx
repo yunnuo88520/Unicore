@@ -8,7 +8,8 @@ import type { Bootstrap, Department, DepartmentSaveInput, WebClient } from '@uni
 import { t, useLocale } from '../../i18n';
 import { buildDepartmentTree, departmentSiblings, flattenDepartmentTree, invalidateAfter, useDepartmentsQuery, type DepartmentNode } from '../../queries';
 import { usePermissions } from '../../permissions';
-import { Alert, Button, Card, CardContent, ConfirmDialog, Input, Modal, SimpleSelect, PageHeader, useMessage, selectOptions } from '@unicore/ui';
+import { Alert, Button, ConfirmDialog, FormDrawer, Input, Modal, SimpleSelect, PageHeader, useMessage, selectOptions } from '@unicore/ui';
+import { AppFormBody, AppFormFooter } from '@unicore/form';
 import type { PageProps } from '../../router';
 
 export function AdminDepartmentsPage({ client, metadata }: PageProps) {
@@ -120,8 +121,7 @@ function DepartmentPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
   return <div className="flex min-w-0 flex-col gap-6">
       <PageHeader title={t('部门管理')} description={t('维护部门层级，为角色的数据范围提供组织依据。')}
         actions={can('createDepartment') && <Button onClick={() => setCreating('root')}><Plus size={15} />{t('新建根部门')}</Button>} />
-    <Card>
-    <CardContent className="flex flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-4">
       {list.isError && <Alert action={<Button variant="secondary" size="sm" onClick={() => void list.refetch()}>{t('重试')}</Button>}>{t(list.error.message)}</Alert>}
       <div className="rounded-lg border border-line p-2" aria-busy={list.isFetching}>
         {list.isPending
@@ -136,7 +136,6 @@ function DepartmentPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
               </span>}
       </div>
       <p className="text-xs leading-relaxed text-muted">{t('部门挂靠用户或包含子部门时不可删除；删除前请先迁移子部门并调整用户归属。')}</p>
-    </CardContent>
     {creating && <DepartmentNameDialog
       title={creating === 'root' ? t('新建根部门') : t('新建子部门')}
       description={creating === 'root' ? t('顶级部门，不挂在任何部门之下。') : t('上级部门：{{name}}', { name: creating.name })}
@@ -151,7 +150,7 @@ function DepartmentPanel({ web, metadata }: { web: WebClient; metadata: Bootstra
       description={t('确定删除部门「{{name}}」？删除后不可恢复。', { name: removing.name })}
       confirmLabel={t('确认删除')} cancelLabel={t('取消')} pending={remove.isPending}
       onConfirm={() => remove.mutate(removing)} onCancel={() => setRemoving(null)} />}
-    </Card>
+    </div>
   </div>;
 }
 
@@ -182,8 +181,9 @@ function RenameDialog({ department, items, pending, onSubmit, onClose }: {
     // An empty select means root; the empty string maps to no parent at all.
     onSubmit({ name: trimmed, parentId: parentId || undefined });
   };
-  return <Modal title={t('重命名部门')} onClose={onClose} pending={pending}>
-    <form className="flex flex-col gap-3" onSubmit={event => { event.preventDefault(); submit(); }}>
+  return <FormDrawer title={t('重命名部门')} onClose={onClose} pending={pending}>
+    <form className="flex min-h-0 flex-1 flex-col" onSubmit={event => { event.preventDefault(); submit(); }}>
+      <AppFormBody>
       <p className="text-xs text-muted">{t('调整「{{name}}」的名称与上级部门；同层排序保持不变。', { name: department.name })}</p>
       <div className="flex flex-col gap-1.5">
 
@@ -200,12 +200,12 @@ function RenameDialog({ department, items, pending, onSubmit, onClose }: {
         </>)} />
         <small className="text-xs text-muted">{t('不能选择本部门或其下级部门作为上级；调整后沿用原排序。')}</small>
       </label>
-      <div className="flex justify-end gap-2">
+      </AppFormBody><AppFormFooter>
         <Button variant="secondary" disabled={pending} onClick={onClose}>{t('取消')}</Button>
         <Button type="submit" pending={pending}>{t('保存')}</Button>
-      </div>
+      </AppFormFooter>
     </form>
-  </Modal>;
+  </FormDrawer>;
 }
 
 function DepartmentNameDialog({ title, description, initialName = '', submitLabel, pending, onSubmit, onClose }: {
@@ -222,8 +222,9 @@ function DepartmentNameDialog({ title, description, initialName = '', submitLabe
     setError('');
     onSubmit(trimmed);
   };
-  return <Modal title={title} onClose={onClose} pending={pending}>
-    <form className="flex flex-col gap-3" onSubmit={event => { event.preventDefault(); submit(); }}>
+  return <FormDrawer title={title} onClose={onClose} pending={pending}>
+    <form className="flex min-h-0 flex-1 flex-col" onSubmit={event => { event.preventDefault(); submit(); }}>
+      <AppFormBody>
       <p className="text-xs text-muted">{description}</p>
       <div className="flex flex-col gap-1.5">
 
@@ -232,10 +233,10 @@ function DepartmentNameDialog({ title, description, initialName = '', submitLabe
           onChange={event => { setName(event.target.value); setError(''); }} />
         {error && <p role="alert" className="text-xs text-danger">{error}</p>}
       </div>
-      <div className="flex justify-end gap-2">
+      </AppFormBody><AppFormFooter>
         <Button variant="secondary" disabled={pending} onClick={onClose}>{t('取消')}</Button>
         <Button type="submit" pending={pending}>{submitLabel}</Button>
-      </div>
+      </AppFormFooter>
     </form>
-  </Modal>;
+  </FormDrawer>;
 }

@@ -19,7 +19,7 @@ useSession 从 bootstrap 推导 loading/error/unavailable/authenticated/anonymou
 
 样式使用 Tailwind v4 工具类 + 语义令牌色（详见 [设计系统](design-system.md)）：`@unicore/theme/styles.css` 通过 `@theme inline` 把 tokens.gen.css 的 CSS 变量映射为 Tailwind 令牌，暗色、强调色、密度、圆角缩放继续由生成链与 data 属性驱动；组件样式不写死十六进制色（check:design 检查）。运行时属性驱动的壳层几何集中在 shell.css。每个页面检查 loading/empty/error/success、权限拒绝、键盘、PC/375px 和 light/dark/system。UI 验收须使用真实 Go 服务；桌面复用的改动还需实际 Wails 原生运行。新增页面步骤见 [前端基础](../03-runbooks/frontend-foundations.md)。
 
-新增实体表单使用 ui/dialog.tsx 的 Modal（Radix Dialog），不在列表内展开；使用契约校验，验证取消、Escape、焦点返回及 pending 防重。危险操作使用 ConfirmDialog 二次确认。登录/安装和设置编辑保留适合各自流程的页面。导航与邮件/日志页面分工见 ADR-0014；避免重新加入平台仪表盘或嵌套标签；邮件模板独立管理页按 ADR-0020 实现。头像操作调用统一 SDK；用户与管理工作台保留独立入口，共用统一账号与会话，身份以 ADR-0037 为准。
+新增/编辑实体表单默认使用共享 FormDrawer，组合 AppForm layout="panel"、AppFormBody 与 AppFormFooter，标题和底部操作固定、正文独立滚动，不在列表内展开。确认、查看和短临时任务使用 Modal；危险操作使用 ConfirmDialog 二次确认。使用契约校验，验证取消、Escape、焦点返回及 pending 防重；登录/安装和设置编辑保留适合各自流程的页面。组合示例见[表单交互](../product/form-interaction.md)。导航与邮件/日志页面分工见 ADR-0014；避免重新加入平台仪表盘或嵌套标签；邮件模板独立管理页按 ADR-0020 实现。头像操作调用统一 SDK；用户与管理工作台保留独立入口，共用统一账号与会话，身份以 ADR-0037 为准。
 
 二级导航在分组内部缩进，使用 Lucide 语义图标；图标与 UI 不使用 Emoji/表情字符（check:design 检查）。用户与管理员侧栏消费同一真实区域导航模型（[ADR-0036](../adr/ADR-0036-navigation-regions-granular-authorization.md)）：区域编辑器、侧栏、图标栏与移动抽屉由同一份数据派生，不在不同入口维护第二份结构；前端只呈现真实存在的控件，不提供 KeepAlive、CloseTab 等无运行效果的假开关。仅 web-platform 已登录账号显示头像与账号菜单；web-standalone/desktop 无用户概念，不渲染头像。
 
@@ -47,4 +47,4 @@ Web 用户与管理员分别从 main.tsx/admin.tsx 装配；全局管理页仅�
 
 公告用户入口统一使用 announcement-center 顶部铃铛，不再注册工作台轮播 widget。服务端状态走 TanStack Query；弹窗须明确确认并在已读保存成功后关闭，失败保留重试；保持 SessionBoundary、详情重新鉴权及中英文支持，见 [公告手册](../03-runbooks/announcements.md)。
 
-表单控件选择、浮动标签、验证码、帮助与校验时机遵循[表单交互规范](../product/form-interaction.md)。
+表单控件选择、实体上置标签、验证码、帮助与校验时机遵循[表单交互规范](../product/form-interaction.md)。实体表单默认单列、surface 底色与细边框，避免灰色块、重复卡片和帮助文字造成的大空白。

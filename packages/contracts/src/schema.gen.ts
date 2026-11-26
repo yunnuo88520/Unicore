@@ -575,6 +575,7 @@ export interface Branding {
   logo_dark: string;
   favicon: string;
   accent?: string;
+  display_mode?: "icon-title" | "wordmark";
 }
 
 export interface BrandingInput {
@@ -2382,4 +2383,108 @@ export interface SettingGroup {
   description: string;
   description_en: string;
   order: number;
+}
+
+export interface FileCatalogEntry {
+  file: FileEntry;
+  purpose: string;
+  directory: string;
+  referenced: boolean;
+  file_key: string;
+  storage_path: string;
+  etag: string;
+  creator_name: string;
+  creator_username: string;
+}
+
+export interface FileCatalogList {
+  items: Array<FileCatalogEntry>;
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface FileCatalogListResponse {
+  code: string;
+  data: FileCatalogList;
+  request_id: string;
+  message?: string;
+}
+
+export interface StorageMigrationCreateInput {
+  source_location_id?: string;
+  target_location_id: string;
+}
+
+export interface StorageMigrationSummaryItem {
+  location_id: string;
+  provider: string;
+  name: string;
+  file_count: number;
+  total_size: number;
+}
+
+export interface StorageMigrationSummary {
+  active_location_id: string;
+  items: Array<StorageMigrationSummaryItem>;
+}
+
+export interface StorageMigrationSummaryResponse {
+  code: string;
+  data: StorageMigrationSummary;
+  request_id: string;
+  message?: string;
+}
+
+export interface StorageMigrationFailure {
+  file_id: string;
+  original_name: string;
+  reason: string;
+  created_at: number;
+}
+
+export interface StorageMigrationJob {
+  id: string;
+  source_location_id: string;
+  target_location_id: string;
+  status: "running" | "paused" | "completed" | "failed" | "cancelled";
+  mode: "scan" | "retry";
+  activate_on_complete: boolean;
+  total_count: number;
+  succeeded_count: number;
+  failed_count: number;
+  created_by: string;
+  created_at: number;
+  updated_at: number;
+  finished_at: number;
+  failures?: Array<StorageMigrationFailure>;
+}
+
+export interface StorageMigrationJobResponse {
+  code: string;
+  data: StorageMigrationJob;
+  request_id: string;
+  message?: string;
+}
+
+export interface StorageMigrationCurrent {
+  job?: StorageMigrationJob;
+}
+
+export interface StorageMigrationCurrentResponse {
+  code: string;
+  data: StorageMigrationCurrent;
+  request_id: string;
+  message?: string;
+}
+
+export interface StorageMigrationList {
+  items: Array<StorageMigrationJob>;
+}
+
+export interface StorageMigrationListResponse {
+  code: string;
+  data: StorageMigrationList;
+  request_id: string;
+  message?: string;
 }

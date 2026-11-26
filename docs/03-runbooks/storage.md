@@ -11,6 +11,8 @@
 
 HTTPS 站点必须使用浏览器可达的 HTTPS Endpoint；不要在公网页面使用仅服务器能访问的内网域名。Nginx 本地上传需要 client_max_body_size 与 proxy_read_timeout 对应上限；云直传不经过 Nginx/应用服务器。本地 multipart parts 路径每次最多 64 MiB、10 分钟；完成合并最多两小时。参考 deploy/tar/nginx.conf.example 的专用上传 location；不用将所有 JSON 请求上限一起放大。
 
+浏览器访问局域网 MinIO 还可能受站点的本地网络访问权限限制；连接测试成功只代表应用服务器可达，不能替代浏览器直传验证。出现 `local address space` 权限错误时，在浏览器为当前站点允许本地网络访问，再验证上传；不要关闭浏览器整体安全检查。隔离浏览器测试仅向自己的临时站点授予该权限。
+
 配置密钥使用原实例 AES-GCM 密钥加密。API 不回传 Access Key/Secret Key，编辑留空保留。Endpoint/Bucket/Region/前缀是历史引用的一部分，已保存表单只读，不支持在页面直接更换目标。有文件/使用中位置的凭据轮换先验证新值。凭据失败不会提交替换。桶权限测试失败只显示安全错误码，不回显服务商响应。
 
 ## 业务接入
@@ -21,9 +23,9 @@ HTTPS 站点必须使用浏览器可达的 HTTPS Endpoint；不要在公网页�
 
 ## 迁移、清理与恢复
 
-文件迁移保留在授权 API 中，无独立文件管理或批量迁移页面。业务可通过 AppClient.files.migrateFile 逐项迁移，需明确授权和已测试目标。传输和 SHA-256 校验成功才切换元数据，文件 ID 不变。跨提供商迁移会流经服务器；日常云上传/同桶确认直接发生在浏览器/对象存储。旧对象至少延迟 3660 秒清理，为已经签发的下载预留窗口。失败时保留原文件，目标孤儿由事先登记的任务清理。
+Platform 超级管理员可在文件管理页面批量迁移，也可通过 AppClient.fileCatalog.migrateFile 逐项调用；迁移须有明确授权和已测试目标。传输和 SHA-256 校验成功才切换元数据，文件 ID 不变。全局始终仅一个生效位置，新文件跟随当前默认；可在迁移抽屉显式选择全部成功后切换默认，失败保留当前默认。仅支持本地与云端的双向迁移，云位置之间直接互迁会被服务端拒绝；转换流经服务器，日常云上传/同桶确认直接发生在浏览器/对象存储。旧对象至少延迟 3660 秒清理，为已经签发的下载预留窗口。失败时保留原文件，目标孤儿由事先登记的任务清理。
 
-后台使用独立分钟定时器处理有限批次的到期元数据/清理任务，可在对象存储设置的上传规则中立即执行。删除失败会保留任务并延迟重试。应用只清理 DB 登记的键，不扫描整桶；桶内其他业务数据不接管。未完成直传对象等凭证到期/保留期后清理，防止晚到请求再次产生孤儿。建议为独立 pending / multipart 前缀增加桶生命周期后备规则，并启用桶版本/备份；规则由桶运维维护，不替换无关规则。
+后台使用独立分钟定时器处理有限批次的到期元数据/清理任务，可在对象存储设置的上传规则中立即执行。到期文件仍有业务引用时保留元数据与对象，解除引用后再清理；保留期仍限制下载有效期，不因引用自动延长。引用查询失败时停止本轮到期删除；分批扫描会轮转经过受保护记录，避免阻塞其他到期文件。删除失败会保留任务并延迟重试。应用只清理 DB 登记的键，不扫描整桶；桶内其他业务数据不接管。未完成直传对象等凭证到期/保留期后清理，防止晚到请求再次产生孤儿。建议为独立 pending / multipart 前缀增加桶生命周期后备规则，并启用桶版本/备份；规则由桶运维维护，不替换无关规则。
 
 升级前备份 DB、完整私有目录、实例密钥与对象桶。当前 Catalog 的 core@1 包含文件元数据、存储位置、清理任务与上传会话四表；Platform/Standalone 共用本地基座，云配置仅平台。SQLite/PostgreSQL 事务 DDL，MySQL 可重试但不承诺事务 DDL；失败恢复完整匹配快照。legacy-brand 仅平台，保留旧目录至完成迁移/备份。
 
@@ -43,7 +45,7 @@ Platform 用户、管理员及 Standalone 本地使用者共用 FileUploadDialog
 
 设计见 [ADR-0022](../adr/ADR-0022-resumable-uploads.md)，提供商范围和未验证事项见 [支持范围](../support.md)。旧单请求上传 API 保留且最高 1 GiB，不提供断点续传。
 
-OSS 实测已覆盖官方 SDK 和 PC/375px 浏览器，当前适配将服务端操作与绑定 Content-Length 的签名客户端隔离；下载只覆盖 Content-Disposition 为附件，避免 OSS 拒绝 response-content-type 覆盖。腾讯云开发凭据本轮返回 AccessDenied，用户选择待权限补齐后验证；AWS S3 仍未做真实账号测试，不能因为 MinIO 同协议而声明 AWS 通过。
+OSS 实测已覆盖官方 SDK 和 PC/375px 浏览器，当前适配将服务端操作与绑定 Content-Length 的签名客户端隔离；下载只覆盖 Content-Disposition 为附件，避免 OSS 拒绝 response-content-type 覆盖。COS 遇到 AccessDenied 时须先检查目标桶、地域与上述对象和分片权限，不能将保存配置成功视作读写验收；AWS S3 仍须以真实账号验证，不能因为 MinIO 同协议而声明 AWS 通过。
 
 额外云环境使用 UNICORE_TEST_OSS_* / UNICORE_TEST_COS_* 的 ENDPOINT、BUCKET、REGION、ACCESS_KEY、SECRET_KEY 注入；Go `go test ./internal/adapter/blobcloud -run TestVendorMultipart -count=1`。测试只使用 unicore-acceptance-* / unicore-browser-* 随机前缀，密钥不落源码、报告或 trace。浏览器测试对同一桶的 CORS 采用串行（--workers 1），避免不同隔离实例同时 read-modify-write 覆盖临时 Origin；结束只移除本次临时 Origin，保留其他规则。不要并发运行多套修改同一桶 CORS 的验收。
 
@@ -57,3 +59,11 @@ OSS 实测已覆盖官方 SDK 和 PC/375px 浏览器，当前适配将服务端�
 | `storage.allowed_extensions` | 空 | 每行一个扩展名，可带前导点，如 txt、.png、tar.gz；不区分大小写，空列表允许全部；最多 200 条/16000 字符 |
 
 策略适用于本地及所有云提供商，普通用户通过安全投影读取这两项，不接触位置凭据。SDK `uploadFile(file,{uploadPath})` 可传列表中的路径；不传选首项；单请求与 multipart 创建均由后端拒绝未配置路径和扩展名。对象键位于原位置 prefix 下的 objects/路径/随机 ID；不会使用用户原名作为磁盘路径。复用现有 blob port 和 file_key 元数据，无 schema 迁移；历史文件和已开始的续传会话保持原目标。品牌图片使用独立解码/格式策略，不受业务扩展名限制。扩展名是文件名策略，不替代业务 MIME/内容校验。
+
+## 平台文件治理
+
+管理入口 `/admin/files` 使用独立 `AppClient.fileCatalog`，仅超级管理员可达。目录与分页来自 `/api/v1/admin/file-catalog`，覆盖所有身份域及 branding 用途；业务 `businessFiles(scope)` 的归属与数据范围保持独立。参见 [ADR-0051](../adr/ADR-0051-platform-file-governance.md)。
+
+目录聚合只读取已登记元数据，不访问 Bucket 列表；当前一次读取全部非删除记录并在内存聚合，文件量很大时应先评估目录接口的耗时与内存。存储迁移保留 file_id、purpose 和相对目录，先复制/摘要验证再改引用；不能删除仍有引用或清理任务的历史位置。批量迁移是页面内逐文件操作，单次筛选最多 100000 个就绪文件，超过时按存储位置、目录或搜索条件缩小范围；失败项可重试，不提供持久后台队列。
+
+文件删除经通用引用检查端口聚合业务检查。新增保存 file_id 的业务模块须注册引用检查，检查错误应关闭删除通道；业务解除引用不自动删除原文件。品牌上传保存前会回读核对字节，缺失/损坏的同名资源允许重复上传修复。

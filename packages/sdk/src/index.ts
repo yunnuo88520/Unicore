@@ -2,6 +2,8 @@
  * Description: Shared UI client; pages know neither fetch nor Wails globals.
  */
 import {fileFingerprint,retryDelay} from './upload';
+import type { FileCatalogList, StorageMigrationCreateInput, StorageMigrationCurrent, StorageMigrationJob, StorageMigrationList, StorageMigrationSummary } from '@unicore/contracts';
+export type { FileCatalogEntry, FileCatalogList, StorageMigrationCreateInput, StorageMigrationCurrent, StorageMigrationFailure, StorageMigrationJob, StorageMigrationList, StorageMigrationSummary, StorageMigrationSummaryItem } from '@unicore/contracts';
 import type { InboxListResponse, MultipartUploadInput, PersonalTokenInput, PersonalToken, PersonalTokenList, PersonalTokenCreated, AdminPersonalTokenInput, PersonalTokenRenewInput, ClientTokenPair, ClientTokenLogin, NotifyConfiguration, NotifyTemplate, NotifyPreview, NotifyTest, AccountProfile, ProfileInput, TOTPSetup, RecoveryCodes, LoginDevices, UploadPolicy, MultipartUpload, AnnouncementReadStatus, AnnouncementEntry, AnnouncementPublic, AnnouncementInput, AnnouncementUpdate, AnnouncementQuery, AnnouncementList, AnnouncementFeed, AnnouncementSelection, AuditLogQuery, AuditLogExport, MailTemplate, MailTemplateInput, MailTemplateTestInput, UpdateOverview, UpdateJob, UpdateApplyInput, UpdateOverviewResponse, UpdateJobResponse, NoteEntry, LogTailList, NoteInput, NoteUpdate, NoteQuery, NoteList, NoteResponse, NoteListResponse, NoteVersion, ActionResultResponse, StorageLocation, StorageLocationInput, StorageLocationList, FileEntry, FileList, FileAccess, FileListResponse, FileEntryResponse, UploadPolicyResponse, MultipartUploadResponse, Branding, BrandingInput, BrandingResponse, Bootstrap, BootstrapResponse, ExecuteInput, ExecuteOutput, ExecuteResponse, InstallStatus, InstallInput, InstallResult, DatabaseInput, DatabaseCheck, LoginInput, Session, Captcha, Dashboard, User, UserList, UserCreate, UserUpdate, AdminPasswordResetInput, AdminPasswordReset, Settings, SettingsResponse, SettingPatch, AuthPolicy, RegisterInput, EmailRequest, ResetInput, MailJobList, EmailChallenge, EmailCodeInput, MailTemplateList, Role, RoleList, RoleOptions, PermissionDefinition, RoleSaveInput, MenuList, MenuSaveInput, MenuRoleAssignmentInput, NavigationSection, NavigationNode, NavigationPage, NavigationRoleAssignment, Navigation, APIOperation, APIOperationList, Post, PostList, PostSaveInput, NoteCapabilities, FileCapabilities, DictionarySummary, DictionaryList, DictionaryItemEntry, DictionaryDetail, DictionaryCreateInput, DictionaryUpdateInput, DictionaryItemsInput, Department, DepartmentList, DepartmentSaveInput, OIDCInfo, OIDCStart, OIDCBindLoginInput, OIDCCheckInfo, AuditLogList, ChangePasswordInput, TaskList, TaskEntry, TaskUpdateInput, TaskTrigger, TaskCreateInput, TaskEditInput, TaskRunList, ActionResult, InboxList, FileUploadInput, FileUploadGrant, MonitorSnapshot, MonitorSnapshotResponse, MonitorEventList, MonitorEvent, MonitorEventListResponse, MonitorAlertRules, MonitorAlertRule, MonitorAlertRulesResponse, McpConfig, McpConfigPatch, McpLimits, McpTool, McpToolList, McpPolicy, McpPolicyPatch, McpCall, McpCallList, McpAccessInfo, McpOauthAuthorizeView, McpOauthConsentInput, McpOauthConsentResult, McpOauthGrantList, McpOauthClient, McpOauthClientList, McpOauthClientCreateInput, McpOauthClientCreated, McpOauthClientUpdateInput, McpOauthClientSecret, McpOauthAdminGrantList } from '@unicore/contracts';
 import { operations, type OperationId, type OperationInputs, type OperationData } from '@unicore/contracts/operations';
 import { validate, type SchemaName } from '@unicore/contracts/validate';
@@ -58,6 +60,8 @@ export interface AppClient {
  files?: FileClient;
  businessFiles?(scope:'notes'|'avatar'):FileClient;
  storage?: StorageClient;
+ fileCatalog?: FileCatalogClient;
+ storageMigrations?: StorageMigrationsClient;
   subscribeSession?(listener: (event: SessionEvent) => void): () => void;
   resetSession?(): void;
 }
@@ -78,6 +82,23 @@ export interface FileClient {
  fileAccess(id:string,noteID?:string):Promise<FileAccess>;
  deleteFile(id:string):Promise<{success:boolean}>;
  migrateFile(id:string,locationID:string):Promise<FileEntry>;
+}
+export type FileCatalogQuery = { search?:string; page?:number; location_id?:string; purpose?:string; type?:string };
+export interface FileCatalogClient {
+ catalog(query?:FileCatalogQuery):Promise<FileCatalogList>;
+ access(id:string, disposition?:'attachment'|'inline'):Promise<FileAccess>;
+ deleteFile(id:string):Promise<ActionResult>;
+ migrateFile(id:string,locationID:string):Promise<FileEntry>;
+}
+export interface StorageMigrationsClient {
+ summary():Promise<StorageMigrationSummary>;
+ create(input:StorageMigrationCreateInput):Promise<StorageMigrationJob>;
+ list():Promise<StorageMigrationList>;
+ current():Promise<StorageMigrationCurrent>;
+ pause(id:string):Promise<{success:boolean}>;
+ resume(id:string):Promise<{success:boolean}>;
+ cancel(id:string):Promise<{success:boolean}>;
+ retryFailed(id:string):Promise<{success:boolean}>;
 }
 export interface StorageClient {
  storageLocations():Promise<StorageLocationList>;
@@ -317,6 +338,22 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   readonly web: WebClient = this;
  readonly files:FileClient=this;
  readonly storage:StorageClient=this;
+ readonly fileCatalog:FileCatalogClient={
+  catalog:(query={})=>this.call('fileCatalog',undefined,{query}),
+  access:(id,disposition)=>this.call('fileCatalogAccess',undefined,{params:{id},query:disposition?{disposition}:undefined}),
+  deleteFile:id=>this.call('deleteCatalogFile',undefined,{params:{id}}),
+  migrateFile:(id,locationID)=>this.migrateFile(id,locationID),
+ };
+ readonly storageMigrations:StorageMigrationsClient={
+  summary:()=>this.call('storageMigrationSummary'),
+  create:input=>this.call('createStorageMigration',input),
+  list:()=>this.call('listStorageMigrations'),
+  current:()=>this.call('currentStorageMigration'),
+  pause:id=>this.call('pauseStorageMigration',undefined,{params:{id}}),
+  resume:id=>this.call('resumeStorageMigration',undefined,{params:{id}}),
+  cancel:id=>this.call('cancelStorageMigration',undefined,{params:{id}}),
+  retryFailed:id=>this.call('retryFailedStorageMigration',undefined,{params:{id}}),
+ };
   get sessionScope(): 'user'|'administrator' { return 'user'; }
   private csrf = '';
  private readonly administrator: boolean;
@@ -368,7 +405,10 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
     }
     let envelope: { code: string; message: string; data: T; request_id: string; fields?: Record<string, string> };
     try { envelope = await response.json(); }
-    catch { throw new AppError('INVALID_RESPONSE', '服务返回了无法识别的响应'); }
+    catch {
+      if (signal.aborted) throw new AppError(timeout.aborted ? 'REQUEST_TIMEOUT' : 'REQUEST_CANCELLED', '请求已取消或超时');
+      throw new AppError('INVALID_RESPONSE', '服务返回了无法识别的响应');
+    }
     if (epoch !== this.epoch) throw new AppError('SESSION_CHANGED', '会话已变化，请重新获取数据');
     if (!envelope || typeof envelope.code !== 'string' || typeof envelope.request_id !== 'string') throw new AppError('INVALID_RESPONSE', '服务返回了无法识别的响应');
     if (response.status === 401 && envelope.code === 'AUTH_REQUIRED' && this.authenticated && path !== '/auth/login') {

@@ -1,13 +1,13 @@
 <!-- Author: yunnuo <ymz@ebox.vip> -->
 # 表单交互规范
 
-适用于 Platform、Standalone Web 与 Desktop 的共享界面。组件按字段语义选择；组件库支持某类交互，不代表产品已经增加短信、住宿、地区资料或文件上传服务。CLI 不引入 UI。
+适用于 Platform、Standalone Web 与 Desktop 的共享界面。组件按字段语义选择；组件库支持某类交互，不代表产品已经增加短信、住宿、地区资料或文件上传服务。CLI 不引入 UI。新建/编辑实体默认使用共享 `FormDrawer`，让内容滚动而标题与提交操作稳定可见。
 
 ## 控件与行为
 
 | 场景 | 统一规则与入口 |
 | --- | --- |
-| 文本、邮箱、数值、多行输入 | `Input` / `Textarea` 提供真实的浮动 label：空值未聚焦时在框内，聚焦、有内容或浏览器自动填充时缩小移到字段上方（不遮盖边框）。label 始终存在，placeholder 只用于示例，不能作为唯一标签。`AppField` 自动传入 label、id 与校验关联；表格内编辑仍保留可访问标签。 |
+| 文本、邮箱、数值、多行输入 | 实体抽屉内 `Input` / `Textarea` 使用固定上置标签，36px 高的普通输入、细边框和 surface 底色；不以大面积灰底区分控件。`FormDrawer` 统一提供标签布局，业务页不逐个覆盖。独立认证/安装等流程可保留浮动标签。label 始终存在，placeholder 只用于示例，不能作为唯一标签。`AppField` 自动传入 label、id 与校验关联；表格内编辑仍保留可访问标签。 |
 | 邮箱、短信与身份验证器的六位一次性代码 | `AppOTPField` / `InputOTP` 显示六个方格，输入前进、Backspace 后退、选区替换与整段粘贴共用原生文本编辑。一个原生输入保留一个 Tab 停靠点，支持 `autocomplete="one-time-code"` 的浏览器/系统验证码建议。不能据此宣称已经提供短信发送或所有设备都会自动填充。 |
 | 图形验证码与恢复码 | 图形验证码使用普通 `Input`，旁边放可点击刷新的验证码图片；两者在窄屏保持同一行，帮助与错误放在输入框下方。输入框传 `autoComplete="off"`，长度和字符限制按实际挑战设置，不套用六格 OTP。恢复码同样使用普通文本框。 |
 | 文件上传 | `FileUploadDialog` / `FileUploadDropzone` 使用虚线拖放区，提供点击选择与键盘入口，区内在选择前写明类型和单文件大小限制。每个文件显示名称、真实进度、状态及移除入口；暂停、放弃和删除沿用真实 SDK 生命周期。纯选择组件等待上传时进度为 0，不能用计时器制造上传进度；受控 `files` 的移除由宿主 `onRemove` 执行。 |
@@ -23,6 +23,25 @@
 | 必填与选填 | 少量必填字段在 label 后加 danger 色星号，星号不参与可访问名称；大部分字段必填时只标“选填”。`AppForm` 从契约/defaultValues 推导默认方式，条件式/多步骤表单可显式 `requiredMode="optional"`，字段按契约、rules/native required 或显式 required 判断，不能把可选业务字段误标必填。 |
 
 ## 接线方式
+
+实体新增/编辑使用 `FormDrawer` + `AppForm layout="panel"`。抽屉固定标题区，`AppFormBody` 独立滚动、字段间隔 16px，`AppFormFooter` 固定操作；业务页不自拼 `overflow-y-auto`、sticky footer 或抽屉尺寸。字段默认单列，不为短表单额外套分组标题和分隔线。仅语义相关、都较短且没有长帮助文字的字段可在宽屏成对排列，采用 `grid-cols-1 items-start sm:grid-cols-2`，375px 必须回到单列；不得把一侧提示留成另一字段下的大块空白。字段较多时可用 `size="lg"`。确认、查看详情和少量字段的短临时任务继续使用 `Modal`；危险操作使用 `ConfirmDialog`。认证、安装和设置保留各自页面/流程。
+
+```tsx
+{open && <FormDrawer title={t('新增用户')} onClose={close} pending={save.isPending}>
+  <AppForm form={form} layout="panel">
+    <AppFormBody>
+      <AppField name="username" label={t('账号')}><Input required /></AppField>
+      <AppField name="email" label={t('邮箱')}><Input type="email" required /></AppField>
+    </AppFormBody>
+    <AppFormFooter>
+      <Button type="button" variant="secondary" onClick={close}>{t('取消')}</Button>
+      <Button type="submit" pending={save.isPending}>{t('保存')}</Button>
+    </AppFormFooter>
+  </AppForm>
+</FormDrawer>}
+```
+
+可选双列只包裹语义相关的短字段，例如姓名与工号；长文本、帮助说明和复杂控件保持单列。不要给整个抽屉正文套两列栅格，也不要在 footer 旁重复状态提示。
 
 ```tsx
 const form = useAppForm({ schema: 'UserCreate', defaultValues, onSubmit });

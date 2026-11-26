@@ -62,7 +62,7 @@ test('site settings survive logout and captcha login', async ({ page, instance }
   await page.context().addCookies((await instance.request.storageState()).cookies);
   await page.goto(`${instance.url}/admin/site`);
   await capture(page, info, 'site-settings');
-  await page.getByLabel('站点名称').fill('My Unicore');
+  await page.getByLabel('站点名称', { exact: true }).fill('My Unicore');
   await page.getByRole('button', { name: '保存设置' }).click();
   await expect(page.getByText('设置已保存')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

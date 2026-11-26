@@ -5,6 +5,32 @@ import { useEffect, useState } from 'react';
 import { Skeleton, Button } from '@unicore/ui';
 import { t } from '../i18n';
 
+export type PageSkeletonVariant = 'dashboard' | 'list' | 'cards' | 'feed' | 'form' | 'monitor' | 'editor' | 'catalog' | 'content';
+
+const PAGE_SKELETONS: Record<string, PageSkeletonVariant> = {
+  overview: 'dashboard', home: 'dashboard',
+  users: 'list', administrators: 'list', announcements: 'list', 'access-tokens': 'list',
+  roles: 'list', posts: 'list', departments: 'list', tasks: 'list', logs: 'list',
+  notes: 'cards', 'note-management': 'list', 'ai-tools': 'list', 'ai-calls': 'list', 'ai-oauth': 'list',
+  install: 'form', login: 'form', register: 'form', 'forgot-password': 'form', 'email-login': 'form',
+  'resend-verification': 'form', 'registration-success': 'form', 'verify-email': 'form',
+  'reset-password': 'form', authorize: 'form', site: 'form', 'account-policy': 'form', mail: 'form',
+  'mail-templates': 'form', 'notification-channels': 'form', 'notification-templates': 'form',
+  'system-notifications': 'form', edition: 'form', storage: 'editor', menus: 'editor', dictionaries: 'editor',
+  files: 'catalog',
+  monitor: 'monitor', 'monitor-services': 'cards', 'monitor-resources': 'monitor', 'monitor-events': 'feed',
+  'api-docs': 'content', 'ai-access': 'form', 'ui-preview': 'content',
+};
+
+export function pageSkeletonForPage(page: string): PageSkeletonVariant {
+  return PAGE_SKELETONS[page] ?? 'content';
+}
+
+export function pageSkeletonForPath(path: string): PageSkeletonVariant {
+  const key = path === '/' ? 'overview' : path.replace(/^\/+|\/+$/g, '');
+  return pageSkeletonForPage(key);
+}
+
 type Phase = 'idle' | 'active' | 'finish' | 'timeout';
 
 let phase: Phase = 'idle';
@@ -89,19 +115,172 @@ export function NavigationProgressBar() {
   </div>;
 }
 
-/** Structured route fallback: header and card shapes instead of a bare text line. */
-export function PageLoader() {
-  return <div role="status" aria-busy="true" className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">
+function PageHeadingSkeleton() {
+  return <div data-skeleton-region="page-heading" className="flex flex-col gap-2">
+    <Skeleton className="h-6 w-52" />
+    <Skeleton className="h-4 w-80 max-w-full" />
+  </div>;
+}
+
+function DashboardSkeleton() {
+  return <>
+    <div data-skeleton-region="dashboard-metrics" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {Array.from({ length: 4 }, (_, index) => <div key={index} className="flex flex-col gap-3 rounded-lg border border-line p-4">
+        <Skeleton className="h-3 w-24" /><Skeleton className="h-7 w-28" /><Skeleton className="h-3 w-32" />
+      </div>)}
+    </div>
+    <div data-skeleton-region="dashboard-content" className="grid gap-4 xl:grid-cols-3">
+      <div className="flex h-64 flex-col gap-4 rounded-lg border border-line p-4 xl:col-span-2">
+        <Skeleton className="h-4 w-40" /><Skeleton className="h-full w-full" />
+      </div>
+      <div className="flex h-64 flex-col gap-3 rounded-lg border border-line p-4">
+        <Skeleton className="h-4 w-32" />{Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-8 w-full" />)}
+      </div>
+    </div>
+  </>;
+}
+
+function ListSkeleton() {
+  return <>
+    <div data-skeleton-region="list-controls" className="flex flex-wrap items-center gap-2">
+      <Skeleton className="h-9 w-full max-w-xs" />
+      <Skeleton className="h-9 w-32" />
+      <Skeleton className="ms-auto h-9 w-24" />
+    </div>
+    <div data-skeleton-region="list-table" className="overflow-hidden rounded-lg border border-line bg-surface">
+      <div className="flex h-10 items-center gap-4 border-b border-line px-4">
+        {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-3 flex-1" />)}
+      </div>
+      {Array.from({ length: 5 }, (_, row) => <div key={row} className="flex h-12 items-center gap-4 border-b border-line px-4 last:border-0">
+        {Array.from({ length: 4 }, (_, column) => <Skeleton key={column} className={`h-4 ${column === 0 ? 'w-1/4' : 'flex-1'}`} />)}
+      </div>)}
+    </div>
+    <div className="flex justify-end"><Skeleton className="h-8 w-52" /></div>
+  </>;
+}
+
+function FormSkeleton() {
+  return <>
+    <div data-skeleton-region="form-fields" className="flex max-w-3xl flex-col gap-6">
+      <div className="flex flex-col gap-5 rounded-lg border border-line p-5">
+        {Array.from({ length: 4 }, (_, index) => <div key={index} className="flex flex-col gap-2">
+          <Skeleton className="h-3 w-28" /><Skeleton className="h-10 w-full" />
+          {index === 1 && <Skeleton className="h-3 w-2/3" />}
+        </div>)}
+      </div>
+      <div className="flex justify-end gap-2"><Skeleton className="h-9 w-24" /><Skeleton className="h-9 w-28" /></div>
+    </div>
+  </>;
+}
+
+function CatalogSkeleton() {
+  return <>
+    <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex min-w-0 flex-col gap-2">
+        <Skeleton className="h-7 w-28" />
+        <Skeleton className="h-4 w-full max-w-md" />
+      </div>
+      <Skeleton className="h-9 w-28" />
+    </div>
+    <div data-skeleton-region="catalog-tabs" className="flex items-center gap-1">
+      <Skeleton className="h-9 w-20 rounded-full" />
+      <Skeleton className="h-9 w-24 rounded-full" />
+    </div>
+    <div data-skeleton-region="catalog-toolbar" className="flex flex-wrap items-center gap-2">
+      <Skeleton className="h-9 w-full max-w-xs" />
+      <Skeleton className="h-9 w-36" /><Skeleton className="h-9 w-28" />
+      <Skeleton className="ms-auto h-9 w-20" />
+    </div>
+    <ListSkeleton />
+  </>;
+}
+
+function CardsSkeleton() {
+  return <>
+    <div className="flex flex-wrap items-center gap-2">
+      <Skeleton className="h-9 w-full max-w-xs" /><Skeleton className="h-9 w-28" />
+    </div>
+    <div data-skeleton-region="card-grid" className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: 6 }, (_, index) => <div key={index} className="flex flex-col gap-3 rounded-lg border border-line p-4">
+        <Skeleton className="h-5 w-24" /><Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-4 w-1/2" /><Skeleton className="mt-2 h-4 w-20" />
+      </div>)}
+    </div>
+  </>;
+}
+
+function FeedSkeleton() {
+  return <div data-skeleton-region="event-feed" className="flex flex-col gap-4">
+    <div className="flex justify-end gap-2"><Skeleton className="h-9 w-32" /><Skeleton className="h-9 w-20" /></div>
+    <div className="divide-y divide-line overflow-hidden rounded-lg border border-line">
+      {Array.from({ length: 6 }, (_, index) => <div key={index} className="flex items-start gap-3 p-4">
+        <Skeleton className="mt-1 size-2.5 shrink-0 rounded-full" /><Skeleton className="h-5 w-16 shrink-0" />
+        <div className="flex min-w-0 flex-1 flex-col gap-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-3 w-1/2" /></div>
+      </div>)}
+    </div>
+    <Skeleton className="h-24 w-full" />
+  </div>;
+}
+
+function MonitorSkeleton() {
+  return <>
+    <div data-skeleton-region="monitor-stats" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {Array.from({ length: 4 }, (_, index) => <div key={index} className="flex flex-col gap-3 rounded-lg border border-line p-4">
+        <Skeleton className="h-3 w-24" /><Skeleton className="h-7 w-20" />
+      </div>)}
+    </div>
+    <div data-skeleton-region="monitor-charts" className="grid gap-4 xl:grid-cols-2">
+      {Array.from({ length: 2 }, (_, index) => <div key={index} className="flex h-64 flex-col gap-4 rounded-lg border border-line p-4">
+        <Skeleton className="h-4 w-36" /><Skeleton className="h-full w-full" />
+      </div>)}
+    </div>
+    <div data-skeleton-region="monitor-events" className="flex flex-col gap-3 rounded-lg border border-line p-4">
+      <Skeleton className="h-4 w-40" />{Array.from({ length: 3 }, (_, index) => <Skeleton key={index} className="h-8 w-full" />)}
+    </div>
+  </>;
+}
+
+function EditorSkeleton() {
+  return <>
+    <div className="grid min-h-80 gap-4 lg:grid-cols-[minmax(14rem,0.8fr)_minmax(0,2fr)]">
+      <div data-skeleton-region="editor-navigation" className="flex flex-col gap-3 rounded-lg border border-line p-4">
+        <Skeleton className="h-8 w-full" />{Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="h-9 w-full" />)}
+      </div>
+      <div data-skeleton-region="editor-workspace" className="flex flex-col gap-5 rounded-lg border border-line p-5">
+        <Skeleton className="h-5 w-48" /><Skeleton className="h-10 w-full" /><Skeleton className="h-28 w-full" />
+        <div className="ms-auto flex gap-2"><Skeleton className="h-9 w-24" /><Skeleton className="h-9 w-28" /></div>
+      </div>
+    </div>
+  </>;
+}
+
+function ContentSkeleton() {
+  return <>
+    <div data-skeleton-region="content-body" className="flex max-w-4xl flex-col gap-4">
+      <Skeleton className="h-5 w-2/3" />
+      <Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-11/12" /><Skeleton className="h-4 w-4/5" />
+      <Skeleton className="mt-4 h-48 w-full" />
+      <Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-3/4" />
+    </div>
+  </>;
+}
+
+/** Route fallback shape is registered by page type so chunk loading preserves the destination's layout. */
+export function PageLoader({ variant = 'content', showHeading = true }: { variant?: PageSkeletonVariant; showHeading?: boolean }) {
+  const surface = {
+    dashboard: <DashboardSkeleton />,
+    list: <ListSkeleton />,
+    cards: <CardsSkeleton />,
+    feed: <FeedSkeleton />,
+    form: <FormSkeleton />,
+    monitor: <MonitorSkeleton />,
+    editor: <EditorSkeleton />,
+    catalog: <CatalogSkeleton />,
+    content: <ContentSkeleton />,
+  }[variant];
+  return <div role="status" aria-busy="true" data-page-skeleton={variant} className="flex w-full min-w-0 flex-col gap-6 py-6">
     <span className="sr-only">{t('页面加载中…')}</span>
-    <div className="flex flex-col gap-2">
-      <Skeleton className="h-6 w-52" />
-      <Skeleton className="h-4 w-80" />
-    </div>
-    <div className="grid gap-4 sm:grid-cols-2">
-      <Skeleton className="h-32" />
-      <Skeleton className="h-32" />
-      <Skeleton className="h-32" />
-      <Skeleton className="h-32" />
-    </div>
+    {showHeading && <PageHeadingSkeleton />}
+    {surface}
   </div>;
 }

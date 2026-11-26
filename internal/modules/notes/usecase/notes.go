@@ -53,8 +53,16 @@ func VisibilityFor(realm string, all bool, userIDs []string) NoteVisibility {
 }
 
 type Notes struct {
-	Repo        NoteRepository
-	Attachments func(context.Context, string, string) error
+	Repo           NoteRepository
+	Attachments    func(context.Context, string, string) error
+	ReferenceGuard func(context.Context, func() error) error
+}
+
+func (n *Notes) withReferenceGuard(ctx context.Context, fn func() error) error {
+	if n.ReferenceGuard == nil {
+		return fn()
+	}
+	return n.ReferenceGuard(ctx, fn)
 }
 
 func (n *Notes) List(ctx context.Context, scope string, q contracts.NoteQuery, visibility NoteVisibility) (contracts.NoteList, error) {
@@ -96,20 +104,32 @@ func (n *Notes) validate(ctx context.Context, scope string, input contracts.Note
 }
 func (n *Notes) Create(ctx context.Context, scope string, input contracts.NoteInput) (contracts.NoteEntry, error) {
 	input.Title = strings.TrimSpace(input.Title)
-	if err := n.validate(ctx, scope, input); err != nil {
-		return contracts.NoteEntry{}, err
-	}
-	return n.Repo.Create(ctx, scope, input)
+	var entry contracts.NoteEntry
+	err := n.withReferenceGuard(ctx, func() error {
+		if err := n.validate(ctx, scope, input); err != nil {
+			return err
+		}
+		var err error
+		entry, err = n.Repo.Create(ctx, scope, input)
+		return err
+	})
+	return entry, err
 }
 func (n *Notes) Update(ctx context.Context, scope, id string, input contracts.NoteUpdate) (contracts.NoteEntry, error) {
 	input.Title = strings.TrimSpace(input.Title)
 	if input.Version < 1 || id == "" || len(id) > 64 {
 		return contracts.NoteEntry{}, domain.ErrNoteInvalid
 	}
-	if err := n.validate(ctx, scope, contracts.NoteInput{Title: input.Title, Body: input.Body, Status: input.Status, AttachmentIds: &input.AttachmentIds}); err != nil {
-		return contracts.NoteEntry{}, err
-	}
-	return n.Repo.Update(ctx, scope, id, input)
+	var entry contracts.NoteEntry
+	err := n.withReferenceGuard(ctx, func() error {
+		if err := n.validate(ctx, scope, contracts.NoteInput{Title: input.Title, Body: input.Body, Status: input.Status, AttachmentIds: &input.AttachmentIds}); err != nil {
+			return err
+		}
+		var err error
+		entry, err = n.Repo.Update(ctx, scope, id, input)
+		return err
+	})
+	return entry, err
 }
 func (n *Notes) Delete(ctx context.Context, scope, id string, version int) error {
 	if scope == "" || id == "" || len(id) > 64 || version < 1 {

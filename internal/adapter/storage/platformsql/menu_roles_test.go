@@ -40,10 +40,10 @@ func TestAssignMenuRolesAtomicPatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = repo.CreateSession(ctx, "member-session", member.ID, int(time.Now().Unix())+3600, ""); err != nil {
+	if err = repo.CreateSession(ctx, "member-session", member.ID, int(time.Now().Unix())+3600, "", false); err != nil {
 		t.Fatal(err)
 	}
-	if err = repo.CreateSession(ctx, "owner-session", owner.ID, int(time.Now().Unix())+3600, ""); err != nil {
+	if err = repo.CreateSession(ctx, "owner-session", owner.ID, int(time.Now().Unix())+3600, "", false); err != nil {
 		t.Fatal(err)
 	}
 	input := contracts.MenuRoleAssignmentInput{Version: nav.Version, ExpectedRoleIds: []string{}, RoleIds: []string{role.ID}}

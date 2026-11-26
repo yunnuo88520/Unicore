@@ -133,6 +133,10 @@ func mountPersonal(api chi.Router, config Config) {
 				webError(w, platform.ErrCredentials)
 				return
 			}
+			if administratorRequest(r) && !platform.HasManagementAccess(session.User) {
+				webError(w, platform.ErrForbidden)
+				return
+			}
 			if !platform.Equal(r.Header.Get("X-CSRF-Token"), session.CsrfToken) {
 				failure(w, 403, "CSRF_INVALID", "请求校验已失效，请刷新页面")
 				return

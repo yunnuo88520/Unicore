@@ -53,6 +53,19 @@ function mount(metadata: Bootstrap, web: Record<string, unknown>) {
   );
 }
 
+async function selectRowAction(row: HTMLElement, label: string) {
+  await userEvent.click(within(row).getByRole('button', { name: '操作' }));
+  await userEvent.click(screen.getByRole('menuitem', { name: label }));
+}
+
+async function expectRowActionUnavailable(row: HTMLElement, label: string) {
+  const trigger = within(row).queryByRole('button', { name: '操作' });
+  if (!trigger) return;
+  await userEvent.click(trigger);
+  expect(screen.queryByRole('menuitem', { name: label })).toBeNull();
+  await userEvent.keyboard('{Escape}');
+}
+
 it('resolves department names in the list column next to the role column', async () => {
   mount(metadata(['users:read']), { users: vi.fn().mockResolvedValue(users('d2')), roleOptions, listDepartments: vi.fn().mockResolvedValue(departments()) });
   const row = await screen.findByRole('row', { name: /member/ });
@@ -79,9 +92,9 @@ it('renders catalogue role names in the identity column instead of raw ids', asy
   const operator = await screen.findByRole('row', { name: /operator/ });
   // The custom role renders its catalogue name and the builtin localizes.
   expect(within(operator).getByText('运营, 用户')).toBeVisible();
-  // super_admin keeps its established raw marker.
+  // The builtin super-admin role is localized like the other role labels.
   const owner = screen.getByRole('row', { name: /owner/ });
-  expect(within(owner).getByText('super_admin')).toBeVisible();
+  expect(within(owner).getByText('超级管理员')).toBeVisible();
   // A row without the parallel names degrades to the raw id, never empty.
   const legacy = screen.getByRole('row', { name: /legacy/ });
   expect(within(legacy).getByText('gone-role')).toBeVisible();
@@ -116,7 +129,7 @@ it('renders the role selection as a spaced, wrap-friendly chip group', async () 
   await screen.findByRole('row', { name: /member/ });
   await userEvent.click(screen.getByRole('button', { name: '新增用户' }));
   const dialog = screen.getByRole('dialog', { name: '新增用户' });
-  const group = dialog.querySelector('legend')!.nextElementSibling as HTMLElement;
+  const group = within(dialog).getByRole('group', { name: '角色' });
   // The group wraps with spacing instead of gluing the checkboxes into one line.
   expect(group.className).toContain('flex-wrap');
   expect(group.className).toContain('gap-2');
@@ -143,7 +156,7 @@ it('echoes the persisted department when editing and clears it via the unassigne
   const updateUser = vi.fn().mockResolvedValue({ id: 'u1', username: 'member', email: 'member@example.test', status: 'active', roles: ['user'], permissions: [], created_at: 1, last_login_at: 0, totp_enabled: false });
   mount(metadata(['users:read', 'users:update']), { users: vi.fn().mockResolvedValue(users('d2')), roleOptions, listDepartments: vi.fn().mockResolvedValue(departments()), updateUser });
   const row = await screen.findByRole('row', { name: /member/ });
-  await userEvent.click(within(row).getByRole('button', { name: '编辑' }));
+  await selectRowAction(row, '编辑');
   const dialog = screen.getByRole('dialog', { name: '编辑member' });
   // The select echoes the saved child department.
   expect(within(dialog).getByRole('combobox', { name: '部门' })).toHaveTextContent(/前端组/);
@@ -160,7 +173,7 @@ it('edits the nickname and email of an existing account and prefers the nickname
   mount(metadata(['users:read', 'users:update', 'users:credentials:write']), { users: vi.fn().mockResolvedValue(users()), roleOptions, listDepartments: vi.fn().mockResolvedValue(departments()), updateUser });
   const row = await screen.findByRole('row', { name: /member/ });
   expect(within(row).getByText('member')).toBeVisible();
-  await userEvent.click(within(row).getByRole('button', { name: '编辑' }));
+  await selectRowAction(row, '编辑');
   const dialog = screen.getByRole('dialog', { name: '编辑member' });
   // The username is the login identity and renders read-only.
   expect(within(dialog).getByLabelText('账号')).toHaveValue('member');
@@ -176,7 +189,7 @@ it('resets a member password with a typed replacement and revokes sessions', asy
   const resetUserPassword = vi.fn().mockResolvedValue({ password: 'typed-password-123' });
   mount(metadata(['users:read', 'users:update', 'users:credentials:write']), { users: vi.fn().mockResolvedValue(users()), roleOptions, listDepartments: vi.fn().mockResolvedValue(departments()), resetUserPassword });
   const row = await screen.findByRole('row', { name: /member/ });
-  await userEvent.click(within(row).getByRole('button', { name: '重置密码' }));
+  await selectRowAction(row, '重置密码');
   const dialog = screen.getByRole('dialog', { name: '重置密码' });
   const submit = within(dialog).getByRole('button', { name: '重置密码' });
   // The typed path stays disabled until the 12-character minimum is met.
@@ -191,7 +204,7 @@ it('asks the server to generate a temporary password when the operator picks the
   const resetUserPassword = vi.fn().mockResolvedValue({ password: 'TempGeneratedPassword42' });
   mount(metadata(['users:read', 'users:update', 'users:credentials:write']), { users: vi.fn().mockResolvedValue(users()), roleOptions, listDepartments: vi.fn().mockResolvedValue(departments()), resetUserPassword });
   const row = await screen.findByRole('row', { name: /member/ });
-  await userEvent.click(within(row).getByRole('button', { name: '重置密码' }));
+  await selectRowAction(row, '重置密码');
   const dialog = screen.getByRole('dialog', { name: '重置密码' });
   await userEvent.click(within(dialog).getByRole('radio', { name: '生成临时密码' }));
   await userEvent.click(within(dialog).getByRole('button', { name: '重置密码' }));
@@ -246,7 +259,7 @@ it('echoes saved posts when editing and clears them through unchecked boxes', as
   const row = await screen.findByRole('row', { name: /member/ });
   // The 岗位 column resolves names for enabled and disabled assignments alike.
   expect(within(row).getByText('工程师、停用岗')).toBeVisible();
-  await userEvent.click(within(row).getByRole('button', { name: '编辑' }));
+  await selectRowAction(row, '编辑');
   const dialog = screen.getByRole('dialog', { name: '编辑member' });
   const group = within(dialog).getByRole('group', { name: '岗位' });
   expect(within(group).getByRole('checkbox', { name: '工程师' })).toBeChecked();
@@ -265,7 +278,7 @@ it('cannot assign a disabled post that the user does not already hold', async ()
   const updateUser = vi.fn().mockResolvedValue({ id: 'u1', username: 'member', email: 'member@example.test', status: 'active', roles: ['user'], permissions: [], created_at: 1, last_login_at: 0, totp_enabled: false });
   mount(metadata(['users:read', 'users:update', 'posts:read']), { users: vi.fn().mockResolvedValue(usersWithPosts(['p1'])), roleOptions, listDepartments: vi.fn().mockResolvedValue(departments()), listPosts: vi.fn().mockResolvedValue(posts()), updateUser });
   const row = await screen.findByRole('row', { name: /member/ });
-  await userEvent.click(within(row).getByRole('button', { name: '编辑' }));
+  await selectRowAction(row, '编辑');
   const dialog = screen.getByRole('dialog', { name: '编辑member' });
   expect(within(dialog).getByRole('checkbox', { name: '停用岗' })).toBeDisabled();
   expect(within(dialog).getByRole('checkbox', { name: '停用岗' })).not.toBeChecked();
@@ -277,8 +290,7 @@ it('gates create and import on users:create and row actions on users:update', as
   // Readers keep the list; every mutating button hides without its own point.
   expect(screen.queryByRole('button', { name: '新增用户' })).toBeNull();
   expect(screen.queryByRole('button', { name: '导入用户' })).toBeNull();
-  expect(within(row).queryByRole('button', { name: '禁用' })).toBeNull();
-  expect(within(row).queryByRole('button', { name: '编辑' })).toBeNull();
+  expect(within(row).queryByRole('button', { name: '操作' })).toBeNull();
   // The catalogue stays exported for readers.
   expect(screen.getByRole('button', { name: '导出用户' })).toBeEnabled();
 });
@@ -287,8 +299,12 @@ it('does not turn users:update into credential management and omits unchanged em
   const updateUser = vi.fn().mockResolvedValue({});
   mount(metadata(['users:read', 'users:update']), { users: vi.fn().mockResolvedValue(users()), roleOptions, listDepartments: vi.fn().mockResolvedValue(departments()), updateUser });
   const row = await screen.findByRole('row', { name: /member/ });
-  expect(within(row).queryByRole('button', { name: '重置密码' })).toBeNull();
-  await userEvent.click(within(row).getByRole('button', { name: '编辑' }));
+  await userEvent.click(within(row).getByRole('button', { name: '操作' }));
+  expect(screen.getByRole('menuitem', { name: '禁用' })).toBeVisible();
+  expect(screen.getByRole('menuitem', { name: '编辑' })).toBeVisible();
+  expect(screen.queryByRole('menuitem', { name: '重置密码' })).toBeNull();
+  await userEvent.keyboard('{Escape}');
+  await selectRowAction(row, '编辑');
   const dialog = screen.getByRole('dialog', { name: '编辑member' });
   expect(within(dialog).getByLabelText('邮箱')).toHaveAttribute('readonly');
   await userEvent.type(within(dialog).getByLabelText('昵称'), '新昵称');
@@ -303,7 +319,7 @@ it('does not show password reset without its operation grant even when the crede
   bootstrap.current_user!.operation_ids = bootstrap.current_user!.operation_ids!.filter(id => id !== 'resetUserPassword');
   mount(bootstrap, { users: vi.fn().mockResolvedValue(users()), roleOptions, listDepartments: vi.fn().mockResolvedValue(departments()) });
   const row = await screen.findByRole('row', { name: /member/ });
-  expect(within(row).queryByRole('button', { name: '重置密码' })).toBeNull();
+  await expectRowActionUnavailable(row, '重置密码');
 });
 
 it('allows a delegated email change with updateUser and the credential point without a reset grant', async () => {
@@ -313,7 +329,7 @@ it('allows a delegated email change with updateUser and the credential point wit
   const updateUser = vi.fn().mockResolvedValue({});
   mount(bootstrap, { users: vi.fn().mockResolvedValue(users()), roleOptions, listDepartments: vi.fn().mockResolvedValue(departments()), updateUser });
   const row = await screen.findByRole('row', { name: /member/ });
-  await userEvent.click(within(row).getByRole('button', { name: '编辑' }));
+  await selectRowAction(row, '编辑');
   const dialog = screen.getByRole('dialog', { name: '编辑member' });
   const email = within(dialog).getByLabelText('邮箱');
   expect(email).not.toHaveAttribute('readonly');
@@ -330,11 +346,13 @@ it('gates credentials by reset operation and protects management targets from de
   payload.items.push({ ...payload.items[0], id: 'u3', username: 'owner', email: 'owner@example.test', roles: ['super_admin'] });
   mount(bootstrap, { users: vi.fn().mockResolvedValue(payload), roleOptions, listDepartments: vi.fn().mockResolvedValue(departments()) });
   const member = await screen.findByRole('row', { name: /member/ });
-  expect(within(member).getByRole('button', { name: '重置密码' })).toBeVisible();
+  await userEvent.click(within(member).getByRole('button', { name: '操作' }));
+  expect(screen.getByRole('menuitem', { name: '重置密码' })).toBeVisible();
+  await userEvent.keyboard('{Escape}');
   const manager = screen.getByRole('row', { name: /manager/ });
-  expect(within(manager).queryByRole('button', { name: '重置密码' })).toBeNull();
-  expect(within(screen.getByRole('row', { name: /owner/ })).queryByRole('button', { name: '重置密码' })).toBeNull();
-  await userEvent.click(within(manager).getByRole('button', { name: '编辑' }));
+  await expectRowActionUnavailable(manager, '重置密码');
+  await expectRowActionUnavailable(screen.getByRole('row', { name: /owner/ }), '重置密码');
+  await selectRowAction(manager, '编辑');
   expect(within(screen.getByRole('dialog', { name: '编辑manager' })).getByLabelText('邮箱')).toHaveAttribute('readonly');
 });
 
@@ -347,8 +365,7 @@ it('gates the administrator edit entry on administrators:update', async () => {
     </QueryClientProvider>,
   );
   const row = await screen.findByRole('row', { name: /member/ });
-  expect(within(row).queryByRole('button', { name: '编辑' })).toBeNull();
-  expect(within(row).queryByRole('button', { name: '禁用' })).toBeNull();
+  expect(within(row).queryByRole('button', { name: '操作' })).toBeNull();
 });
 
 
@@ -358,7 +375,7 @@ it('echoes multiple assigned roles and submits the complete selected set', async
   const updateUser = vi.fn().mockResolvedValue(response.items[0]);
   mount(metadata(['users:read', 'users:update']), { users: vi.fn().mockResolvedValue(response), roleOptions: () => ({ items: [{ id: 'user', name: '用户', assignable: true }, { id: 'ops', name: '运营', assignable: true }] }), listDepartments: vi.fn().mockResolvedValue(departments()), updateUser });
   const row = await screen.findByRole('row', { name: /member/ });
-  await userEvent.click(within(row).getByRole('button', { name: '编辑' }));
+  await selectRowAction(row, '编辑');
   const dialog = screen.getByRole('dialog', { name: '编辑member' });
   expect(await within(dialog).findByRole('checkbox', { name: '用户' })).toBeChecked();
   const operator = within(dialog).getByRole('checkbox', { name: '运营' });

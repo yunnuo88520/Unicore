@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/yunnuo/unicore/assets/theme"
@@ -70,12 +71,35 @@ func ValidBaseURL(value string) bool {
 	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Hostname() != "" && !strings.ContainsAny(value, "\r\n\x00") && u.User == nil && u.RawQuery == "" && u.Fragment == "" && (u.Path == "" || u.Path == "/")
 }
 
+var (
+	icpNumberPattern    = regexp.MustCompile(`^(?:[京津冀晋蒙辽吉黑沪苏浙皖闽赣鲁豫鄂湘粤桂琼渝川黔滇藏陕甘青宁新]ICP备)?[0-9]{8,12}号?(?:-[0-9]{1,4}A?)?$`)
+	policeNumberPattern = regexp.MustCompile(`^(?:[京津冀晋蒙辽吉黑沪苏浙皖闽赣鲁豫鄂湘粤桂琼渝川黔滇藏陕甘青宁新]公网安备)?[0-9]{12,18}(?:-[0-9]{1,4})?号?$`)
+)
+
+func validRegistrationNumber(value string, pattern *regexp.Regexp) bool {
+	if value == "" {
+		return true
+	}
+	if !text(40)(value) || strings.ContainsAny(value, "\r\n") {
+		return false
+	}
+	normalized := strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) {
+			return -1
+		}
+		return r
+	}, value)
+	normalized = strings.ReplaceAll(normalized, "－", "-")
+	return pattern.MatchString(normalized)
+}
+
 var Definitions = append([]SettingDefinition{
 	{"announcements.enabled", "boolean", "announcements", "平台公告", "true", true, false, oneOf("true", "false")},
 	{"branding.logo", "string", "branding", "Logo", "", false, false, branding.ValidReference},
 	{"branding.logo_dark", "string", "branding", "深色 Logo", "", false, false, branding.ValidReference},
 	{"branding.favicon", "string", "branding", "站点图标", "", false, false, branding.ValidReference},
 	{"branding.accent", "string", "branding", "品牌主色", "", false, false, branding.ValidAccent},
+	{"branding.display_mode", "string", "branding", "品牌展示方式", "icon-title", true, false, oneOf("icon-title", "wordmark")},
 	{"site.name", "string", "site", "站点名称", theme.Current.Brand.Name, false, false, func(v string) bool {
 		return strings.TrimSpace(v) != "" && !strings.ContainsAny(v, "\r\n") && text(64)(v)
 	}},
@@ -84,9 +108,9 @@ var Definitions = append([]SettingDefinition{
 	{"site.base_url", "string", "site", "站点地址", "", true, false, func(v string) bool { return v == "" || (text(2048)(v) && ValidBaseURL(v)) }},
 	{"site.admin_email", "string", "site", "管理员邮箱", "", true, false, func(v string) bool { return v == "" || ValidEmail(v) }},
 	{"site.copyright", "string", "site", "页脚版权", "Crafted by Yunnuo", false, false, text(160)},
-	{"site.icp_number", "string", "site", "备案号（ICP）", "", false, false, func(v string) bool { return text(80)(v) && !strings.ContainsAny(v, "\r\n") }},
+	{"site.icp_number", "string", "site", "备案号（ICP）", "", false, false, func(v string) bool { return validRegistrationNumber(v, icpNumberPattern) }},
 	{"site.icp_url", "string", "site", "备案查询链接", "https://beian.miit.gov.cn/", false, false, ValidPublicLink},
-	{"site.police_number", "string", "site", "公安备案号", "", true, false, func(v string) bool { return text(80)(v) && !strings.ContainsAny(v, "\r\n") }},
+	{"site.police_number", "string", "site", "公安备案号", "", true, false, func(v string) bool { return validRegistrationNumber(v, policeNumberPattern) }},
 	{"site.footer_html", "string", "site", "自定义页脚 HTML", "", true, false, func(v string) bool {
 		return v == "" || (text(4000)(v) && !strings.Contains(v, "{{") && mailcontent.ValidateHTML(v) == nil)
 	}},

@@ -101,6 +101,14 @@
             "postgres": "core/postgres/0001_initial.sql",
             "mysql": "core/mysql/0001_initial.sql"
           }
+        },
+        {
+          "version": 2,
+          "files": {
+            "sqlite": "core/sqlite/0002_storage_migration_jobs.sql",
+            "postgres": "core/postgres/0002_storage_migration_jobs.sql",
+            "mysql": "core/mysql/0002_storage_migration_jobs.sql"
+          }
         }
       ]
     },

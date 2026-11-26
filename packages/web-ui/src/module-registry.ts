@@ -27,6 +27,14 @@ export interface UiRoute {
   surfaces?: ('user' | 'administrator')[];
 }
 
+/** Shared by the navigation seed and direct-route guard; role grants cannot widen workspace reach. */
+export function pageSurfaces(id: string, route?: Partial<UiRoute>): ('user' | 'administrator')[] {
+  if (id === 'overview') return ['user', 'administrator'];
+  if (['system', 'administration', 'monitor', 'ai'].includes(route?.group ?? '') ||
+      ['announcements', 'site', 'api-docs'].includes(id)) return ['administrator'];
+  return route?.surfaces?.length ? [...route.surfaces] : ['user'];
+}
+
 export type MountFn = (path: string, loader: () => Promise<{ default: PageComponent }>) => void;
 
 export interface UiModule<R extends Record<string, UiRoute> = Record<string, UiRoute>> {

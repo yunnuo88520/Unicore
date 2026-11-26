@@ -19,7 +19,7 @@ export function contractArtifacts(spec){
   if(path.startsWith('/api/v1/admin/') && (operation.security??[]).some(item=>Object.hasOwn(item,'SessionCookie')))throw new Error(`Admin operation must use AdministratorSession: ${id}`);
   if(path.includes('/admin/')&&!policy.permissions.length&&!(policy.identityRealm==='administrator'&&/^\/api\/v1\/admin\/(bootstrap|auth(?:\/.*)?|account(?:\/.*)?)$/.test(path)))throw new Error(`Admin operation needs permissions: ${id}`);
   for(const security of operation.security??[])for(const name of Object.keys(security))if(!spec.components.securitySchemes[name])throw new Error(`Unknown security scheme: ${name}`);
-  if(policy.maxBodyBytes!==undefined&&(!Number.isInteger(policy.maxBodyBytes)||policy.maxBodyBytes<1024||policy.maxBodyBytes>512*1024))throw new Error(`Invalid body limit: ${id}`);
+  if(policy.maxBodyBytes!==undefined&&(!Number.isInteger(policy.maxBodyBytes)||policy.maxBodyBytes<1024||policy.maxBodyBytes>1024*1024))throw new Error(`Invalid body limit: ${id}`);
   const requestSchema=refName(operation.requestBody?.content?.['application/json']?.schema);
   const responseSchema=refName(operation.responses?.['200']?.content?.['application/json']?.schema);
   const multipartSchema=operation.requestBody?.content?.['multipart/form-data']?.schema;

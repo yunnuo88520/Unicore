@@ -28,12 +28,23 @@ it('guards platform pages by profile and permission while excluding local instan
 it('keeps notes visible on standalone and desktop while gating by the role grant on web-platform',()=>{
   const standalone = { profile: 'web-standalone', capabilities: { database: true, features: { notes: true } }, current_user: null } as unknown as Bootstrap;
   expect(canAccess('notes', standalone)).toBe(true);
-  expect(pageFromHash('#files')).toBe('not-found');
+  expect(pageFromHash('#files')).toBe('files');
   expect(pageFromHash('#lab')).toBe('not-found');
   const platform = { profile: 'web-platform', identity_realm: 'user', capabilities: { database: true, features: { notes: true } }, current_user: { roles: ['user'], permissions: [] } } as unknown as Bootstrap;
   expect(canAccess('notes', platform)).toBe(false);
   platform.current_user!.permissions = ['notes:access'];
   expect(canAccess('notes', platform)).toBe(true);
+});
+
+it('bounds direct management links by registered workspace even for super administrators and stale menus', () => {
+  const admin = grantUI({ profile: 'web-platform', identity_realm: 'administrator', capabilities: { database: true, features: { notes: true } }, current_user: { roles: ['super_admin'], permissions: ['notes:access', 'notes:manage:read'] } } as unknown as Bootstrap);
+  expect(routeAccess('note-management', admin)).toBe(true);
+  expect(routeAccess('notes', admin)).toBe(false);
+  const user = { ...admin, identity_realm: 'user' } as Bootstrap;
+  user.navigation = { ...admin.navigation!, nodes: admin.navigation!.nodes.map(node => ({ ...node, surfaces: ['user'] })) };
+  expect(routeAccess('note-management', user)).toBe(false);
+  expect(routeAccess('notes', user)).toBe(true);
+  expect(navigation(user).sections.flatMap(section => section.entries).some(entry => entry.routeId === 'note-management')).toBe(false);
 });
 
 it('lands unconfigured administrator pages in the super-administrator group without changing realm access', () => {
@@ -45,8 +56,11 @@ it('lands unconfigured administrator pages in the super-administrator group with
   // API 文档 needs no permission point but the api_docs capability: with it
   // published the page renders as the top-level tail of the system region.
   const system = navigation.sections.find(section => section.id === 'system')!;
-  expect(system.entries.map(entry => entry.id)).toEqual(['settings', 'administration', 'api-docs']);
-  expect(system.entries[2].type).toBe('page');
+  expect(system.entries.map(entry => entry.id)).toEqual(['settings', 'administration', 'files', 'api-docs']);
+  expect(system.entries[2]).toMatchObject({ id: 'files', type: 'page' });
+  expect(canAccess('files', metadata)).toBe(true);
+  expect(canAccess('files', { ...metadata, current_user: { roles: ['ops'], permissions: ['files:access'] } } as unknown as Bootstrap)).toBe(false);
+  expect(canAccess('files', { ...metadata, profile: 'web-standalone' } as Bootstrap)).toBe(false);
   const member = { ...metadata, identity_realm: 'user' } as Bootstrap;
   for (const page of ['tasks', 'menus', 'dictionaries'] as const) {
     expect(canAccess(page, member)).toBe(false);

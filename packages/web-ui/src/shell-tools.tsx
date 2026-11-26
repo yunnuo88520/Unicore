@@ -45,7 +45,7 @@ export function VersionBadge({ client, metadata, onOpen }: { client: AppClient; 
   const releaseUrl = data?.history?.find(release => /^https:\/\//.test(release.url))?.url;
   return <div className="relative inline-flex">
     <Tooltip label={t(statusText)}>
-      <button ref={badge} type="button" className={`version-badge status-${status} inline-flex items-center gap-2 rounded-[7px] bg-primary-soft px-2 py-[3px] text-[length:var(--font-10)] font-medium leading-[1.4] text-accent tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-focus`}
+      <button ref={badge} type="button" className={`version-badge status-${status} inline-flex max-w-full items-center gap-1.5 p-0 text-2xs font-normal leading-4 text-muted tabular-nums outline-none hover:text-ink focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-focus`}
         aria-label={t('当前版本 {{version}}，{{status}}', { version: metadata.version, status: t(statusText) })}
         aria-expanded={open} onClick={() => setOpen(value => !value)}>
         <span>v{metadata.version}</span>

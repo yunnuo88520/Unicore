@@ -13,7 +13,7 @@ SDK HttpTransport 的业务方法调用生成 operation，统一处理 Cookie、
 
 启动 `APP_API_DOCS=true build/bin/server` 后，在线 `/api-docs` 使用随应用打包的 Swagger UI（本地依赖，无 CDN 外呼）读取 `/openapi.json`，兼容路径 `/docs/api` 跳转到该参考页。默认关闭时 `/openapi.json` 与 `/docs/api` 返回 404，应用内参考页提示文档不可用。生成文件 `packages/contracts/reference.gen.html` 仍是不依赖脚本的离线参考，与在线页分别保留。文档包含全部 profile 的操作，当前实例只装配适用能力；文档不携带实例配置或凭据。参考页通过 AppClient 加载契约，禁用请求测试（`supportedSubmitMethods: []`）、校验外呼与持久化认证，不保存 Cookie、令牌或其他凭据；独立 API 调用仍受各 operation 的认证、CSRF 和权限控制。
 
-上传 operation 可在 x-unicore.maxBodyBytes 声明 1–512 KiB 的 JSON 体上限；通用 decoder 按真实路由读取元数据，未声明仍为 64 KiB。当前品牌 PUT 单独为 384 KiB，业务图片原始上限为 256 KiB；禁止为新增上传全局放大所有 API。公开品牌 PNG 与 manifest 是固定格式静态资源接口，不属于 JSON 业务契约。
+上传 operation 可在 x-unicore.maxBodyBytes 声明 1–768 KiB 的 JSON 体上限；通用 decoder 按真实路由读取元数据，未声明仍为 64 KiB。当前品牌 PUT 单独为 768 KiB，图片原始上限为 500 KiB；禁止为新增上传全局放大所有 API。品牌图片格式或解码失败、原始字节超限、解码内存预算超限分别返回 BRAND_INVALID、BRAND_UPLOAD_TOO_LARGE、BRAND_IMAGE_TOO_LARGE，不能混为文件大小错误。公开品牌 PNG 与 manifest 是固定格式静态资源接口，不属于 JSON 业务契约。
 
 安装数据库输入使用 DatabaseInput 结构化字段，tls 为布尔开关且默认关闭；dsn 仅为旧客户端兼容，禁止混传。verifyDatabase 返回 DatabaseCheck。清空库名、归属保护与持久化是服务端业务不变量，见 [安装规范](../00-product/feature-installation.md)。
 

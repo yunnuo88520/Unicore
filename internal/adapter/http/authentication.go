@@ -1,5 +1,5 @@
 // Author: yunnuo <ymz@ebox.vip>
-// Description: Explicit administrator/user authentication routes share handlers, never credentials or realm selection headers.
+// Description: Fixed workspace authentication entries share identity and enforce management admission.
 package httpadapter
 
 import (
@@ -56,15 +56,18 @@ func mountAuthentication(api chi.Router, config Config) {
 				webError(w, err)
 				return
 			}
-			session, token, err := identity.Login(r.Context(), input, ip(r), policy.LoginCaptcha, policy.HumanCheckEnabled && identity.HumanCheck != nil, policy.SessionHours)
+			session, token, err := identity.LoginForWorkspace(r.Context(), input, ip(r), policy.LoginCaptcha, policy.HumanCheckEnabled && identity.HumanCheck != nil, policy.SessionHours, administratorRequest(r))
 			if err != nil {
 				// Failed attempts are security-relevant: record the tried
 				// identity and the rejection reason without leaking whether
 				// the account exists.
-				if errors.Is(err, platform.ErrCredentials) || errors.Is(err, platform.ErrCaptcha) {
+				if errors.Is(err, platform.ErrCredentials) || errors.Is(err, platform.ErrCaptcha) || errors.Is(err, platform.ErrForbidden) {
 					reason := "credentials"
 					if errors.Is(err, platform.ErrCaptcha) {
 						reason = "captcha"
+					}
+					if errors.Is(err, platform.ErrForbidden) {
+						reason = "workspace_admission"
 					}
 					if store, _, _, _ := manager.Services(); store != nil {
 						meta, _ := audit.From(r.Context())
@@ -84,6 +87,11 @@ func mountAuthentication(api chi.Router, config Config) {
 		})
 		api.Get(prefix+"/auth/session", func(w http.ResponseWriter, r *http.Request) {
 			if session, ok := require(manager, w, r, ""); ok {
+				if administratorRequest(r) && !platform.HasManagementAccess(session.User) {
+					recordDenial(manager, r, &session, "authz.denied", "reason=workspace_admission")
+					webError(w, platform.ErrForbidden)
+					return
+				}
 				success(w, session)
 			}
 		})

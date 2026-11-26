@@ -167,6 +167,47 @@ test('workspace headers share an uninterrupted canvas in both themes',async({pag
   }
 });
 
+test('workspace shell height accounts for the macOS titlebar and inset frame',async({page,instance},info)=>{
+  test.skip(info.project.name==='mobile','The macOS titlebar shell is a desktop layout.');
+  await installStandalone(instance);await page.setViewportSize({width:1280,height:900});await page.goto(instance.url);
+  await expect(page.getByRole('heading',{name:'工作台概览'})).toBeVisible();
+  await page.evaluate(()=>{document.documentElement.dataset.desktop='mac';});
+  for(const sidebar of ['plain','inset','floating']){
+    await page.evaluate(sidebar=>{localStorage.setItem('unicore.preferences.v1',JSON.stringify({sidebar,layout:'default'}));window.dispatchEvent(new StorageEvent('storage',{key:'unicore.preferences.v1'}));},sidebar);
+    await expect(page.locator('html')).toHaveAttribute('data-sidebar',sidebar);
+    const geometry=await page.evaluate(()=>{
+      const box=(selector:string)=>{const rect=document.querySelector(selector)!.getBoundingClientRect();return {top:rect.top,bottom:rect.bottom};};
+      return {viewport:innerHeight,shell:box('.main-shell'),content:box('.main-content'),footer:box('footer'),titlebar:getComputedStyle(document.querySelector('.app-shell')!).getPropertyValue('--shell-titlebar-height').trim(),frame:getComputedStyle(document.querySelector('.main-shell')!).getPropertyValue('--shell-frame-block-margin').trim()};
+    });
+    const context=JSON.stringify({sidebar,geometry});
+    expect(geometry.titlebar,context).toBe('28px');
+    expect(geometry.shell.top,context).toBeGreaterThanOrEqual(27);
+    expect(geometry.shell.bottom,context).toBeLessThanOrEqual(geometry.viewport+1);
+    expect(geometry.shell.bottom,context).toBeGreaterThanOrEqual(geometry.viewport-(sidebar==='plain'?1:9));
+    expect(geometry.footer.bottom,context).toBeLessThanOrEqual(geometry.viewport+1);
+    if(sidebar==='plain')expect(geometry.frame,context).toBe('0px');
+    else expect(geometry.frame,context).toBe('16px');
+  }
+  await page.setViewportSize({width:1280,height:720});
+  await page.goto(`${instance.url}/notes`);
+  await expect(page.getByRole('heading',{name:'个人笔记',exact:true})).toBeVisible();
+  for(const sidebar of ['plain','inset','floating']){
+    await page.evaluate(sidebar=>{localStorage.setItem('unicore.preferences.v1',JSON.stringify({sidebar,layout:'default'}));window.dispatchEvent(new StorageEvent('storage',{key:'unicore.preferences.v1'}));},sidebar);
+    await expect(page.locator('html')).toHaveAttribute('data-sidebar',sidebar);
+    const geometry=await page.evaluate(()=>{
+      const copyright=document.createRange();copyright.selectNodeContents(document.querySelector('footer > div')!);
+      const rect=copyright.getBoundingClientRect();
+      return {viewportWidth:innerWidth,viewportHeight:innerHeight,documentWidth:document.documentElement.scrollWidth,documentHeight:document.documentElement.scrollHeight,visible:rect.width>0&&rect.height>0,bottom:rect.bottom};
+    });
+    const context=JSON.stringify({sidebar,geometry});
+    expect(geometry.documentWidth,context).toBeLessThanOrEqual(geometry.viewportWidth+1);
+    expect(geometry.documentHeight,context).toBeLessThanOrEqual(geometry.viewportHeight+1);
+    expect(geometry.visible,context).toBe(true);
+    expect(geometry.bottom,context).toBeLessThanOrEqual(geometry.viewportHeight-8);
+    expect(geometry.bottom,context).toBeGreaterThanOrEqual(geometry.viewportHeight-28);
+  }
+});
+
 test('platform account menus share the workspace style and keep homepage links out',async({page,instance},info)=>{
   await installPlatform(instance);
   await adminLogin(page,instance.url,'admin','administrator-password-strong');

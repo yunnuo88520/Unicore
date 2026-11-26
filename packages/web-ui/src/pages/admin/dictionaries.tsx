@@ -5,9 +5,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookMarked, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import type { DictionaryCreateInput, DictionaryItemEntry, DictionaryList, DictionarySummary, DictionaryUpdateInput, WebClient } from '@unicore/sdk';
 import { t, useLocale } from '../../i18n';
-import { AppField, AppForm, useAppForm } from '@unicore/form';
+import { AppField, AppForm, AppFormBody, AppFormFooter, useAppForm } from '@unicore/form';
 import { cn } from '@unicore/ui/cn';
-import { Alert, Badge, Button, Card, CardContent, ConfirmDialog, Input, Modal, SimpleSelect, PageHeader, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage, selectOptions } from '@unicore/ui';
+import { Alert, Badge, Button, Card, CardContent, ConfirmDialog, FormDrawer, Input, Modal, SimpleSelect, PageHeader, Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow, useMessage, selectOptions } from '@unicore/ui';
 import type { PageProps } from '../../router';
 import type { Bootstrap } from '@unicore/sdk';
 import { usePermissions } from '../../permissions';
@@ -201,19 +201,18 @@ function DictionaryCreateDialog({ web, onClose, onCreated }: { web: WebClient; o
       }
     },
   });
-  return <Modal title={t('新建字典类型')} onClose={onClose} pending={form.formState.isSubmitting}>
-    <AppForm form={form} className="flex flex-col gap-3">
+  return <FormDrawer title={t('新建字典类型')} onClose={onClose} pending={form.formState.isSubmitting}>
+    <AppForm form={form} layout="panel"><AppFormBody>
       <AppField name="code" label={t('类型编码')} hint={t('小写字母开头，仅含小写字母、数字与下划线；创建后不可修改。')}>
         <Input required minLength={2} maxLength={64} autoComplete="off" placeholder="order_status" />
       </AppField>
       <AppField name="name" label={t('名称')}><Input required maxLength={80} autoComplete="off" /></AppField>
       <AppField name="description" label={t('描述（可选）')}><Input maxLength={200} autoComplete="off" /></AppField>
-      <div className="flex justify-end gap-2">
+    </AppFormBody><AppFormFooter>
         <Button variant="secondary" disabled={form.formState.isSubmitting} onClick={onClose}>{t('取消')}</Button>
         <Button type="submit" pending={form.formState.isSubmitting}>{form.formState.isSubmitting ? t('正在创建…') : t('创建')}</Button>
-      </div>
-    </AppForm>
-  </Modal>;
+    </AppFormFooter></AppForm>
+  </FormDrawer>;
 }
 
 function DictionaryRenameDialog({ web, entry, onClose, onSaved }: {
@@ -235,15 +234,14 @@ function DictionaryRenameDialog({ web, entry, onClose, onSaved }: {
       }
     },
   });
-  return <Modal title={t('编辑字典类型')} onClose={onClose} pending={form.formState.isSubmitting}>
-    <AppForm form={form} className="flex flex-col gap-3">
+  return <FormDrawer title={t('编辑字典类型')} onClose={onClose} pending={form.formState.isSubmitting}>
+    <AppForm form={form} layout="panel"><AppFormBody>
       <p className="rounded-md bg-surface-alt px-3 py-2 text-xs text-muted">{t('类型编码 {{code}} 创建后不可修改。', { code: entry.code })}</p>
       <AppField name="name" label={t('名称')}><Input required maxLength={80} autoComplete="off" /></AppField>
       <AppField name="description" label={t('描述（可选）')}><Input maxLength={200} autoComplete="off" /></AppField>
-      <div className="flex justify-end gap-2">
+    </AppFormBody><AppFormFooter>
         <Button variant="secondary" disabled={form.formState.isSubmitting} onClick={onClose}>{t('取消')}</Button>
         <Button type="submit" pending={form.formState.isSubmitting}>{form.formState.isSubmitting ? t('保存中…') : t('保存')}</Button>
-      </div>
-    </AppForm>
-  </Modal>;
+    </AppFormFooter></AppForm>
+  </FormDrawer>;
 }

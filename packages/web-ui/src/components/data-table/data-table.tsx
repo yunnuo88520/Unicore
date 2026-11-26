@@ -67,20 +67,21 @@ export function DataTable<TFeatures extends TableFeatures, TData extends RowData
   table, pending = false, busy = false, error, onRetry, empty, afterRow, pendingRows = 5, className, wrapperClassName, compactHiddenColumns,
 }: DataTableProps<TFeatures, TData>) {
   const columnClass = (id: string) => compactHiddenColumns?.includes(id) ? 'max-sm:hidden' : undefined;
-  const columnCount = table.getHeaderGroups()[0]?.headers.length ?? 0;
+  const leafHeaders = table.getHeaderGroups().at(-1)?.headers ?? [];
+  const columnCount = leafHeaders.filter(header => !header.isPlaceholder).length;
   const rows = pending ? [] : table.getRowModel().rows;
   const emptyState = !pending && !error && !rows.length;
   // Empty and failed states render beside the horizontal scroller: narrow
   // surfaces keep the message centered in view while wide tables scroll.
   const emptyBlock = error
-    ? <div role="alert" className="flex flex-wrap items-center justify-center gap-3 px-3 py-6">
+    ? <div role="alert" className="flex min-h-28 flex-wrap items-center justify-center gap-3 px-4 py-6">
         <span className="text-sm text-danger">{t(error.message)}</span>
         {onRetry && <Button variant="secondary" size="sm" onClick={onRetry}><RotateCcw size={13} />{t('重试')}</Button>}
       </div>
     : emptyState
-      ? <div className="flex justify-center px-3 py-8"><DataTableEmpty icon={empty?.icon} title={empty?.title ?? t('暂无数据')} hint={empty?.hint} action={empty?.action} /></div>
+      ? <div className="flex min-h-40 justify-center px-4 py-8"><DataTableEmpty icon={empty?.icon} title={empty?.title ?? t('暂无数据')} hint={empty?.hint} action={empty?.action} /></div>
       : null;
-  return <div className={cn('min-w-0 rounded-lg border border-line', wrapperClassName)} aria-busy={pending || busy || undefined}>
+  return <div className={cn('min-w-0 overflow-hidden rounded-lg border border-line bg-surface', wrapperClassName)} aria-busy={pending || busy || undefined}>
     {emptyBlock ?? <Table className={className}>
       <TableHeader>
         {table.getHeaderGroups().map(group => <TableRow key={group.id} className="hover:bg-transparent">

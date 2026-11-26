@@ -9,6 +9,7 @@ it('renders the trigger with localized label and current selection', () => {
   const trigger = screen.getByRole('combobox');
   expect(trigger).toHaveAccessibleName('存储类型');
   expect(trigger).toHaveTextContent('本地磁盘');
+  expect(trigger).toHaveClass('border-line', 'bg-surface');
 });
 
 it('disabled trigger cannot be opened', () => {

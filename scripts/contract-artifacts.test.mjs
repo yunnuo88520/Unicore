@@ -26,3 +26,11 @@ test('Go value metadata does not become a runtime validation keyword',()=>{
  const constraints=contractArtifacts(spec).find(([path])=>path.endsWith('constraints.gen.ts'))[1];
  assert.ok(!constraints.includes('x-go-value'));
 });
+
+test('branding upload contract accommodates a 500 KB image encoded as JSON base64',()=>{
+ const spec=load();
+ const operation=spec.paths['/api/v1/admin/branding'].put;
+ assert.equal(operation['x-unicore'].maxBodyBytes,768*1024);
+ assert.equal(spec.components.schemas.BrandingInput.properties.content.maxLength,682668);
+ assert.doesNotThrow(()=>contractArtifacts(spec));
+});

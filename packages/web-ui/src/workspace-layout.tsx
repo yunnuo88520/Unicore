@@ -27,9 +27,9 @@ export function WorkspaceLayout({ navigation, header, children, overlays, naviga
     <aside id="workspace-navigation" className={`sidebar z-30 flex flex-col gap-4 overflow-hidden bg-surface-soft p-3 ${navigationOpen ? 'is-open' : ''}`} aria-label={t('主导航')}>
       {navigation}
     </aside>
-    <div className="main-shell min-w-0 w-full bg-workspace">
+    <div className="main-shell flex min-h-dvh min-w-0 w-full flex-col bg-workspace">
       <header className="topbar sticky top-0 z-20 flex h-16 min-w-0 items-center justify-between gap-4 bg-workspace px-3 max-md:px-4">{header}</header>
-      <main id="main-content" tabIndex={-1} className={`main-content mx-auto w-full min-w-0 px-3 pb-8 outline-none max-md:px-4 max-md:pt-2 ${contentClassName}`}>{children}</main>
+      <main id="main-content" tabIndex={-1} className={`main-content mx-auto flex w-full min-w-0 flex-1 flex-col px-3 outline-none max-md:px-4 max-md:pt-2 ${contentClassName}`}>{children}</main>
     </div>
     {overlays}
   </div>;

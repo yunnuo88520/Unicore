@@ -19,7 +19,8 @@ test('editing a user rewrites nickname and roles, and the reset password flow is
 
   // The full editor: the username is read-only, nickname and role submit with
   // the echoed email.
-  await row.getByRole('button', { name: '编辑', exact: true }).click();
+  await row.getByRole('button', { name: '操作', exact: true }).click();
+  await page.getByRole('menuitem', { name: '编辑', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: /编辑/ });
   await expect(dialog.getByLabel('账号')).toHaveValue('editable');
   await expect(dialog.getByLabel('账号')).toHaveAttribute('readonly');
@@ -42,7 +43,8 @@ test('editing a user rewrites nickname and roles, and the reset password flow is
 
   // Row-level reset: the generated temporary password echoes once in the
   // toast, the old credential dies and the new one signs in.
-  await renamed.getByRole('button', { name: '重置密码', exact: true }).click();
+  await renamed.getByRole('button', { name: '操作', exact: true }).click();
+  await page.getByRole('menuitem', { name: '重置密码', exact: true }).click();
   const resetDialog = page.getByRole('dialog', { name: '重置密码' });
   await resetDialog.getByRole('radio', { name: '生成临时密码' }).check();
   await resetDialog.getByRole('button', { name: '重置密码', exact: true }).click();

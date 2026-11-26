@@ -105,6 +105,15 @@ func (r *Repository) ConsumeEmailChallenge(ctx context.Context, id, purpose, dig
 		}
 		return contracts.User{}, platform.ErrAccountToken
 	}
+	if purpose == "login" && r.Administrators {
+		principal, err := r.user(ctx, tx, user)
+		if err != nil {
+			return contracts.User{}, err
+		}
+		if !platform.HasManagementAccess(principal) {
+			return contracts.User{}, platform.ErrForbidden
+		}
+	}
 	switch purpose {
 	case "verify":
 		_, err = r.exec(ctx, tx, "UPDATE unicore_users SET status='active',updated_at=? WHERE id=?", now, user)

@@ -100,9 +100,9 @@ function AuthLayout({ siteName, administrator = false, mode, success = false, ch
   useLocale();
   const recovering = mode === 'forgot';
   const registering = mode === 'register';
-  return <main className="relative grid w-full flex-1 lg:min-h-[740px] lg:grid-cols-[0.45fr_0.55fr]">
-    <div className="flow-brand absolute start-6 top-6 z-10 flex max-w-[calc(100%-8rem)] items-center gap-2 text-lg font-semibold text-ink lg:start-12 lg:top-10 lg:max-w-[35%]"><BrandLockup name={siteName} /></div>
-    <section className="relative hidden flex-col justify-center overflow-hidden border-e border-line/40 px-10 py-28 lg:flex xl:px-14"
+  return <main className="relative grid w-full flex-1 lg:grid-cols-[0.45fr_0.55fr]">
+    <div className="flow-brand absolute start-6 top-6 z-10 flex min-w-0 max-w-[calc(100%-8rem)] items-center gap-2 text-lg font-semibold text-ink lg:start-12 lg:top-10 lg:max-w-[35%]"><BrandLockup name={siteName} size={32} maxWidth={180} /></div>
+    <section className="relative hidden flex-col justify-center overflow-hidden border-e border-line/40 px-10 pb-8 pt-24 lg:flex xl:px-14"
       style={{ backgroundImage: 'radial-gradient(ellipse at top left, var(--color-primary-soft), transparent 70%), linear-gradient(145deg, var(--color-surface-alt), var(--color-primary-soft))' }}>
       <p className="text-xs font-semibold tracking-[0.22em] text-accent">{recovering ? t('账户恢复') : registering ? success ? t('准备就绪') : t('快速开始') : administrator ? t('管理控制台') : t('用户工作空间')}</p>
       <h2 className="mt-6 text-balance text-[clamp(2.1rem,3.3vw,3rem)] font-semibold leading-[1.3] tracking-tight text-ink">
@@ -111,7 +111,7 @@ function AuthLayout({ siteName, administrator = false, mode, success = false, ch
       <p className="mt-6 text-sm leading-7 text-muted">{recovering ? t('通过注册邮箱确认身份，重新设置密码，安心回到工作空间。') : registering ? success ? t('从一个账号出发，让项目、文件与想法有序连接。') : t('只需完成几步，即可开始管理项目、文件与账号。') : t('使用熟悉的账号，回到属于你的项目、文件与想法。')}</p>
       <AuthIllustration kind={recovering ? 'forgot' : registering ? 'register' : 'login'} step={success ? 3 : challenge ? 2 : 1} verifyEmail={verifyEmail} />
     </section>
-    <section className="flex min-w-0 flex-col items-center justify-center px-6 pb-10 pt-28 sm:px-12 lg:px-12 lg:py-20 xl:px-16">
+    <section className="flex min-w-0 flex-col items-center justify-center px-6 pb-10 pt-28 sm:px-12 lg:px-12 lg:py-12 xl:px-16">
       <div className="w-full max-w-md">{children}</div>
     </section>
   </main>;
@@ -238,6 +238,9 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
     },
     onError: error => {
       form.applyServerError(error);
+      if (administrator && error instanceof AppError && error.code === 'PERMISSION_DENIED') {
+        form.setError('root', { type: 'server', message: t('此账号没有管理工作台访问权限，请从用户入口登录。') });
+      }
       if (needsCaptcha) { form.setValue('captcha_answer', ''); void captcha.refetch(); }
       if (error instanceof AppError && error.code === 'HUMAN_CHECK_FAILED') setHumanReset(value => value + 1);
     },
@@ -288,7 +291,7 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
     <header className={cn('text-center', complete ? 'mb-6' : 'mb-7')}>
       {complete && <span className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-success-soft text-success"><CheckCircle2 size={33} strokeWidth={1.6} aria-hidden="true" /></span>}
       <h1 tabIndex={-1} className="text-balance text-[clamp(1.6rem,2.5vw,2rem)] font-semibold leading-tight tracking-tight text-ink">{title}</h1>
-      <p role={complete ? "status" : undefined} className="mt-2.5 text-sm leading-6 text-muted">{registrationSuccess ? successKind === 'verified' ? t('邮箱验证成功，现在可以登录。') : t('账号已创建，现在可以登录。') : done ? purpose === 'reset' ? t('密码已更新，旧会话已退出。') : t('邮箱验证成功，现在可以登录。') : mode === 'forgot' ? t('通过注册邮箱验证身份，重新设置登录密码。') : mode === 'register' ? t('填写账号信息，创建属于你的工作空间。') : challenge ? t('输入邮件中的 6 位验证码以继续。') : administrator ? t('使用独立的后台账号登录。') : t('使用账号或邮箱，继续你的工作。')}</p>
+      <p role={complete ? "status" : undefined} className="mt-2.5 text-sm leading-6 text-muted">{registrationSuccess ? successKind === 'verified' ? t('邮箱验证成功，现在可以登录。') : t('账号已创建，现在可以登录。') : done ? purpose === 'reset' ? t('密码已更新，旧会话已退出。') : t('邮箱验证成功，现在可以登录。') : mode === 'forgot' ? t('通过注册邮箱验证身份，重新设置登录密码。') : mode === 'register' ? t('填写账号信息，创建属于你的工作空间。') : challenge ? t('输入邮件中的 6 位验证码以继续。') : administrator ? t('使用具有管理权限的账号登录。') : t('使用账号或邮箱，继续你的工作。')}</p>
     </header>
     {notice && !complete && <p role="status" className="mb-4 rounded-xl bg-primary-soft px-4 py-3 text-sm text-ink">{t(notice)}</p>}
     {bindState && !complete && <BindLoginCard web={web} state={bindState} onDone={onDone} />}
@@ -341,7 +344,7 @@ function AuthFlow({ administrator = false, web, siteName, onDone, notice }: { ad
         </AppForm>}
       <div className="mt-5 text-sm">
         {mode === 'login' ? <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-          {!administrator ? <span className="text-muted">{t('没有账号？')} <AuthLink to="/register" disabled={busy} onNavigate={beforeNavigation}>{t('注册账号')}</AuthLink></span> : <span />}
+          {!administrator ? <span className="text-muted">{t('没有账号？')} <AuthLink to="/register" disabled={busy} onNavigate={beforeNavigation}>{t('注册账号')}</AuthLink></span> : <a href="/login" className="font-medium text-accent underline-offset-4 hover:underline">{t('前往用户登录')}</a>}
           <AuthLink to="/forgot-password" disabled={busy} onNavigate={beforeNavigation}>{t('找回密码')}</AuthLink>
         </div> : <p className="text-center text-muted">{mode === 'register' ? t('已有账号？') : ''} <AuthLink to="/login" disabled={busy} onNavigate={beforeNavigation}>{t('返回登录')}</AuthLink></p>}
       </div>

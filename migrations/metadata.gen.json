@@ -84,6 +84,26 @@
               "checksum": "1560184ba4a1c6669057c8d8db366d50b2cbc021fb9a2739834de7d958e6bc09"
             }
           }
+        },
+        {
+          "version": 2,
+          "files": {
+            "mysql": {
+              "path": "core/mysql/0002_storage_migration_jobs.sql",
+              "bytes": 1561,
+              "checksum": "20cec838c49e27a508e37bb27c0933e179bed7c71a5aa47f7efa5a9367289f03"
+            },
+            "postgres": {
+              "path": "core/postgres/0002_storage_migration_jobs.sql",
+              "bytes": 1684,
+              "checksum": "d5b36fa753f15db97a4625daa2bcd1bb32552e8e2c859e76923da2d3f74eca97"
+            },
+            "sqlite": {
+              "path": "core/sqlite/0002_storage_migration_jobs.sql",
+              "bytes": 1373,
+              "checksum": "91a899e377311f71d4eb47ac3d1caaf11fe5521f3293ffa32cb5c2f485ce1fd4"
+            }
+          }
         }
       ]
     },
@@ -187,11 +207,11 @@
         "platform"
       ],
       "levels": {
-        "core": 1,
+        "core": 2,
         "module.notes": 1,
         "platform": 2
       },
-      "schema_fingerprint": "60b8e405fe5f42f515358b6c810929f08051d083d0bfea38c3d04b69f42b01a5"
+      "schema_fingerprint": "9ed9f28791763e4630bad8cefcf601b7204df65e630527dd3da180ffee868f90"
     },
     "web-platform": {
       "dialects": [
@@ -210,11 +230,11 @@
         "platform"
       ],
       "levels": {
-        "core": 1,
+        "core": 2,
         "module.notes": 1,
         "platform": 2
       },
-      "schema_fingerprint": "f1f1d101abb60cc9470ff363ecd4f84b82385c022121e15d46b8b18298d6ccb2"
+      "schema_fingerprint": "b764f6deac344a7a9a26dbf76165f9fd892af508880c60337f7f16f1bf8548fb"
     },
     "web-standalone": {
       "dialects": [
@@ -233,11 +253,11 @@
         "platform"
       ],
       "levels": {
-        "core": 1,
+        "core": 2,
         "module.notes": 1,
         "platform": 2
       },
-      "schema_fingerprint": "f1f1d101abb60cc9470ff363ecd4f84b82385c022121e15d46b8b18298d6ccb2"
+      "schema_fingerprint": "b764f6deac344a7a9a26dbf76165f9fd892af508880c60337f7f16f1bf8548fb"
     }
   }
 }

@@ -19,7 +19,7 @@ func TestConfinementAndAtomicPublication(t *testing.T) {
 	dir := t.TempDir()
 	s := New(filepath.Join(dir, "objects"))
 	payload := []byte("original")
-	v, e := s.Put(ctx, "a/b.txt", bytes.NewReader(payload), int64(len(payload)), "text/plain")
+	_, e := s.Put(ctx, "a/b.txt", bytes.NewReader(payload), int64(len(payload)), "text/plain")
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -31,7 +31,7 @@ func TestConfinementAndAtomicPublication(t *testing.T) {
 	if _, e = s.Put(ctx, "a/b.txt", bytes.NewReader([]byte("longer")), 2, ""); e == nil {
 		t.Fatal("size mismatch accepted")
 	}
-	r, _, e := s.Open(ctx, "a/b.txt")
+	r, opened, e := s.Open(ctx, "a/b.txt")
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -40,10 +40,15 @@ func TestConfinementAndAtomicPublication(t *testing.T) {
 	if !bytes.Equal(got, payload) {
 		t.Fatal("failed write replaced original")
 	}
-	if e = s.Copy(ctx, "a/b.txt", "copy.txt", "wrong"); !errors.Is(e, blob.ErrChanged) {
-		t.Fatal("copy ignored etag", e)
+	// Streaming reads and filesystem stats stay cheap: no content hash.
+	if opened.ETag != "" {
+		t.Fatal("open computed a hash")
 	}
-	if e = s.Copy(ctx, "a/b.txt", "copy.txt", v.ETag); e != nil {
+	// Local copies verify at Put time instead of an etag precheck.
+	if e = s.Copy(ctx, "a/b.txt", "copy.txt", ""); e != nil {
+		t.Fatal(e)
+	}
+	if e = s.Copy(ctx, "a/b.txt", "copy2.txt", "ignored-etag"); e != nil {
 		t.Fatal(e)
 	}
 	outside := t.TempDir()
@@ -68,5 +73,44 @@ func TestConfinementAndAtomicPublication(t *testing.T) {
 	// Windows keeps no POSIX mode bits; Go only reports a synthetic 0666 there.
 	if runtime.GOOS != "windows" && info.Mode().Perm() != 0600 {
 		t.Fatal("unsafe file permissions", info.Mode())
+	}
+}
+
+func TestStatIsFilesystemMetadataOnly(t *testing.T) {
+	ctx := context.Background()
+	s := New(t.TempDir())
+	payload := []byte("stat must not read object bytes")
+	v, e := s.Put(ctx, "deep/object.bin", bytes.NewReader(payload), int64(len(payload)), "application/octet-stream")
+	if e != nil {
+		t.Fatal(e)
+	}
+	obj, e := s.Stat(ctx, "deep/object.bin")
+	if e != nil {
+		t.Fatal(e)
+	}
+	if obj.Size != int64(len(payload)) || obj.ETag != "" {
+		t.Fatal("stat metadata", obj)
+	}
+	if _, e = s.Stat(ctx, "deep/missing.bin"); !errors.Is(e, blob.ErrNotFound) {
+		t.Fatal("missing object", e)
+	}
+	if _, e = s.Stat(ctx, "../escape"); e == nil {
+		t.Fatal("escaping key accepted")
+	}
+	// Hash is the explicit verification moment and matches the stored digest.
+	h, e := s.Hash(ctx, "deep/object.bin")
+	if e != nil || h != v.ETag {
+		t.Fatal("hash mismatch", h, e)
+	}
+	if _, e = s.Hash(ctx, "deep/missing.bin"); !errors.Is(e, blob.ErrNotFound) {
+		t.Fatal("missing hash", e)
+	}
+	// Copy publishes a byte-identical target without any etag precheck.
+	if e = s.Copy(ctx, "deep/object.bin", "deep/copy.bin", ""); e != nil {
+		t.Fatal(e)
+	}
+	copied, e := s.Hash(ctx, "deep/copy.bin")
+	if e != nil || copied != v.ETag {
+		t.Fatal("copy changed bytes", e)
 	}
 }

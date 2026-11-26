@@ -45,7 +45,9 @@ export function useAppForm<T extends FieldValues>({ schema, defaultValues, onSub
   const [serverError, setServerError] = useState<AppError | null>(null);
   // Error focus stays inside this form; a document-wide query would hit sibling forms.
   const scope = useRef<HTMLFormElement | null>(null);
-  const resolver = useMemo(() => (schema ? (zodResolver(constraintsToZod(schema) as never) as Resolver<T>) : undefined), [schema]);
+  // The runtime contract schema is selected by name, so its shape cannot be
+  // derived from T at compile time. Keep that boundary explicit.
+  const resolver = useMemo(() => (schema ? (zodResolver(constraintsToZod(schema) as never) as unknown as Resolver<T>) : undefined), [schema]);
   const form = useForm<T, never, T>({ resolver, defaultValues: defaultValues as DefaultValues<T>, mode: 'onBlur', reValidateMode: 'onBlur' });
   const requiredCount = Object.keys(defaultValues).filter(name => fieldConstraint(schema, name).required).length;
   const fieldDesign: FieldDesign = { schema, requiredMode: requiredCount > Object.keys(defaultValues).length / 2 ? 'optional' : 'required' };

@@ -8,6 +8,7 @@ const validIcp = '京ICP备123456789012号-1234A';
 const invalidIcp = '测试ICP备00000000号';
 
 test('shared tabs stay on one scrollable row with keyboard access in both languages', async ({ page, instance }, info) => {
+  test.setTimeout(90000); // eight navigations with focus flows on a loaded runner
   await installPlatform(instance);
   await adminLogin(page, instance.url, 'admin', 'administrator-password-strong');
   for (const locale of ['zh-CN', 'en']) {

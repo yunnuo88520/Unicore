@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Unicore platform foundation API",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "description": "Unified accounts with multiple roles and independent API grants. Browser clients use a shared session Cookie plus CSRF; native/API clients may use JWT access tokens or scoped personal Bearer tokens. Credential-management endpoints require a browser session.",
     "contact": {
       "name": "yunnuo",

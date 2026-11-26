@@ -490,7 +490,39 @@ func runMigration(ctx context.Context, conn session, dialect, ledgerTable string
 // splitStatements strips full-line comments and splits on semicolons, the
 // same contract the legacy executor applies to baseline DDL.
 func splitStatements(body []byte) []string {
-	var lines []string
+	// Explicit blocks are opt-in; legacy files keep their exact splitting
+	// semantics. The declaration must occur in the leading comment header.
+	lines := strings.Split(string(body), "\n")
+	explicit := false
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "-- unicore:statements explicit" {
+			explicit = true
+			break
+		}
+		if trimmed != "" && !strings.HasPrefix(trimmed, "--") {
+			break
+		}
+	}
+	if explicit {
+		var statements, block []string
+		flush := func() {
+			if statement := strings.TrimSpace(strings.Join(block, "\n")); statement != "" {
+				statements = append(statements, statement)
+			}
+			block = nil
+		}
+		for _, line := range lines {
+			if strings.TrimSpace(line) == "-- unicore:statement-break" {
+				flush()
+			} else {
+				block = append(block, line)
+			}
+		}
+		flush()
+		return statements
+	}
+	lines = nil
 	for _, line := range strings.Split(string(body), "\n") {
 		if !strings.HasPrefix(strings.TrimSpace(line), "--") {
 			lines = append(lines, line)

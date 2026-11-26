@@ -7,6 +7,7 @@ All notable changes to Unicore are documented here. 本文件只记录面向使�
 
 ### 中文
 
+- 修复数据库迁移无法执行包含内部分号的触发器和函数的问题；新迁移可显式分隔完整语句，已发布迁移的执行规则保持不变。
 - 修复 Platform 已有实例关闭笔记 demo 后无法保存菜单树的问题；保留原有模块菜单、自定义配置和角色授权，重新启用后继续使用，其他菜单仍可正常编辑。
 - 修复 MySQL 库默认排序规则为 `utf8mb4_unicode_ci` 时 Platform 登录及个人安全数据关联失败的问题；通过追加迁移统一关联键并保留已有数据。包含此迁移的版本须停服备份后人工部署，回退使用匹配旧程序的完整快照。
 - 修复派生应用模板遗漏追加迁移 SQL 及相关回归测试的问题，确保三系统桌面打包可校验完整 Catalog；分发检查直接验证导出产物的迁移与生成元数据。
@@ -14,6 +15,7 @@ All notable changes to Unicore are documented here. 本文件只记录面向使�
 
 ### English
 
+- Fixed database migrations containing triggers and functions with internal semicolons by supporting explicit statement blocks; published migration splitting remains unchanged.
 - Fixed menu-tree saves on existing Platform instances after disabling the notes demo. Module menus, customizations, and role grants are retained for re-enabling, while other menus remain editable.
 - Fixed Platform login and personal-security joins on MySQL databases using `utf8mb4_unicode_ci` by aligning association keys in an appended migration while retaining existing data. Deploy this migration with a stopped instance and a backup; rollback requires the matching old binary and a complete snapshot.
 - Fixed missing appended migration SQL and related regression tests in derived application templates so desktop packaging can validate the complete catalog on all three operating systems. Distribution checks now validate migrations and generated metadata in the exported output.

@@ -4,14 +4,68 @@ package runner
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/yunnuo/unicore/internal/adapter/storage/platformsql"
 	"github.com/yunnuo/unicore/internal/adapter/storage/webdb"
 	"github.com/yunnuo/unicore/internal/mcp"
+	"github.com/yunnuo/unicore/migrations/catalogdata"
 )
+
+func TestLiveCompoundMigration(t *testing.T) {
+	for driver, env := range dialectCases() {
+		dsn := os.Getenv(env)
+		if dsn == "" {
+			t.Logf("%s skipped: %s not set", driver, env)
+			continue
+		}
+		t.Run(driver, func(t *testing.T) {
+			ctx := context.Background()
+			store, err := webdb.Open(ctx, driver, dsn, filepath.Join(t.TempDir(), "unused.db"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer store.Close()
+			suffix := fmt.Sprintf("%d", time.Now().UnixNano())
+			table, ledger, trigger, function := "i103_e_"+suffix, "i103_l_"+suffix, "i103_t_"+suffix, "i103_f_"+suffix
+			defer func() {
+				store.DB.ExecContext(ctx, "DROP TABLE IF EXISTS "+table)
+				store.DB.ExecContext(ctx, "DROP TABLE IF EXISTS "+ledger)
+				if driver == "postgres" {
+					store.DB.ExecContext(ctx, "DROP FUNCTION IF EXISTS "+function+"()")
+				}
+			}()
+			if _, err := store.DB.ExecContext(ctx, "CREATE TABLE "+ledger+" (namespace VARCHAR(128), version INTEGER, checksum VARCHAR(64), applied_at BIGINT)"); err != nil {
+				t.Fatal(err)
+			}
+			var blocks []string
+			blocks = append(blocks, "CREATE TABLE "+table+" (id INTEGER PRIMARY KEY)")
+			if driver == "postgres" {
+				blocks = append(blocks, "CREATE FUNCTION "+function+"() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'immutable; event'; END; $$ LANGUAGE plpgsql", "CREATE TRIGGER "+trigger+" BEFORE UPDATE ON "+table+" FOR EACH ROW EXECUTE FUNCTION "+function+"()")
+			} else {
+				blocks = append(blocks, "CREATE TRIGGER "+trigger+" BEFORE UPDATE ON "+table+" FOR EACH ROW BEGIN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'immutable; event'; END")
+			}
+			blocks = append(blocks, "INSERT INTO "+table+"(id) VALUES (1)")
+			body := []byte("-- unicore:statements explicit\n" + strings.Join(blocks, "\n-- unicore:statement-break\n"))
+			migration := plannedMigration{namespace: "module.events", version: 1, file: catalogdata.SQLFile{Checksum: checksum(body)}, noTx: driver == "mysql"}
+			if err := runMigration(ctx, store.DB, driver, ledger, migration, body, fixedStamp); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := store.DB.ExecContext(ctx, "UPDATE "+table+" SET id=2"); err == nil {
+				t.Fatal("trigger did not reject update")
+			}
+			var count int
+			if err := store.DB.QueryRowContext(ctx, "SELECT count(*) FROM "+ledger).Scan(&count); err != nil || count != 1 {
+				t.Fatalf("ledger count=%d: %v", count, err)
+			}
+		})
+	}
+}
 
 // dialectCases maps a driver to its DSN environment variable. Set the
 // variable to a disposable database and the test applies the full catalog

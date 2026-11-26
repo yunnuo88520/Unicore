@@ -54,7 +54,9 @@ export function BrandMark({ size = 36, maxWidth = size, branding: override, name
   return <span className={`instance-brand brand-logo ${fullLogo ? 'logo-mode-text' : 'logo-mode-icon'}`} style={style} aria-hidden="true"><span className={`instance-brand-${mode}`}>{src ? <BrandImage key={src} src={src} fallback={fallback} /> : fallback}</span></span>;
 }
 
-/** Explicit logo/title slots protect the title from arbitrary uploaded image geometry. */
+/** Explicit logo/title slots protect the title from arbitrary uploaded image geometry.
+ * The maxWidth budget bounds the logo only; the title shares the consumer's
+ * container instead of the logo budget, so roomy surfaces render full names. */
 export function BrandLockup({ name, maxWidth = 180, size = 36, branding: override, appearance, compact = false }: BrandProps) {
   useLocale();
   const context = useContext(BrandContext);
@@ -67,7 +69,7 @@ export function BrandLockup({ name, maxWidth = 180, size = 36, branding: overrid
   const wordmark = branding?.display_mode === 'wordmark' && !!logo;
   const fallback = <span className="brand-name min-w-0 truncate font-medium">{label}</span>;
   const logoWidth = Math.min(120, maxWidth);
-  return <span className="brand flex min-w-0 items-center gap-2" data-brand-layout={wordmark ? 'wordmark' : 'icon-title'} style={{ width: wordmark ? 'auto' : '100%', maxWidth }} title={label}>
+  return <span className="brand flex min-w-0 items-center gap-2" data-brand-layout={wordmark ? 'wordmark' : 'icon-title'} style={{ width: wordmark ? 'auto' : '100%' }} title={label}>
     {wordmark ? <span className="instance-brand brand-logo logo-mode-text" style={{ height: size, '--brand-logo-size': `${size}px`, '--brand-logo-max-width': `${logoWidth}px` } as CSSProperties} role="img" aria-label={label}><span className={`instance-brand-${mode}`}><BrandImage key={logo} src={logo} fallback={fallback} /></span></span>
       : <><BrandMark size={size} maxWidth={logoWidth} branding={branding} name={label} appearance={mode} /><strong className="brand-name min-w-0 flex-1 truncate font-medium">{label}</strong></>}
   </span>;

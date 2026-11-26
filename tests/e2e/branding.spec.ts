@@ -113,7 +113,7 @@ async function expectWordmarkBrand(page: Page, info: TestInfo, mode: 'light' | '
   // Device-pixel-ratio rounding can nudge the fitted width a hair over 100.
   expect(bounds!.width).toBeLessThanOrEqual(100.001);
   expect(bounds!.height).toBeLessThanOrEqual(32);
-  if (expectedRatio >= 1.5) expect(bounds!.width).toBeGreaterThanOrEqual(100);
+  if (expectedRatio >= 1.5) expect(bounds!.width).toBeGreaterThanOrEqual(99.999);
   expect(bounds!.width / bounds!.height).toBeCloseTo(expectedRatio, 1);
   const version = brandHeader.locator('.version-badge');
   await expect(version).toBeVisible();

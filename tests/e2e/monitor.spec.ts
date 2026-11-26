@@ -88,7 +88,8 @@ test('platform: super admin sees monitor pages while the dashboard stays free of
   await page.goto(`${instance.url}/admin/monitor-events`);
   await expect(page.getByText('关于运行事件')).toBeVisible();
 
-  const member = sdkClient(instance.url);
+  // Members log in on the user surface; management admission refuses them on the admin one.
+  const member = sdkClient(instance.url, 'user');
   await admin.web!.createUser({ username: 'plainadmin2', email: 'plainadmin2@example.test', password: memberPassword, role: 'user' });
   await loginClient(member, 'plainadmin2', memberPassword);
   await expect(member.alertRules!()).rejects.toThrow();

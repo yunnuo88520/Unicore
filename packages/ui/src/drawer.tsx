@@ -7,6 +7,7 @@ import { X } from 'lucide-react';
 import { t, useLocale } from './i18n';
 import { cn } from './cn';
 import { Button } from './button';
+import { FOCUSABLE } from './dialog';
 import { ControlLabelProvider } from './input';
 
 export const Drawer = DialogPrimitive.Root;
@@ -31,9 +32,11 @@ type DrawerContentProps = ComponentPropsWithoutRef<typeof DialogPrimitive.Conten
   closeLabel?: string;
   pending?: boolean;
   bodyClassName?: string;
+  /** Editor recipes focus their first body field; plain panels focus the close button. */
+  focusBody?: boolean;
 };
 
-export const DrawerContent = forwardRef<HTMLDivElement, DrawerContentProps>(function DrawerContent({ side = 'end', size = 'sm', title, description, closeLabel, pending = false, className, bodyClassName, children, onOpenAutoFocus, onCloseAutoFocus, onEscapeKeyDown, ...props }, ref) {
+export const DrawerContent = forwardRef<HTMLDivElement, DrawerContentProps>(function DrawerContent({ side = 'end', size = 'sm', title, description, closeLabel, pending = false, className, bodyClassName, focusBody = false, children, onOpenAutoFocus, onCloseAutoFocus, onEscapeKeyDown, ...props }, ref) {
   useLocale();
   // State-controlled drawers render no Radix trigger; remember what opened the
   // surface so focus returns there on close, like DialogContent.
@@ -50,8 +53,11 @@ export const DrawerContent = forwardRef<HTMLDivElement, DrawerContentProps>(func
         if (event.defaultPrevented) return;
         event.preventDefault();
         const root = event.currentTarget as HTMLElement;
-        const body = root.querySelector<HTMLElement>('[data-drawer-body]');
-        const target = body?.querySelector<HTMLElement>('[data-autofocus]') ?? body?.querySelector<HTMLElement>('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])');
+        // DialogContent convention: an explicit data-autofocus target wins, else
+        // the first focusable control (header close button first). Editor recipes
+        // opt into body-scoped focus so their first field opens ready to type.
+        const scope = focusBody ? root.querySelector<HTMLElement>('[data-drawer-body]') ?? root : root;
+        const target = root.querySelector<HTMLElement>('[data-autofocus]') ?? scope.querySelector<HTMLElement>(FOCUSABLE);
         (target ?? root).focus({ preventScroll: true });
       }}
       onCloseAutoFocus={event => {
@@ -90,7 +96,7 @@ export function FormDrawer({ title, description, onClose, pending = false, size 
 }) {
   useLocale();
   return <Drawer open onOpenChange={open => { if (!open && !pending) onClose(); }}>
-    <DrawerContent title={title} description={description} size={size} pending={pending} closeLabel={t('关闭{{v0}}', { v0: title })}
+    <DrawerContent title={title} description={description} size={size} pending={pending} focusBody closeLabel={t('关闭{{v0}}', { v0: title })}
       bodyClassName="overflow-hidden p-0 sm:px-0" onInteractOutside={event => event.preventDefault()}>
       <ControlLabelProvider layout="stacked">{children}</ControlLabelProvider>
     </DrawerContent>

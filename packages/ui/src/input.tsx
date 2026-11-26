@@ -14,8 +14,9 @@ export function ControlLabelProvider({ layout, children }: { layout: 'floating' 
 }
 
 // The aria-invalid:* selectors react to the DOM attribute; cva keeps the surface composable and exported.
-export const controlVariants = cva('w-full rounded-lg border border-line bg-surface px-3 text-base text-ink transition-colors placeholder:text-muted outline-none hover:border-line-strong focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55 aria-invalid:border-danger aria-invalid:ring-danger', {
-  variants: { appearance: { default: '', search: 'rounded-full shadow-none' } },
+export const controlVariants = cva('w-full rounded-lg border border-line bg-field px-3 text-base text-ink transition-colors placeholder:text-muted outline-none hover:border-line-strong focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-55 aria-invalid:border-danger aria-invalid:ring-danger', {
+  // Search fields sit on surface toolbars, so their inset fill keeps them readable there too.
+  variants: { appearance: { default: '', search: 'rounded-full border-transparent bg-surface-inset shadow-none' } },
   defaultVariants: { appearance: 'default' },
 });
 

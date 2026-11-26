@@ -1,6 +1,6 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: The status-page family: 404 router page, 403 permission page, 5xx boot failure and the maintenance 503.
-import { test, expect, installStandalone, installPlatform, sdkClient, loginClient, workspaceLogin } from './fixtures';
+import { test, expect, installStandalone, installPlatform, sdkClient, loginClient, adminLogin } from './fixtures';
 import { capture } from './visual';
 
 test('404 renders the full-page status route for unregistered paths', async ({ page, instance }, info) => {
@@ -14,8 +14,11 @@ test('403 renders inside the workspace for accounts without grants', async ({ pa
   await installPlatform(instance);
   const admin = sdkClient(instance.url, 'administrator');
   await loginClient(admin, 'admin', 'administrator-password-strong');
-  await admin.web!.createUser({ username: 'restricted', email: 'restricted@example.test', password: 'member-password-strong' });
-  await workspaceLogin(page, instance.url, 'restricted', 'member-password-strong');
+  // Management admission lets this account through the admin door, but the
+  // missing users grant renders the in-workspace 403 instead of the page.
+  const entry = await admin.createRole({ name: 'Entry only', realm: 'user', permissions: ['admin:access'], menu_ids: ['overview'], action_ids: [], operation_ids: [] });
+  await admin.createUser({ username: 'restricted', email: 'restricted@example.test', password: 'member-password-strong', role_ids: [entry.id] });
+  await adminLogin(page, instance.url, 'restricted', 'member-password-strong');
   await page.goto(`${instance.url}/admin/users`);
   await expect(page.getByRole('heading', { name: '没有访问权限', exact: true })).toBeVisible();
   await capture(page, info, 'error-403');

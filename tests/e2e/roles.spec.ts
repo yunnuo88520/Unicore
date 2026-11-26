@@ -251,7 +251,7 @@ test('restricted administrators keep user administration without role management
   await adminDialog.getByLabel('账号', { exact: true }).fill('ops');
   await adminDialog.getByLabel('邮箱', { exact: true }).fill('ops@example.test');
   await adminDialog.getByLabel('初始密码', { exact: true }).fill('ops-password-strong');
-  await adminDialog.getByRole('checkbox', { name: 'super_admin', exact: true }).uncheck();
+  await adminDialog.getByRole('checkbox', { name: '超级管理员', exact: true }).uncheck();
   await adminDialog.getByRole('checkbox', { name: '内容运营', exact: true }).check();
   await adminDialog.getByRole('button', { name: '创建管理员', exact: true }).click();
   await expect(adminDialog).toHaveCount(0);
@@ -350,7 +350,8 @@ test('button-level grants hide note actions while the notes page stays reachable
     const uploaded = await memberApi.uploadFile(new File([Buffer.from('member file content')], 'member-file.txt', { type: 'text/plain' }));
     await expect(memberApi.files!.deleteFile(uploaded.file_id)).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
     await memberPage.goto(`${instance.url}/files`);
-    await expect(memberPage.getByRole('heading', { name: '页面不存在', exact: true })).toBeVisible();
+    // /files is a governed page now: the member without the grant sees the 403 page, not a 404.
+    await expect(memberPage.getByRole('heading', { name: '没有访问权限', exact: true })).toBeVisible();
     // Narrowing the permission upper bound prunes dependent API and action
     // grants in the same save; unrelated grants stay intact. The saved union
     // is derived inside the editor, so the buttons, their API operations and
@@ -637,10 +638,10 @@ test('api grants stay revocable, respect any/all bounds and survive restarts', a
   await loginClient(operatorApi, 'operator', 'operator-password-strong');
   const adminNotes = await operatorApi.listNotes({ search: '', status: '', sort: 'updated_at', direction: 'desc', page: 1 });
   expect(Array.isArray(adminNotes.items)).toBe(true);
-  // Stripping the admin:access point invalidates the all-mode grant as well.
+  // Stripping the admin:access point locks the operator out of the management
+  // surface at the next login; the all-mode API grant dies with the entry.
   await admin.web!.updateRole(operator.id, { version: operator.version, name: '运营', permissions: ['notes:access'], operation_ids: [] });
-  await loginClient(operatorApi, 'operator', 'operator-password-strong');
-  await expect(operatorApi.listNotes({ search: '', status: '', sort: 'updated_at', direction: 'desc', page: 1 })).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  await expect(loginClient(operatorApi, 'operator', 'operator-password-strong')).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
 
   // The builtin user role loses one point together with its dependent grant.
   const builtin = (await admin.web!.roles()).items.find(item => item.id === 'user')!;
@@ -660,8 +661,8 @@ test('api grants stay revocable, respect any/all bounds and survive restarts', a
   // after the restart; the builtin and operator revocations must persist.
   await loginClient(recorderApi, 'recorder', member);
   await expect(recorderApi.listNotes({ search: '', status: '', sort: 'updated_at', direction: 'desc', page: 1 })).resolves.toMatchObject({ total: 0 });
-  await loginClient(operatorApi, 'operator', 'operator-password-strong');
-  await expect(operatorApi.listNotes({ search: '', status: '', sort: 'updated_at', direction: 'desc', page: 1 })).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  // The stripped operator stays refused by management admission after restarts.
+  await expect(loginClient(operatorApi, 'operator', 'operator-password-strong')).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
 });
 
 test('menus-only operators edit the tree but can never widen authorizations', async ({ page, browser, instance }, info) => {

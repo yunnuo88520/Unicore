@@ -154,22 +154,25 @@ test('Vite saved wide logo and long title fit the sidebar through collapse, relo
     await expect(wordmark.locator('.version-badge')).toBeVisible();
     const checkWordmarkPlacement = async () => {
       await expect(wordmark).toHaveCSS('position', 'static');
-      await expect(wordmark.locator('.brand-area')).toHaveCSS('flex-direction', 'row');
-      await expect(wordmark.locator('.brand-area')).toHaveCSS('align-items', 'center');
-      await expect(wordmark.locator('.brand-info')).toHaveCSS('padding-left', '0px');
+      // The wordmark stacks the version badge under the logo (8px vertical gap,
+      // 2px left inset) — the clearance assertion below depends on it.
+      await expect(wordmark.locator('.brand-area')).toHaveCSS('flex-direction', 'column');
+      expect(await wordmark.locator('.brand-area').evaluate(element => getComputedStyle(element).alignItems.endsWith('start'))).toBe(true);
+      await expect(wordmark.locator('.brand-info')).toHaveCSS('padding-left', '2px');
       const placement = await wordmark.evaluate(element => {
         const header = element.getBoundingClientRect();
         const logo = element.querySelector('.sidebar-header-logo')!.getBoundingClientRect();
         const version = element.querySelector('.version-badge')!.getBoundingClientRect();
         const toggle = element.querySelector('.sidebar-header-toggle')?.getBoundingClientRect();
         return {
-          left: version.left - logo.right, drift: Math.abs(logo.top + logo.height / 2 - (version.top + version.height / 2)),
+          inset: version.left - logo.left, gap: version.top - logo.bottom,
           logoTop: logo.top - header.top,
           toggle: toggle ? { right: header.right - toggle.right, width: toggle.width, height: toggle.height, clearance: toggle.left - version.right } : null,
         };
       });
-      expect(placement.left).toBeCloseTo(8, 2);
-      expect(placement.drift).toBeLessThanOrEqual(1);
+      // Stacked wordmark geometry: the badge sits 8px under the logo, inset 2px.
+      expect(placement.inset).toBeCloseTo(2, 2);
+      expect(placement.gap).toBeCloseTo(8, 2);
       expect(placement.logoTop).toBeGreaterThanOrEqual(0);
       if (!mobile) {
         await expect(wordmark.locator('.sidebar-header-toggle')).toHaveCSS('position', 'static');

@@ -6,7 +6,6 @@ import (
 	"context"
 	"path"
 	"strings"
-	"unicode"
 
 	"github.com/yunnuo/unicore/internal/contracts"
 )
@@ -14,17 +13,14 @@ import (
 // CatalogFilter is exclusive to the instance administration surface. Business
 // lists retain their independent ownership and data-scope restrictions.
 type CatalogFilter struct {
-	Search, LocationID, Directory string
-	Page                          int
-	DirectorySet                  bool
-	TargetLocationID              string
-	LocalSourcesOnly              bool
+	Search, LocationID string
+	Page               int
+	Purpose            string
+	TypeCategory       string
 }
 
 type CatalogRepository interface {
 	Catalog(context.Context, CatalogFilter) (contracts.FileCatalogList, error)
-	Directories(context.Context) (contracts.FileDirectoryList, error)
-	MigrationSelection(context.Context, CatalogFilter) (contracts.FileMigrationSelection, error)
 }
 
 // Directory exposes only the logical upload folder, never the object key.
@@ -36,18 +32,35 @@ func Directory(f Record) string {
 	return strings.TrimPrefix(dir, "objects/")
 }
 
-func validDirectory(dir string) bool {
-	return dir == "" || len(dir) <= 512 && !strings.HasPrefix(dir, "/") &&
-		!strings.Contains(dir, "\\") && path.Clean(dir) == dir &&
-		dir != "." && dir != ".." && !strings.HasPrefix(dir, "../") &&
-		!strings.ContainsFunc(dir, unicode.IsControl)
+// StoragePath renders a human-readable logical path relative to the storage
+// root for governance audit: local objects live under the instance data
+// directory's files/ folder, cloud objects under their bucket and configured
+// prefix. Host-absolute paths are never exposed.
+func StoragePath(l contracts.StorageLocation, key string) string {
+	if l.Provider == "" || l.Provider == "local" {
+		return "files/" + key
+	}
+	parts := make([]string, 0, 3)
+	if bucket := strings.TrimSpace(l.Bucket); bucket != "" {
+		parts = append(parts, bucket)
+	}
+	if prefix := strings.Trim(l.Prefix, "/"); prefix != "" {
+		parts = append(parts, prefix)
+	}
+	return strings.Join(append(parts, key), "/")
+}
+
+func validPurpose(p string) bool { return p == "" || p == "user" || p == "branding" }
+
+func validTypeCategory(c string) bool {
+	return c == "" || c == CategoryImage || c == CategoryDocument || c == CategoryArchive || c == CategoryOther
 }
 
 func (s *Service) Catalog(ctx context.Context, a Actor, filter CatalogFilter) (contracts.FileCatalogList, error) {
 	if !a.Admin {
 		return contracts.FileCatalogList{}, ErrNotFound
 	}
-	if filter.Page < 1 || filter.Page > 100000 || len(filter.Search) > 255 || len(filter.LocationID) > 64 || len(filter.TargetLocationID) > 64 || !validDirectory(filter.Directory) {
+	if filter.Page < 1 || filter.Page > 100000 || len(filter.Search) > 255 || len(filter.LocationID) > 64 || !validPurpose(filter.Purpose) || !validTypeCategory(filter.TypeCategory) {
 		return contracts.FileCatalogList{}, ErrInvalid
 	}
 	repo, ok := s.Repo.(CatalogRepository)
@@ -58,11 +71,22 @@ func (s *Service) Catalog(ctx context.Context, a Actor, filter CatalogFilter) (c
 	if err != nil {
 		return list, ErrUnavailable
 	}
+	locations := map[string]contracts.StorageLocation{}
+	if len(list.Items) > 0 {
+		if all, err := s.Repo.Locations(ctx); err == nil {
+			for _, l := range all {
+				locations[l.ID] = l.StorageLocation
+			}
+		}
+	}
 	for i := range list.Items {
 		f := &list.Items[i].File
 		f.Capabilities.Download = f.State == "ready" && (f.ExpiresAt == 0 || f.ExpiresAt > int(s.now().Unix()))
 		// The delete endpoint performs the authoritative reference check again.
-		f.Capabilities.Delete = f.State != "copying" && s.ensureUnreferenced(ctx, Record{FileEntry: *f}) == nil
+		referenced := s.ensureUnreferenced(ctx, Record{FileEntry: *f, Key: list.Items[i].FileKey}) == nil
+		list.Items[i].Referenced = !referenced
+		f.Capabilities.Delete = f.State != "copying" && referenced
+		list.Items[i].StoragePath = StoragePath(locations[f.LocationID], list.Items[i].FileKey)
 	}
 	if s.Creators != nil && len(list.Items) > 0 {
 		ids := make([]string, 0, len(list.Items))
@@ -84,18 +108,9 @@ func (s *Service) Catalog(ctx context.Context, a Actor, filter CatalogFilter) (c
 	return list, nil
 }
 
-func (s *Service) Directories(ctx context.Context, a Actor) (contracts.FileDirectoryList, error) {
-	if !a.Admin {
-		return contracts.FileDirectoryList{}, ErrNotFound
-	}
-	repo, ok := s.Repo.(CatalogRepository)
-	if !ok {
-		return contracts.FileDirectoryList{}, ErrUnavailable
-	}
-	return repo.Directories(ctx)
-}
-
-func (s *Service) CatalogAccess(ctx context.Context, a Actor, id string) (contracts.FileAccess, error) {
+// CatalogAccess signs a short-lived download or, for whitelisted MIME types, a
+// sandboxed inline preview link on the administrator governance surface.
+func (s *Service) CatalogAccess(ctx context.Context, a Actor, id string, inline bool) (contracts.FileAccess, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if !a.Admin {
@@ -105,7 +120,7 @@ func (s *Service) CatalogAccess(ctx context.Context, a Actor, id string) (contra
 	if err != nil || f.State == "deleted" || (f.Purpose != "user" && f.Purpose != "branding") || f.ExpiresAt > 0 && f.ExpiresAt <= int(s.now().Unix()) {
 		return contracts.FileAccess{}, ErrNotFound
 	}
-	return s.signAccess(ctx, f)
+	return s.signAccess(ctx, f, inline)
 }
 
 func (s *Service) CatalogDelete(ctx context.Context, a Actor, id string) error {
@@ -127,29 +142,4 @@ func (s *Service) CatalogDelete(ctx context.Context, a Actor, id string) error {
 		return err
 	}
 	return s.remove(ctx, f, a.ID)
-}
-
-// MigrationSelection freezes the batch before the first storage transition.
-func (s *Service) MigrationSelection(ctx context.Context, a Actor, filter CatalogFilter) (contracts.FileMigrationSelection, error) {
-	if !a.Admin {
-		return contracts.FileMigrationSelection{}, ErrNotFound
-	}
-	if len(filter.Search) > 255 || len(filter.LocationID) > 64 || len(filter.TargetLocationID) > 64 || !validDirectory(filter.Directory) {
-		return contracts.FileMigrationSelection{}, ErrInvalid
-	}
-	if filter.TargetLocationID != "" {
-		target, err := s.location(ctx, filter.TargetLocationID)
-		if err != nil {
-			return contracts.FileMigrationSelection{}, err
-		}
-		if !target.Tested || target.ID == "legacy-brand" {
-			return contracts.FileMigrationSelection{}, ErrNotReady
-		}
-		filter.LocalSourcesOnly = target.Provider != "local"
-	}
-	repo, ok := s.Repo.(CatalogRepository)
-	if !ok {
-		return contracts.FileMigrationSelection{}, ErrUnavailable
-	}
-	return repo.MigrationSelection(ctx, filter)
 }

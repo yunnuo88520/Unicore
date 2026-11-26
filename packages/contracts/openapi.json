@@ -4389,9 +4389,21 @@
               "type": "string",
               "maxLength": 128
             }
+          },
+          {
+            "name": "disposition",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "attachment",
+                "inline"
+              ]
+            },
+            "description": "Serve the bytes inline with the real Content-Type for whitelisted safe MIME types (common images, PDF, plain text). Any other type, and any missing or unexpected value, falls back to an attachment download. CSP sandbox is always applied."
           }
         ],
-        "description": "校验文件状态、有效期与加密签名后，以 attachment 下载本地文件。"
+        "description": "校验文件状态、有效期与加密签名后下载本地文件；默认 attachment，仅安全 MIME 白名单允许 disposition=inline 内联预览。"
       }
     },
     "/api/v1/admin/auth/oidc/callback": {
@@ -17866,7 +17878,7 @@
         },
         "summary": "fileCatalog",
         "x-permission": "storage:read; super administrator only",
-        "description": "Instance-wide metadata catalog, including business uploads and normalized branding. Directory filters include descendants. Does not scan buckets or disclose object keys or credentials.",
+        "description": "Instance-wide metadata catalog, including business uploads and normalized branding. Does not scan buckets or disclose object credentials. The object key is exposed only to super administrators for governance audits.",
         "parameters": [
           {
             "name": "search",
@@ -17894,65 +17906,30 @@
             }
           },
           {
-            "name": "directory",
+            "name": "purpose",
             "in": "query",
             "schema": {
               "type": "string",
-              "maxLength": 512
+              "enum": [
+                "user",
+                "branding"
+              ]
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "image",
+                "document",
+                "archive",
+                "other"
+              ]
             }
           }
         ]
-      }
-    },
-    "/api/v1/admin/file-catalog/directories": {
-      "get": {
-        "operationId": "fileDirectories",
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FileDirectoryListResponse"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "Stable error code",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "AdministratorSession": []
-          },
-          {
-            "BearerToken": []
-          }
-        ],
-        "x-unicore": {
-          "profiles": [
-            "web-platform"
-          ],
-          "access": "authenticated",
-          "permissions": [
-            "storage:read"
-          ],
-          "permissionMode": "all",
-          "superAdmin": true,
-          "csrf": false,
-          "identityRealm": "administrator"
-        },
-        "summary": "fileDirectories",
-        "x-permission": "storage:read; super administrator only",
-        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。普通用户只读取本人所属身份域的文件；管理员可查看实例文件。"
       }
     },
     "/api/v1/admin/file-catalog/{id}/access": {
@@ -18004,7 +17981,7 @@
         },
         "summary": "fileCatalogAccess",
         "x-permission": "storage:read; super administrator only",
-        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。普通用户只读取本人所属身份域的文件；管理员可查看实例文件。",
+        "description": "固定管理工作台 API 入口；与用户工作台共享账号和会话，不通过请求头切换工作台。权限由当前 operation 策略决定。普通用户只读取本人所属身份域的文件；管理员可查看实例文件。disposition=inline 仅对安全 MIME 白名单（常见图片、PDF、纯文本）签发内联预览链接，其余一律回退为附件下载。",
         "parameters": [
           {
             "name": "id",
@@ -18015,6 +17992,18 @@
               "minLength": 1,
               "maxLength": 80
             }
+          },
+          {
+            "name": "disposition",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "attachment",
+                "inline"
+              ]
+            },
+            "description": "Request an inline preview link. Only granted for whitelisted safe MIME types; otherwise the link stays an attachment download."
           }
         ]
       }
@@ -18083,16 +18072,16 @@
         ]
       }
     },
-    "/api/v1/admin/file-catalog/migration-selection": {
+    "/api/v1/admin/storage/migrations/summary": {
       "get": {
-        "operationId": "fileMigrationSelection",
+        "operationId": "storageMigrationSummary",
         "responses": {
           "200": {
             "description": "Success",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FileMigrationSelectionResponse"
+                  "$ref": "#/components/schemas/StorageMigrationSummaryResponse"
                 }
               }
             }
@@ -18129,42 +18118,429 @@
           "csrf": false,
           "identityRealm": "administrator"
         },
-        "summary": "Snapshot ready file IDs matching the catalog filters",
+        "summary": "storageMigrationSummary",
         "x-permission": "storage:read; super administrator only",
-        "description": "Takes one metadata snapshot of ready files matching filters, up to 100000 entries. Later uploads are not added to this selection. Oversized selections are rejected; narrow by location or directory. An optional tested target filters out files already there and unsupported cloud-to-cloud transfers.",
+        "description": "Ready file counts and total bytes grouped by every non-active storage location. Files already migrated keep their original location until the record changes, so the summary reflects remaining work.",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/storage/migrations": {
+      "get": {
+        "operationId": "listStorageMigrations",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageMigrationListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "listStorageMigrations",
+        "x-permission": "storage:read; super administrator only",
+        "description": "Recent storage migration jobs, newest first. Only one running or paused job may exist at a time.",
+        "parameters": []
+      },
+      "post": {
+        "operationId": "createStorageMigration",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageMigrationJobResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "createStorageMigration",
+        "x-permission": "storage:write; super administrator only",
+        "description": "Create and start one asynchronous storage migration job. The target must be tested, the legacy brand store is never a target, and cloud-to-cloud transfers are rejected. Set the global default storage to the target before creating the job so new files land there during the run. The job scans ready files of the source location with a resumable cursor; files uploaded after the cursor passed are not guaranteed to join the run. The job auto-resumes as paused after a service restart.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorageMigrationCreateInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/storage/migrations/current": {
+      "get": {
+        "operationId": "currentStorageMigration",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageMigrationCurrentResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:read"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": false,
+          "identityRealm": "administrator"
+        },
+        "summary": "currentStorageMigration",
+        "x-permission": "storage:read; super administrator only",
+        "description": "The running or paused migration job with its first failed files; the job field is omitted when no job is active.",
+        "parameters": []
+      }
+    },
+    "/api/v1/admin/storage/migrations/{id}/pause": {
+      "post": {
+        "operationId": "pauseStorageMigration",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "pauseStorageMigration",
+        "x-permission": "storage:write; super administrator only",
+        "description": "Pause a running migration job between file batches; in-flight copies finish first.",
         "parameters": [
           {
-            "name": "search",
-            "in": "query",
+            "name": "id",
+            "in": "path",
+            "required": true,
             "schema": {
               "type": "string",
-              "maxLength": 255
+              "minLength": 1,
+              "maxLength": 80
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/storage/migrations/{id}/resume": {
+      "post": {
+        "operationId": "resumeStorageMigration",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
             }
           },
-          {
-            "name": "location_id",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "maxLength": 64
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
             }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
           },
           {
-            "name": "directory",
-            "in": "query",
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "resumeStorageMigration",
+        "x-permission": "storage:write; super administrator only",
+        "description": "Resume a paused migration job from its saved cursor.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
             "schema": {
               "type": "string",
-              "maxLength": 512
+              "minLength": 1,
+              "maxLength": 80
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/storage/migrations/{id}/cancel": {
+      "post": {
+        "operationId": "cancelStorageMigration",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
             }
           },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
           {
-            "name": "target_location_id",
-            "in": "query",
+            "CSRFToken": [],
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "cancelStorageMigration",
+        "x-permission": "storage:write; super administrator only",
+        "description": "Cancel a running or paused migration job. Files already migrated stay migrated; remaining files keep their original location.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
             "schema": {
               "type": "string",
-              "maxLength": 64
-            },
-            "description": "Exclude the destination and limit cloud destinations to local sources. Cloud-to-cloud migration is not supported."
+              "minLength": 1,
+              "maxLength": 80
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/storage/migrations/{id}/retry-failed": {
+      "post": {
+        "operationId": "retryFailedStorageMigration",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResultResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable error code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "CSRFToken": [],
+            "AdministratorSession": []
+          },
+          {
+            "BearerToken": []
+          }
+        ],
+        "x-unicore": {
+          "profiles": [
+            "web-platform"
+          ],
+          "access": "authenticated",
+          "permissions": [
+            "storage:write"
+          ],
+          "permissionMode": "all",
+          "superAdmin": true,
+          "csrf": true,
+          "identityRealm": "administrator"
+        },
+        "summary": "retryFailedStorageMigration",
+        "x-permission": "storage:write; super administrator only",
+        "description": "Re-run every failed file of a non-active migration job before its saved cursor is resumed.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
           }
         ]
       }
@@ -27842,6 +28218,10 @@
           "file",
           "purpose",
           "directory",
+          "referenced",
+          "file_key",
+          "storage_path",
+          "etag",
           "creator_name",
           "creator_username"
         ],
@@ -27856,6 +28236,25 @@
           "directory": {
             "type": "string",
             "maxLength": 512
+          },
+          "referenced": {
+            "type": "boolean",
+            "description": "True while any business record still references the file; referenced files cannot be deleted."
+          },
+          "file_key": {
+            "type": "string",
+            "maxLength": 1024,
+            "description": "Physical object key inside the storage location; governance audit only."
+          },
+          "storage_path": {
+            "type": "string",
+            "maxLength": 1200,
+            "description": "Human-readable logical path relative to the storage root: files/{file_key} for local storage, {bucket}/{prefix}/{file_key} for object storage. Never a host-absolute path."
+          },
+          "etag": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Stored ETag; a sha256 hex digest for local objects, provider-defined for cloud objects."
           },
           "creator_name": {
             "type": "string",
@@ -27902,51 +28301,6 @@
           }
         }
       },
-      "FileDirectory": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "location_id",
-          "path",
-          "file_count",
-          "total_size"
-        ],
-        "properties": {
-          "location_id": {
-            "type": "string",
-            "maxLength": 64
-          },
-          "path": {
-            "type": "string",
-            "maxLength": 512
-          },
-          "file_count": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
-          },
-          "total_size": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
-          }
-        }
-      },
-      "FileDirectoryList": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "items"
-        ],
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/FileDirectory"
-            }
-          }
-        }
-      },
       "FileCatalogListResponse": {
         "type": "object",
         "additionalProperties": false,
@@ -27974,7 +28328,83 @@
           }
         }
       },
-      "FileDirectoryListResponse": {
+      "StorageMigrationCreateInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target_location_id"
+        ],
+        "properties": {
+          "source_location_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Storage location to drain; defaults to the current non-active leftover with files. The active default location and the legacy brand store are not valid sources."
+          },
+          "target_location_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "description": "Tested destination location. Cloud-to-cloud transfers are rejected. Set the global default to the target before migrating so new files land there during the run."
+          }
+        }
+      },
+      "StorageMigrationSummaryItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "location_id",
+          "provider",
+          "name",
+          "file_count",
+          "total_size"
+        ],
+        "properties": {
+          "location_id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "provider": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "file_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "total_size": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      },
+      "StorageMigrationSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "active_location_id",
+          "items"
+        ],
+        "properties": {
+          "active_location_id": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "Current global default storage location that new uploads follow."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StorageMigrationSummaryItem"
+            }
+          }
+        }
+      },
+      "StorageMigrationSummaryResponse": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -27988,7 +28418,7 @@
             "maxLength": 64
           },
           "data": {
-            "$ref": "#/components/schemas/FileDirectoryList"
+            "$ref": "#/components/schemas/StorageMigrationSummary"
           },
           "request_id": {
             "type": "string",
@@ -28001,24 +28431,133 @@
           }
         }
       },
-      "FileMigrationSelection": {
+      "StorageMigrationFailure": {
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "file_ids"
+          "file_id",
+          "original_name",
+          "reason",
+          "created_at"
         ],
         "properties": {
-          "file_ids": {
-            "type": "array",
-            "maxItems": 100000,
-            "items": {
-              "type": "string",
-              "maxLength": 80
-            }
+          "file_id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "original_name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Stable error code explaining why the file was not migrated."
+          },
+          "created_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
           }
         }
       },
-      "FileMigrationSelectionResponse": {
+      "StorageMigrationJob": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "source_location_id",
+          "target_location_id",
+          "status",
+          "mode",
+          "activate_on_complete",
+          "total_count",
+          "succeeded_count",
+          "failed_count",
+          "created_by",
+          "created_at",
+          "updated_at",
+          "finished_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "source_location_id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "target_location_id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "paused",
+              "completed",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "scan",
+              "retry"
+            ],
+            "description": "scan walks the resumable source cursor; retry re-processes recorded failures first."
+          },
+          "activate_on_complete": {
+            "type": "boolean"
+          },
+          "total_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "succeeded_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "failed_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "created_by": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "created_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "updated_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "finished_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "failures": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/StorageMigrationFailure"
+            },
+            "description": "First recorded failures, bounded; only populated by the current-job query."
+          }
+        }
+      },
+      "StorageMigrationJobResponse": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -28032,7 +28571,87 @@
             "maxLength": 64
           },
           "data": {
-            "$ref": "#/components/schemas/FileMigrationSelection"
+            "$ref": "#/components/schemas/StorageMigrationJob"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message; clients translate known catalog messages.",
+            "x-go-value": true
+          }
+        }
+      },
+      "StorageMigrationCurrent": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "job": {
+            "$ref": "#/components/schemas/StorageMigrationJob",
+            "description": "The running or paused migration job; omitted when no job is active."
+          }
+        }
+      },
+      "StorageMigrationCurrentResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "data": {
+            "$ref": "#/components/schemas/StorageMigrationCurrent"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message; clients translate known catalog messages.",
+            "x-go-value": true
+          }
+        }
+      },
+      "StorageMigrationList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/components/schemas/StorageMigrationJob"
+            }
+          }
+        }
+      },
+      "StorageMigrationListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "data",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "data": {
+            "$ref": "#/components/schemas/StorageMigrationList"
           },
           "request_id": {
             "type": "string",

@@ -101,7 +101,7 @@ func TestVendorMultipart(t *testing.T) {
 			if len(parts) != 2 {
 				t.Fatalf("parts count=%d", len(parts))
 			}
-			if e = mp.CompleteMultipart(ctx, key, id, parts); e != nil {
+			if _, e = mp.CompleteMultipart(ctx, key, id, parts); e != nil {
 				vendorFailure(t, "complete", e)
 			}
 			obj, e = st.Stat(ctx, key)
@@ -114,7 +114,7 @@ func TestVendorMultipart(t *testing.T) {
 			if e = st.Copy(ctx, key, target, obj.ETag); e != nil {
 				vendorFailure(t, "promote", e)
 			}
-			signed, e := st.SignGet(ctx, target, "test.bin", time.Minute)
+			signed, e := st.SignGet(ctx, target, "test.bin", time.Minute, false)
 			if e != nil {
 				vendorFailure(t, "sign download", e)
 			}

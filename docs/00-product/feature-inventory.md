@@ -50,8 +50,8 @@
 
 | 功能单元 | Platform | Standalone | CLI | 持久化 | 证据 |
 | --- | --- | --- | --- | --- | --- |
-| 文件服务（上传/下载/签名访问/清理） | 已实现，支持本地及云位置、授权迁移 | 已实现：固定本地位置，Web/原生桥等效 | 不装配 | core 的文件四表 + blob | `internal/files/service.go`、`internal/bootstrap/filelocal/service.go`、[ADR-0043](../adr/ADR-0043-business-file-boundaries.md) |
-| 平台文件治理 | 已实现：超级管理员全实例目录、分页搜索、授权下载、引用保护删除与本地/云端双向批量迁移；一级菜单位于监控与 AI 之间 | 不装配 | 不装配 | 复用文件元数据和位置，无新增表 | `internal/files/catalog.go`、`packages/web-ui/src/pages/admin/files.tsx`、[ADR-0051](../adr/ADR-0051-platform-file-governance.md) |
+| 文件服务（上传/下载/签名访问/清理） | 已实现，支持本地及云位置；物理对象键统一由服务端生成（`objects/{目录}/{年}/{月}/{随机ID}.{扩展名}`，业务相对目录受白名单与穿越清洗约束），服务端异步迁移任务（暂停/恢复/取消/失败重试，仅平台），任务终态写入创建者通知中心并保留最近 20 条历史记录 | 已实现：固定本地位置，Web/原生桥等效 | 不装配 | core 的文件六表（含迁移任务与失败明细）+ blob | `internal/files/service.go`、`internal/files/migration.go`、`internal/files/worker.go`、`internal/bootstrap/filelocal/service.go`、[ADR-0043](../adr/ADR-0043-business-file-boundaries.md) |
+| 平台文件治理 | 已实现：超级管理员全实例目录、用途/类型/位置筛选、内联预览（安全 MIME 白名单）、详情审计、引用保护删除；一级菜单位于监控与 AI 之间 | 不装配 | 不装配 | 复用文件元数据和位置，无新增表 | `internal/files/catalog.go`、`packages/web-ui/src/pages/admin/files/`、[ADR-0051](../adr/ADR-0051-platform-file-governance.md) |
 | 分片断点续传 | 已实现 | 已实现：本地分片与重启续传 | 不装配 | unicore_file_upload_sessions | `internal/files/multipart.go`、`internal/adapter/desktop/files.go` |
 | 对象存储位置管理（local/minio/s3/oss/cos） | 已实现 | 不装配 | 不装配 | unicore_storage_locations | `internal/blob/store.go`、`internal/adapter/blobcloud/` |
 | 品牌图片资源（logo/favicon/accent） | 已实现：Logo 最大 500 KB，按解码内存预算接收高分辨率图片并等比规范化，错误区分格式/文件大小/解码容量；高度 32px、宽度自适应至 120px 的 Logo + 单行省略名称或独立字标，字标与版本纵向间距 8px、版本左内边距 2px、收起按钮固定于 Header 右上角；折叠时仅方形站点图标或名称首字居中、顶栏展开；真实组件预览 | 不装配运行时品牌：使用构建期品牌与共享侧栏布局 | 不适用 | branding.*（含 display_mode）+ 对象命名空间 | `internal/branding/service.go` |

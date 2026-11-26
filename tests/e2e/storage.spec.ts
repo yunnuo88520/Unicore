@@ -91,16 +91,15 @@ test('MinIO configuration, CORS, browser direct upload and migration',async({pag
  await page.getByRole('button',{name:'迁移 cloud-private.txt',exact:true}).click();await page.getByRole('dialog').getByRole('combobox',{name:'目标存储位置',exact:true}).selectOption('local');await page.getByRole('dialog').getByRole('button',{name:'开始迁移',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0,{timeout:60000});await expect(page.getByRole('row').filter({hasText:'cloud-private.txt'}).getByRole('cell',{name:'local',exact:true})).toBeVisible();
  await page.screenshot({path:`${dir}/minio-migrated.png`,fullPage:true,animations:'disabled'});
  await api.storage!.activateStorage('local');
- await page.goto(`${instance.url}/admin/files`);
- const row=page.getByRole('row').filter({hasText:'local-for-migration.txt'});await row.getByRole('checkbox').check();
- await page.getByRole('button',{name:/迁移所选/}).click();const governance=page.getByRole('dialog',{name:'迁移文件',exact:true});
- await chooseOption(page,'目标存储位置',/MinIO/,governance);
- await governance.getByRole('switch',{name:'全部迁移成功后，将目标设为全局默认',exact:true}).check();
- await governance.getByRole('button',{name:'开始迁移',exact:true}).click();
- await expect(page.getByText('文件迁移完成，新上传位置已切换',{exact:true})).toBeVisible({timeout:60000});
+ await page.goto(`${instance.url}/admin/files?tab=migration`);
+ await expect(page.getByText('待迁移概览',{exact:true})).toBeVisible();
+ await chooseOption(page,'源存储位置','本地存储',page);
+ await chooseOption(page,'目标存储位置',/MinIO/,page);
+ await page.getByRole('button',{name:'开始迁移',exact:true}).click();
+ await expect(page.getByText('迁移任务已启动',{exact:true})).toBeVisible({timeout:35000});
  const cloudLocation=(await api.storage!.storageLocations()).items.find(item=>item.provider==='minio')!;
- expect((await api.fileCatalog!.catalog({search:'local-for-migration.txt'})).items[0].file.location_id).toBe(cloudLocation.id);
- expect((await api.storage!.storageLocations()).active_id).toBe(cloudLocation.id);
+ await expect.poll(async()=>(await api.fileCatalog!.catalog({search:'local-for-migration.txt'})).items[0]?.file.location_id,{timeout:60000}).toBe(cloudLocation.id);
+ await expect.poll(async()=>(await api.storage!.storageLocations()).active_id,{timeout:60000}).toBe(cloudLocation.id);
  await api.fileCatalog!.migrateFile(localSource.file_id,'local');await api.storage!.activateStorage('local');
 
  } finally {execFileSync('build/bin/storagefixture',['cleanup',prefix]);}

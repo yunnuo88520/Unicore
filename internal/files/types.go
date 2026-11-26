@@ -66,6 +66,24 @@ type UploadSession struct {
 	FileID, UploadID, Fingerprint string
 	PartSize                      int64
 }
+
+// Migration job states and run modes.
+const (
+	MigrationRunning   = "running"
+	MigrationPaused    = "paused"
+	MigrationCompleted = "completed"
+	MigrationFailed    = "failed"
+	MigrationCancelled = "cancelled"
+	MigrationModeScan  = "scan"
+	MigrationModeRetry = "retry"
+)
+
+// MigrationJobRow is one durable migration run. The scan cursor stays
+// internal: contracts expose progress, never the resume pointer.
+type MigrationJobRow struct {
+	contracts.StorageMigrationJob
+	ScanCursor string
+}
 type Job struct {
 	ID, LocationID, Key string
 	Due                 int64
@@ -98,6 +116,32 @@ type ReferenceChecker interface {
 	Referenced(context.Context, string) (bool, error)
 }
 
+// MigrationJobRepository persists platform migration runs. Only the
+// web-platform composition implements it; other profiles never migrate.
+type MigrationJobRepository interface {
+	CreateMigrationJob(context.Context, MigrationJobRow, string) error
+	MigrationJob(context.Context, string) (MigrationJobRow, error)
+	// ActiveMigrationJob returns the single running or paused run, or a zero row.
+	ActiveMigrationJob(context.Context) (MigrationJobRow, error)
+	MigrationJobs(context.Context, int) ([]MigrationJobRow, error)
+	// PauseRunningMigrations demotes every running run to paused; startup recovery.
+	PauseRunningMigrations(context.Context) error
+	// Transition flips status atomically and returns whether the guard matched.
+	TransitionMigrationJob(ctx context.Context, id, from, to string, finishedAt int64) (bool, error)
+	// RestartMigrationJob reactivates a finished or paused job in retry mode.
+	RestartMigrationJob(ctx context.Context, id string, now int64) (bool, error)
+	// SaveMigrationProgress persists counters, cursor and mode only; status stays owned by transitions.
+	SaveMigrationProgress(ctx context.Context, job MigrationJobRow) error
+	RecordMigrationFailure(ctx context.Context, jobID string, failure contracts.StorageMigrationFailure) error
+	// ClearMigrationFailure reports whether a recorded failure row was removed.
+	ClearMigrationFailure(ctx context.Context, jobID, fileID string) (bool, error)
+	MigrationFailures(ctx context.Context, jobID string, limit int) ([]contracts.StorageMigrationFailure, error)
+	CountMigrationFailures(ctx context.Context, jobID string) (int, error)
+	CountReadyForMigration(ctx context.Context, locationID string) (int, error)
+	NextMigrationBatch(ctx context.Context, locationID, afterID string, limit int) ([]Record, error)
+	LocationReadyTotals(ctx context.Context, excludeLocation string) ([]contracts.StorageMigrationSummaryItem, error)
+}
+
 // CreatorDirectory supplies account labels without coupling file metadata to identity storage.
 type Creator struct{ Name, Username string }
 type CreatorDirectory interface {
@@ -120,7 +164,11 @@ type Service struct {
 	Activate   func(context.Context, string, string) error
 	References []ReferenceChecker
 	Creators   CreatorDirectory
-	Now        func() time.Time
+	// MigrationNotifications receives terminal migration outcomes for the
+	// instance notification center; assembly bridges it to the registered-type
+	// inbox and it stays nil in profiles without the migration worker.
+	MigrationNotifications MigrationNotifier
+	Now                    func() time.Time
 	// Single-instance composition holds a process lock; all metadata transitions use this mutex.
 	mu sync.Mutex
 	// referenceMu serializes business-reference writes with destructive file transitions.

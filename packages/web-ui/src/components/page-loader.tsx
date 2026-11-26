@@ -175,14 +175,23 @@ function FormSkeleton() {
 
 function CatalogSkeleton() {
   return <>
-    <Skeleton className="h-8 w-20 sm:hidden" />
-    <div className="grid min-w-0 gap-4 sm:grid-cols-[minmax(190px,240px)_minmax(0,1fr)] sm:gap-5">
-      <div data-skeleton-region="catalog-directories" className="hidden flex-col gap-3 sm:flex">
-        <Skeleton className="h-5 w-28" />
-        {Array.from({ length: 5 }, (_, index) => <Skeleton key={index} className={`h-8 ${index > 1 ? 'ms-5 w-4/5' : 'w-full'}`} />)}
+    <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex min-w-0 flex-col gap-2">
+        <Skeleton className="h-7 w-28" />
+        <Skeleton className="h-4 w-full max-w-md" />
       </div>
-      <div className="flex min-w-0 flex-col gap-3"><ListSkeleton /></div>
+      <Skeleton className="h-9 w-28" />
     </div>
+    <div data-skeleton-region="catalog-tabs" className="flex items-center gap-1">
+      <Skeleton className="h-9 w-20 rounded-full" />
+      <Skeleton className="h-9 w-24 rounded-full" />
+    </div>
+    <div data-skeleton-region="catalog-toolbar" className="flex flex-wrap items-center gap-2">
+      <Skeleton className="h-9 w-full max-w-xs" />
+      <Skeleton className="h-9 w-36" /><Skeleton className="h-9 w-28" />
+      <Skeleton className="ms-auto h-9 w-20" />
+    </div>
+    <ListSkeleton />
   </>;
 }
 

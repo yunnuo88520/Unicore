@@ -38,7 +38,10 @@ func New(c Config) (Managed, error) {
 		return newS3(c)
 	}
 }
-func disposition(name string) string {
+func disposition(name string, inline bool) string {
+	if inline {
+		return "inline"
+	}
 	return mime.FormatMediaType("attachment", map[string]string{"filename": name})
 }
 func fromHeaders(h http.Header) blob.Object {
@@ -129,8 +132,11 @@ func (s *s3Store) SignPut(ctx context.Context, k string, n int64, m string, ttl 
 	}
 	return blob.Grant{URL: u.String(), Method: "POST", Headers: map[string]string{}, Fields: f}, nil
 }
-func (s *s3Store) SignGet(ctx context.Context, k, name string, ttl time.Duration) (string, error) {
-	q := url.Values{"response-content-disposition": {disposition(name)}, "response-content-type": {"application/octet-stream"}}
+func (s *s3Store) SignGet(ctx context.Context, k, name string, ttl time.Duration, inline bool) (string, error) {
+	q := url.Values{"response-content-disposition": {disposition(name, inline)}}
+	if !inline {
+		q.Set("response-content-type", "application/octet-stream")
+	}
 	u, e := s.client.PresignedGetObject(ctx, s.config.Bucket, s.key(k), ttl, q)
 	if e != nil {
 		return "", e

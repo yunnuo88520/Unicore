@@ -140,7 +140,7 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     pageRoute('/mail-templates', () => import('./pages/admin/mail-templates').then(module => ({ default: module.AdminMailTemplatesPage })), { adminEligible: true }),
     pageRoute('/announcements', () => import('./pages/admin/announcements').then(module => ({ default: module.AdminAnnouncementsPage })), { adminEligible: true }),
     pageRoute('/storage', () => import('./pages/admin/storage').then(module => ({ default: module.AdminStoragePage })), { adminEligible: true, search: { provider: '', tab: 'config' } }),
-    pageRoute('/files', () => import('./pages/admin/files').then(module => ({ default: module.AdminFilesPage })), { adminEligible: true }),
+    pageRoute('/files', () => import('./pages/admin/files').then(module => ({ default: module.AdminFilesPage })), { adminEligible: true, search: { tab: '' } }),
     pageRoute('/logs', () => import('./pages/admin/logs').then(module => ({ default: module.AdminLogsPage })), { adminEligible: true }),
     pageRoute('/tasks', () => import('./pages/admin/tasks').then(module => ({ default: module.AdminTasksPage })), { adminEligible: true }),
     pageRoute('/monitor', () => import('./pages/monitor').then(module => ({ default: module.MonitorPage })), { adminEligible: true }),

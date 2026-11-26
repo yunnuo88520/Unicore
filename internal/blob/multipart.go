@@ -17,7 +17,8 @@ type Multipart interface {
 	BeginMultipart(context.Context, string, string) (string, error)
 	ListParts(context.Context, string, string) ([]Part, error)
 	SignPart(context.Context, string, string, int, int64, time.Duration) (Grant, error)
-	CompleteMultipart(context.Context, string, string, []Part) error
+	// Complete publishes the assembled object; local stores return its computed hash, cloud stores leave the caller to Stat.
+	CompleteMultipart(context.Context, string, string, []Part) (Object, error)
 	// Abort all incomplete uploads for this exact staging key, including a Begin response lost during a crash.
 	AbortMultipart(context.Context, string) error
 }

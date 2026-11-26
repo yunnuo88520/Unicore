@@ -9563,6 +9563,10 @@ export const constraints = {
       "file",
       "purpose",
       "directory",
+      "referenced",
+      "file_key",
+      "storage_path",
+      "etag",
       "creator_name",
       "creator_username"
     ],
@@ -9577,6 +9581,21 @@ export const constraints = {
       "directory": {
         "type": "string",
         "maxLength": 512
+      },
+      "referenced": {
+        "type": "boolean"
+      },
+      "file_key": {
+        "type": "string",
+        "maxLength": 1024
+      },
+      "storage_path": {
+        "type": "string",
+        "maxLength": 1200
+      },
+      "etag": {
+        "type": "string",
+        "maxLength": 200
       },
       "creator_name": {
         "type": "string",
@@ -9621,51 +9640,6 @@ export const constraints = {
       }
     }
   },
-  "FileDirectory": {
-    "type": "object",
-    "additionalProperties": false,
-    "required": [
-      "location_id",
-      "path",
-      "file_count",
-      "total_size"
-    ],
-    "properties": {
-      "location_id": {
-        "type": "string",
-        "maxLength": 64
-      },
-      "path": {
-        "type": "string",
-        "maxLength": 512
-      },
-      "file_count": {
-        "type": "integer",
-        "minimum": 0,
-        "maximum": 9007199254740991
-      },
-      "total_size": {
-        "type": "integer",
-        "minimum": 0,
-        "maximum": 9007199254740991
-      }
-    }
-  },
-  "FileDirectoryList": {
-    "type": "object",
-    "additionalProperties": false,
-    "required": [
-      "items"
-    ],
-    "properties": {
-      "items": {
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/FileDirectory"
-        }
-      }
-    }
-  },
   "FileCatalogListResponse": {
     "type": "object",
     "additionalProperties": false,
@@ -9691,7 +9665,80 @@ export const constraints = {
       }
     }
   },
-  "FileDirectoryListResponse": {
+  "StorageMigrationCreateInput": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "target_location_id"
+    ],
+    "properties": {
+      "source_location_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "target_location_id": {
+        "type": "string",
+        "maxLength": 64,
+        "minLength": 1
+      }
+    }
+  },
+  "StorageMigrationSummaryItem": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "location_id",
+      "provider",
+      "name",
+      "file_count",
+      "total_size"
+    ],
+    "properties": {
+      "location_id": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "provider": {
+        "type": "string",
+        "maxLength": 16
+      },
+      "name": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "file_count": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "total_size": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      }
+    }
+  },
+  "StorageMigrationSummary": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "active_location_id",
+      "items"
+    ],
+    "properties": {
+      "active_location_id": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/StorageMigrationSummaryItem"
+        }
+      }
+    }
+  },
+  "StorageMigrationSummaryResponse": {
     "type": "object",
     "additionalProperties": false,
     "required": [
@@ -9705,7 +9752,7 @@ export const constraints = {
         "maxLength": 64
       },
       "data": {
-        "$ref": "#/components/schemas/FileDirectoryList"
+        "$ref": "#/components/schemas/StorageMigrationSummary"
       },
       "request_id": {
         "type": "string",
@@ -9716,24 +9763,130 @@ export const constraints = {
       }
     }
   },
-  "FileMigrationSelection": {
+  "StorageMigrationFailure": {
     "type": "object",
     "additionalProperties": false,
     "required": [
-      "file_ids"
+      "file_id",
+      "original_name",
+      "reason",
+      "created_at"
     ],
     "properties": {
-      "file_ids": {
+      "file_id": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "original_name": {
+        "type": "string",
+        "maxLength": 255
+      },
+      "reason": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "created_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      }
+    }
+  },
+  "StorageMigrationJob": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "source_location_id",
+      "target_location_id",
+      "status",
+      "mode",
+      "activate_on_complete",
+      "total_count",
+      "succeeded_count",
+      "failed_count",
+      "created_by",
+      "created_at",
+      "updated_at",
+      "finished_at"
+    ],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "source_location_id": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "target_location_id": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "running",
+          "paused",
+          "completed",
+          "failed",
+          "cancelled"
+        ]
+      },
+      "mode": {
+        "type": "string",
+        "enum": [
+          "scan",
+          "retry"
+        ]
+      },
+      "activate_on_complete": {
+        "type": "boolean"
+      },
+      "total_count": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "succeeded_count": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "failed_count": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "created_by": {
+        "type": "string",
+        "maxLength": 80
+      },
+      "created_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "updated_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "finished_at": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "failures": {
         "type": "array",
-        "maxItems": 100000,
+        "maxItems": 100,
         "items": {
-          "type": "string",
-          "maxLength": 80
+          "$ref": "#/components/schemas/StorageMigrationFailure"
         }
       }
     }
   },
-  "FileMigrationSelectionResponse": {
+  "StorageMigrationJobResponse": {
     "type": "object",
     "additionalProperties": false,
     "required": [
@@ -9747,7 +9900,82 @@ export const constraints = {
         "maxLength": 64
       },
       "data": {
-        "$ref": "#/components/schemas/FileMigrationSelection"
+        "$ref": "#/components/schemas/StorageMigrationJob"
+      },
+      "request_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "message": {
+        "type": "string"
+      }
+    }
+  },
+  "StorageMigrationCurrent": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "job": {
+        "$ref": "#/components/schemas/StorageMigrationJob"
+      }
+    }
+  },
+  "StorageMigrationCurrentResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "data": {
+        "$ref": "#/components/schemas/StorageMigrationCurrent"
+      },
+      "request_id": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "message": {
+        "type": "string"
+      }
+    }
+  },
+  "StorageMigrationList": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "items"
+    ],
+    "properties": {
+      "items": {
+        "type": "array",
+        "maxItems": 20,
+        "items": {
+          "$ref": "#/components/schemas/StorageMigrationJob"
+        }
+      }
+    }
+  },
+  "StorageMigrationListResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "code",
+      "data",
+      "request_id"
+    ],
+    "properties": {
+      "code": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "data": {
+        "$ref": "#/components/schemas/StorageMigrationList"
       },
       "request_id": {
         "type": "string",

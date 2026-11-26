@@ -491,6 +491,20 @@ func (s *Service) Receive(ctx context.Context, a Actor, fileID string, source io
 	}
 	return nil
 }
+// verifyHash computes content hashes for stores whose cheap Stat carries no
+// ETag; only explicit verification moments pay for the extra read.
+func (s *Service) verifyHash(ctx context.Context, st blob.Store, key string) (string, error) {
+	v, ok := st.(blob.Verifier)
+	if !ok {
+		return "", ErrUnavailable
+	}
+	h, e := v.Hash(ctx, key)
+	if e != nil {
+		return "", ErrUnavailable
+	}
+	return h, nil
+}
+
 func (s *Service) Complete(ctx context.Context, a Actor, fileID string) (contracts.FileEntry, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -519,14 +533,20 @@ func (s *Service) Complete(ctx context.Context, a Actor, fileID string) (contrac
 	if e != nil {
 		return f.FileEntry, ErrUnavailable
 	}
-	if obj.Size != int64(f.Size) || obj.ETag == "" || (obj.MIME != "" && obj.MIME != f.MimeType) {
+	if obj.Size != int64(f.Size) || (obj.MIME != "" && obj.MIME != f.MimeType) {
 		return f.FileEntry, ErrInvalid
+	}
+	etag := obj.ETag
+	if etag == "" {
+		if etag, e = s.verifyHash(ctx, st, f.Staging); e != nil {
+			return f.FileEntry, e
+		}
 	}
 	f.State = "copying"
 	if e = s.Repo.Change(ctx, f, nil, a.ID); e != nil {
 		return f.FileEntry, ErrUnavailable
 	}
-	if e = st.Copy(ctx, f.Staging, f.Key, obj.ETag); e != nil {
+	if e = st.Copy(ctx, f.Staging, f.Key, etag); e != nil {
 		return f.FileEntry, ErrUnavailable
 	}
 	confirmed, e := st.Stat(ctx, f.Key)
@@ -534,7 +554,7 @@ func (s *Service) Complete(ctx context.Context, a Actor, fileID string) (contrac
 		return f.FileEntry, ErrUnavailable
 	}
 	f.State = "ready"
-	f.ETag = confirmed.ETag
+	f.ETag = etag
 	f.Staging = ""
 	if e = s.Repo.Change(ctx, f, nil, a.ID); e != nil {
 		return f.FileEntry, ErrUnavailable
@@ -560,10 +580,24 @@ func (s *Service) AccessScoped(ctx context.Context, a Actor, fileID string, scop
 	if e != nil {
 		return contracts.FileAccess{}, e
 	}
-	return s.signAccess(ctx, f)
+	return s.signAccess(ctx, f, false)
 }
 
-func (s *Service) signAccess(ctx context.Context, f Record) (contracts.FileAccess, error) {
+// inlineMimeTypes whitelists MIME types that render safely inside a sandboxed
+// frame. SVG, HTML and everything executable stay attachment-only.
+var inlineMimeTypes = map[string]bool{
+	"image/jpeg": true, "image/png": true, "image/webp": true, "image/gif": true,
+	"application/pdf": true, "text/plain": true,
+}
+
+// InlinePreview reports whether the file's bare MIME type may render inline in
+// a sandboxed viewer. Parameters such as charset are ignored.
+func InlinePreview(mimeType string) bool {
+	bare, _, err := mime.ParseMediaType(mimeType)
+	return err == nil && inlineMimeTypes[bare]
+}
+
+func (s *Service) signAccess(ctx context.Context, f Record, inline bool) (contracts.FileAccess, error) {
 	if f.State != "ready" {
 		return contracts.FileAccess{}, ErrBusy
 	}
@@ -588,12 +622,18 @@ func (s *Service) signAccess(ctx context.Context, f Record) (contracts.FileAcces
 	if e != nil {
 		return contracts.FileAccess{}, e
 	}
+	// The preview flag survives signing only for whitelisted MIME types; the
+	// download endpoint re-checks before honouring an inline request.
+	preview := inline && InlinePreview(f.MimeType)
 	var target string
 	if l.Provider == "local" {
 		payload := fmt.Sprintf("unicore-file-access:v2:%s:%d", f.FileID, expires)
 		target = "/api/v1/files/" + f.FileID + "/content?expires=" + strconv.FormatInt(expires, 10) + "&signature=" + url.QueryEscape(s.Secrets.Seal(payload))
+		if preview {
+			target += "&disposition=inline"
+		}
 	} else {
-		target, e = st.SignGet(ctx, f.Key, f.OriginalName, time.Duration(ttl)*time.Second)
+		target, e = st.SignGet(ctx, f.Key, f.OriginalName, time.Duration(ttl)*time.Second, preview)
 		if e != nil {
 			return contracts.FileAccess{}, ErrUnavailable
 		}
@@ -826,12 +866,18 @@ func (s *Service) Migrate(ctx context.Context, a Actor, fileID, target string) (
 		return f.FileEntry, ErrUnavailable
 	}
 	defer r.Close()
-	if obj.Size != int64(f.Size) || f.ETag != "" && obj.ETag != f.ETag {
+	// Streaming reads carry no hash; cloud ETags are compared directly, local
+	// sources are checked against the stored sha256 after the copy read below.
+	if obj.Size != int64(f.Size) || f.ETag != "" && obj.ETag != "" && obj.ETag != f.ETag {
 		return f.FileEntry, ErrUnavailable
 	}
 	h := sha256.New()
 	written, e := to.Put(ctx, key, io.TeeReader(r, h), int64(f.Size), f.MimeType)
 	if e != nil || written.Size != int64(f.Size) || obj.Size != int64(f.Size) {
+		return f.FileEntry, ErrUnavailable
+	}
+	// The record's digest guards against silent source drift between records.
+	if digest := hex.EncodeToString(h.Sum(nil)); fingerprintPattern.MatchString(f.ETag) && digest != f.ETag {
 		return f.FileEntry, ErrUnavailable
 	}
 	verify, info, e := to.Open(ctx, key)

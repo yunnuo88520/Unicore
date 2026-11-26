@@ -189,6 +189,6 @@ func (b *brandStore) Copy(context.Context, string, string, string) error { retur
 func (b *brandStore) SignPut(context.Context, string, int64, string, time.Duration) (blob.Grant, error) {
 	return blob.Grant{}, blob.ErrUnsupported
 }
-func (b *brandStore) SignGet(context.Context, string, string, time.Duration) (string, error) {
+func (b *brandStore) SignGet(context.Context, string, string, time.Duration, bool) (string, error) {
 	return "", blob.ErrUnsupported
 }

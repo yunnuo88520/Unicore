@@ -36,23 +36,8 @@ func mountFileCatalog(api chi.Router, config Config) {
 		if value := r.URL.Query().Get("page"); value != "" {
 			page, _ = strconv.Atoi(value)
 		}
-		value, err := s.Catalog(r.Context(), a, files.CatalogFilter{Search: r.URL.Query().Get("search"), Page: page, LocationID: r.URL.Query().Get("location_id"), Directory: r.URL.Query().Get("directory"), DirectorySet: r.URL.Query().Has("directory")})
-		if err != nil {
-			webError(w, err)
-			return
-		}
-		success(w, value)
-	}).ServeHTTP)
-	api.Get("/admin/file-catalog/migration-selection", handler("storage:read", func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
-		value, err := s.MigrationSelection(r.Context(), a, files.CatalogFilter{Search: r.URL.Query().Get("search"), LocationID: r.URL.Query().Get("location_id"), Directory: r.URL.Query().Get("directory"), DirectorySet: r.URL.Query().Has("directory"), TargetLocationID: r.URL.Query().Get("target_location_id")})
-		if err != nil {
-			webError(w, err)
-			return
-		}
-		success(w, value)
-	}).ServeHTTP)
-	api.Get("/admin/file-catalog/directories", handler("storage:read", func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
-		value, err := s.Directories(r.Context(), a)
+		filter := files.CatalogFilter{Search: r.URL.Query().Get("search"), Page: page, LocationID: r.URL.Query().Get("location_id"), Purpose: r.URL.Query().Get("purpose"), TypeCategory: r.URL.Query().Get("type")}
+		value, err := s.Catalog(r.Context(), a, filter)
 		if err != nil {
 			webError(w, err)
 			return
@@ -60,7 +45,7 @@ func mountFileCatalog(api chi.Router, config Config) {
 		success(w, value)
 	}).ServeHTTP)
 	api.Post("/admin/file-catalog/{id}/access", handler("storage:read", func(w http.ResponseWriter, r *http.Request, s *files.Service, a files.Actor) {
-		value, err := s.CatalogAccess(r.Context(), a, chi.URLParam(r, "id"))
+		value, err := s.CatalogAccess(r.Context(), a, chi.URLParam(r, "id"), r.URL.Query().Get("disposition") == "inline")
 		if err != nil {
 			webError(w, err)
 			return

@@ -73,8 +73,12 @@ func (s *cosStore) SignPut(ctx context.Context, k string, n int64, m string, ttl
 	}
 	return blob.Grant{URL: u.String(), Method: "PUT", Headers: map[string]string{"Content-Type": m}, Fields: map[string]string{}}, nil
 }
-func (s *cosStore) SignGet(ctx context.Context, k, name string, ttl time.Duration) (string, error) {
-	u, e := s.client.Object.GetPresignedURL2(ctx, http.MethodGet, s.key(k), ttl, &cos.ObjectGetOptions{ResponseContentDisposition: disposition(name), ResponseContentType: "application/octet-stream"})
+func (s *cosStore) SignGet(ctx context.Context, k, name string, ttl time.Duration, inline bool) (string, error) {
+	options := cos.ObjectGetOptions{ResponseContentDisposition: disposition(name, inline)}
+	if !inline {
+		options.ResponseContentType = "application/octet-stream"
+	}
+	u, e := s.client.Object.GetPresignedURL2(ctx, http.MethodGet, s.key(k), ttl, &options)
 	if e != nil {
 		return "", e
 	}

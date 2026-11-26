@@ -2391,6 +2391,10 @@ type FileCatalogEntry struct {
 	File            FileEntry `json:"file"`
 	Purpose         string    `json:"purpose"`
 	Directory       string    `json:"directory"`
+	Referenced      bool      `json:"referenced"`
+	FileKey         string    `json:"file_key"`
+	StoragePath     string    `json:"storage_path"`
+	Etag            string    `json:"etag"`
 	CreatorName     string    `json:"creator_name"`
 	CreatorUsername string    `json:"creator_username"`
 }
@@ -2402,17 +2406,6 @@ type FileCatalogList struct {
 	PageSize int                `json:"page_size"`
 }
 
-type FileDirectory struct {
-	LocationID string `json:"location_id"`
-	Path       string `json:"path"`
-	FileCount  int    `json:"file_count"`
-	TotalSize  int    `json:"total_size"`
-}
-
-type FileDirectoryList struct {
-	Items []FileDirectory `json:"items"`
-}
-
 type FileCatalogListResponse struct {
 	Code      string          `json:"code"`
 	Data      FileCatalogList `json:"data"`
@@ -2420,20 +2413,80 @@ type FileCatalogListResponse struct {
 	Message   string          `json:"message,omitempty"`
 }
 
-type FileDirectoryListResponse struct {
-	Code      string            `json:"code"`
-	Data      FileDirectoryList `json:"data"`
-	RequestID string            `json:"request_id"`
-	Message   string            `json:"message,omitempty"`
+type StorageMigrationCreateInput struct {
+	SourceLocationID *string `json:"source_location_id,omitempty"`
+	TargetLocationID string  `json:"target_location_id"`
 }
 
-type FileMigrationSelection struct {
-	FileIds []string `json:"file_ids"`
+type StorageMigrationSummaryItem struct {
+	LocationID string `json:"location_id"`
+	Provider   string `json:"provider"`
+	Name       string `json:"name"`
+	FileCount  int    `json:"file_count"`
+	TotalSize  int    `json:"total_size"`
 }
 
-type FileMigrationSelectionResponse struct {
-	Code      string                 `json:"code"`
-	Data      FileMigrationSelection `json:"data"`
-	RequestID string                 `json:"request_id"`
-	Message   string                 `json:"message,omitempty"`
+type StorageMigrationSummary struct {
+	ActiveLocationID string                        `json:"active_location_id"`
+	Items            []StorageMigrationSummaryItem `json:"items"`
+}
+
+type StorageMigrationSummaryResponse struct {
+	Code      string                  `json:"code"`
+	Data      StorageMigrationSummary `json:"data"`
+	RequestID string                  `json:"request_id"`
+	Message   string                  `json:"message,omitempty"`
+}
+
+type StorageMigrationFailure struct {
+	FileID       string `json:"file_id"`
+	OriginalName string `json:"original_name"`
+	Reason       string `json:"reason"`
+	CreatedAt    int    `json:"created_at"`
+}
+
+type StorageMigrationJob struct {
+	ID                 string                     `json:"id"`
+	SourceLocationID   string                     `json:"source_location_id"`
+	TargetLocationID   string                     `json:"target_location_id"`
+	Status             string                     `json:"status"`
+	Mode               string                     `json:"mode"`
+	ActivateOnComplete bool                       `json:"activate_on_complete"`
+	TotalCount         int                        `json:"total_count"`
+	SucceededCount     int                        `json:"succeeded_count"`
+	FailedCount        int                        `json:"failed_count"`
+	CreatedBy          string                     `json:"created_by"`
+	CreatedAt          int                        `json:"created_at"`
+	UpdatedAt          int                        `json:"updated_at"`
+	FinishedAt         int                        `json:"finished_at"`
+	Failures           *[]StorageMigrationFailure `json:"failures,omitempty"`
+}
+
+type StorageMigrationJobResponse struct {
+	Code      string              `json:"code"`
+	Data      StorageMigrationJob `json:"data"`
+	RequestID string              `json:"request_id"`
+	Message   string              `json:"message,omitempty"`
+}
+
+type StorageMigrationCurrent struct {
+	Job *StorageMigrationJob `json:"job,omitempty"`
+}
+
+type StorageMigrationCurrentResponse struct {
+	Code      string                  `json:"code"`
+	Data      StorageMigrationCurrent `json:"data"`
+	RequestID string                  `json:"request_id"`
+	Message   string                  `json:"message,omitempty"`
+}
+
+type StorageMigrationList struct {
+	Items []StorageMigrationJob `json:"items"`
+}
+
+type StorageMigrationListResponse struct {
+	Code      string               `json:"code"`
+	Data      StorageMigrationList `json:"data"`
+	RequestID string               `json:"request_id"`
+	Message   string               `json:"message,omitempty"`
 }

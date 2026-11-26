@@ -30,12 +30,19 @@ type Store interface {
 	Delete(context.Context, string) error
 	Copy(context.Context, string, string, string) error
 	SignPut(context.Context, string, int64, string, time.Duration) (Grant, error)
-	SignGet(context.Context, string, string, time.Duration) (string, error)
+	// SignGet issues an expiring GET URL; inline requests carry the real content type for whitelisted safe files.
+	SignGet(context.Context, string, string, time.Duration, bool) (string, error)
 }
 
 // Keys is used only by small, managed namespaces such as normalized branding.
 type Lister interface {
 	Keys(context.Context) ([]string, error)
+}
+
+// Verifier computes an object content hash on demand. Stat and Open stay
+// streaming-cheap and never hash; only explicit verification moments call it.
+type Verifier interface {
+	Hash(context.Context, string) (string, error)
 }
 
 func ValidKey(key string) bool {

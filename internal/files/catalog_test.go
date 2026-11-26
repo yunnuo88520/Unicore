@@ -25,18 +25,12 @@ import (
 	"github.com/yunnuo/unicore/internal/files"
 )
 
-func TestCatalogAllRealmsAndDirectoryFilters(t *testing.T) {
+func TestCatalogAllRealmsAndFilters(t *testing.T) {
 	ctx := t.Context()
 	m, admin, _ := setup(t)
 	s := m.Files()
-	for i, spec := range []struct{ realm, folder string }{{"user", "reports/a"}, {"avatar", "reports/a/deep"}, {"user", "reports/ab"}, {"user", "percent_%"}} {
-		f := files.Record{FileEntry: contracts.FileEntry{FileID: fmt.Sprintf("catalog-%d", i), OriginalName: fmt.Sprintf("report-%d.txt", i), StorageType: "local", LocationID: "local", MimeType: "text/plain", Size: 4, CreatorID: "different-user", CreatorRealm: spec.realm, CreatedAt: i + 1, State: "ready"}, Key: "objects/" + spec.folder + "/object", Purpose: "user"}
-		if err := s.Repo.Create(ctx, f, nil); err != nil {
-			t.Fatal(err)
-		}
-	}
-	for i, folder := range []string{"Docs", "docs"} {
-		f := files.Record{FileEntry: contracts.FileEntry{FileID: fmt.Sprintf("case-catalog-%d", i), OriginalName: "case.txt", StorageType: "local", LocationID: "local", MimeType: "text/plain", Size: 4, CreatorID: "case-user", CreatorRealm: "avatar", CreatedAt: i + 10, State: "ready"}, Key: "objects/" + folder + "/object", Purpose: "user"}
+	for i, spec := range []struct{ realm, mime string }{{"user", "text/plain"}, {"avatar", "text/plain"}, {"user", "application/zip"}, {"user", "image/png"}} {
+		f := files.Record{FileEntry: contracts.FileEntry{FileID: fmt.Sprintf("catalog-%d", i), OriginalName: fmt.Sprintf("report-%d.txt", i), StorageType: "local", LocationID: "local", MimeType: spec.mime, Size: 4, CreatorID: "different-user", CreatorRealm: spec.realm, CreatedAt: i + 1, State: "ready"}, Key: "objects/reports/object", Purpose: "user"}
 		if err := s.Repo.Create(ctx, f, nil); err != nil {
 			t.Fatal(err)
 		}
@@ -47,36 +41,35 @@ func TestCatalogAllRealmsAndDirectoryFilters(t *testing.T) {
 		t.Fatal(err)
 	}
 	all, err := s.Catalog(ctx, admin, files.CatalogFilter{Page: 1})
-	if err != nil || all.Total != 7 {
+	if err != nil || all.Total != 5 {
 		t.Fatal("catalog must include every realm and branding", all, err)
 	}
-	for folder, want := range map[string]int{"reports/a": 2, "percent_%": 1, "reports/missing": 0} {
-		result, err := s.Catalog(ctx, admin, files.CatalogFilter{Page: 1, Directory: folder})
+	for purpose, want := range map[string]int{"user": 4, "branding": 1} {
+		result, err := s.Catalog(ctx, admin, files.CatalogFilter{Page: 1, Purpose: purpose})
 		if err != nil || result.Total != want {
-			t.Fatalf("directory %q: total=%d want=%d err=%v", folder, result.Total, want, err)
+			t.Fatalf("purpose %q: total=%d want=%d err=%v", purpose, result.Total, want, err)
 		}
 	}
-	for folder := range map[string]bool{"Docs": true, "docs": true} {
-		result, err := s.Catalog(ctx, admin, files.CatalogFilter{Page: 1, Directory: folder})
-		if err != nil || result.Total != 1 || result.Items[0].Directory != folder {
-			t.Fatalf("case-sensitive directory %q: total=%d items=%+v err=%v", folder, result.Total, result.Items, err)
+	for category, want := range map[string]int{files.CategoryImage: 2, files.CategoryDocument: 2, files.CategoryArchive: 1, files.CategoryOther: 0} {
+		result, err := s.Catalog(ctx, admin, files.CatalogFilter{Page: 1, TypeCategory: category})
+		if err != nil || result.Total != want {
+			t.Fatalf("category %q: total=%d want=%d err=%v", category, result.Total, want, err)
 		}
-	}
-	selection, err := s.MigrationSelection(ctx, admin, files.CatalogFilter{Directory: "reports/a", DirectorySet: true})
-	if err != nil || len(selection.FileIds) != 2 {
-		t.Fatal("migration selection must respect the same subtree filter", selection, err)
-	}
-	root, err := s.Catalog(ctx, admin, files.CatalogFilter{Page: 1, DirectorySet: true})
-	if err != nil || root.Total != 0 {
-		t.Fatal("empty directory must select the default folder, not all descendants", root, err)
 	}
 	result, err := s.Catalog(ctx, admin, files.CatalogFilter{Page: 1, Search: "different-user"})
 	if err != nil || result.Total != 4 {
 		t.Fatal("uploader search", result, err)
 	}
-	dirs, err := s.Directories(ctx, admin)
-	if err != nil || len(dirs.Items) != 7 {
-		t.Fatal("directory aggregation", dirs, err)
+	for _, item := range result.Items {
+		if item.FileKey == "" || item.Referenced {
+			t.Fatal("catalog rows must expose the object key and reference state", item)
+		}
+	}
+	if _, err = s.Catalog(ctx, admin, files.CatalogFilter{Page: 1, Purpose: "note"}); err != files.ErrInvalid {
+		t.Fatal("invalid purpose", err)
+	}
+	if _, err = s.Catalog(ctx, admin, files.CatalogFilter{Page: 1, TypeCategory: "movie"}); err != files.ErrInvalid {
+		t.Fatal("invalid type category", err)
 	}
 	personal, err := s.List(ctx, files.Actor{ID: "different-user", Realm: "user"}, "", 1, files.ScopeFilter{})
 	if err != nil || personal.Total != 3 {
@@ -86,15 +79,12 @@ func TestCatalogAllRealmsAndDirectoryFilters(t *testing.T) {
 	if _, err = s.Catalog(ctx, member, files.CatalogFilter{Page: 1}); err != files.ErrNotFound {
 		t.Fatal("member catalog access", err)
 	}
-	if _, err = s.CatalogAccess(ctx, member, brandID); err != files.ErrNotFound {
+	if _, err = s.CatalogAccess(ctx, member, brandID, false); err != files.ErrNotFound {
 		t.Fatal("member brand signing", err)
-	}
-	if _, err = s.Catalog(ctx, admin, files.CatalogFilter{Page: 1, Directory: "../secret"}); err != files.ErrInvalid {
-		t.Fatal("invalid directory", err)
 	}
 }
 
-func TestCatalogMigrationRejectsCloudToCloudAndFiltersSelection(t *testing.T) {
+func TestCatalogMigrationRejectsCloudToCloud(t *testing.T) {
 	ctx := t.Context()
 	m, admin, _ := setup(t)
 	s := m.Files()
@@ -116,14 +106,12 @@ func TestCatalogMigrationRejectsCloudToCloudAndFiltersSelection(t *testing.T) {
 	if _, err := s.Migrate(ctx, admin, "first-cloud-file", "cloud-two"); err != files.ErrInvalid {
 		t.Fatal("cloud migration accepted", err)
 	}
-	for _, item := range []struct {
-		target string
-		count  int
-	}{{"cloud-two", 1}, {"local", 2}} {
-		selection, err := s.MigrationSelection(ctx, admin, files.CatalogFilter{TargetLocationID: item.target})
-		if err != nil || len(selection.FileIds) != item.count {
-			t.Fatal("unsupported batch selection", item.target, selection, err)
-		}
+	source := "cloud-one"
+	if _, err := s.CreateMigration(ctx, admin, contracts.StorageMigrationCreateInput{SourceLocationID: &source, TargetLocationID: "cloud-two"}); err != files.ErrInvalid {
+		t.Fatal("cloud-to-cloud batch accepted", err)
+	}
+	if _, err := s.CreateMigration(ctx, admin, contracts.StorageMigrationCreateInput{SourceLocationID: &source, TargetLocationID: "missing"}); err != files.ErrNotFound {
+		t.Fatal("unknown target accepted", err)
 	}
 	current, err := s.Repo.Get(ctx, "first-cloud-file")
 	if err != nil || current.LocationID != "cloud-one" {
@@ -154,7 +142,7 @@ func TestVendorLocalCloudRoundTrip(t *testing.T) {
 			if _, err = s.Complete(ctx, admin, grant.FileID); err != nil {
 				t.Fatal(err)
 			}
-			link, err := s.CatalogAccess(ctx, admin, grant.FileID)
+			link, err := s.CatalogAccess(ctx, admin, grant.FileID, false)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -405,7 +393,7 @@ func TestCatalogMigrationDoesNotBlockReadsOrResurrectDeletedFile(t *testing.T) {
 		t.Fatal("migration did not begin")
 	}
 	read := make(chan error, 1)
-	go func() { _, err := s.CatalogAccess(ctx, admin, id); read <- err }()
+	go func() { _, err := s.CatalogAccess(ctx, admin, id, false); read <- err }()
 	select {
 	case err := <-read:
 		if err != nil {
@@ -471,7 +459,7 @@ func TestCatalogBrandingAndBusinessMigrationPreservesReferences(t *testing.T) {
 		if err != nil || path.Dir(after.Key) != path.Dir(before.Key) || after.Purpose != before.Purpose {
 			t.Fatal("migration changed logical directory or purpose", before, after, err)
 		}
-		access, err := s.CatalogAccess(ctx, admin, id)
+		access, err := s.CatalogAccess(ctx, admin, id, false)
 		if err != nil {
 			t.Fatal(err)
 		}

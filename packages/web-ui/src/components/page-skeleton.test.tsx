@@ -46,7 +46,7 @@ it.each([
   ['form', 'form-fields'],
   ['monitor', 'monitor-charts'],
   ['editor', 'editor-navigation'],
-  ['catalog', 'catalog-directories'],
+  ['catalog', 'catalog-tabs'],
   ['content', 'content-body'],
 ] as const)('renders a distinct %s page outline', (variant, region) => {
   const { container } = render(<PageLoader variant={variant} />);

@@ -26,7 +26,8 @@ func multipartCopy(ctx context.Context, mp blob.Multipart, source, target, mime 
 		parts = append(parts, p)
 	}
 	// The caller already registered cleanup for target; exact-key abort also recovers lost copy upload IDs.
-	return mp.CompleteMultipart(ctx, target, upload, parts)
+	_, e = mp.CompleteMultipart(ctx, target, upload, parts)
+	return e
 }
 func (s *ossStore) largeCopy(ctx context.Context, a, b, etag string, o blob.Object) error {
 	return multipartCopy(ctx, s, a, b, o.MIME, o.Size, func(id string, n int, start, size int64) (blob.Part, error) {

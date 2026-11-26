@@ -42,6 +42,7 @@ func fileActionCapabilities(r *http.Request, list *contracts.FileList) {
 
 func mountStorage(api chi.Router, config Config) {
 	mountFileCatalog(api, config)
+	mountStorageMigrations(api, config)
 	manager := config.Install
 	handler := func(permission string, fn func(http.ResponseWriter, *http.Request, *files.Service, files.Actor)) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -413,10 +414,29 @@ func mountStorage(api chi.Router, config Config) {
 		}
 		defer source.Close()
 		http.NewResponseController(w).SetWriteDeadline(time.Now().Add(10 * time.Minute))
-		w.Header().Set("Content-Type", "application/octet-stream")
-		w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": f.OriginalName}))
+		// Inline rendering is honoured only for the safe MIME whitelist; SVG,
+		// HTML and unknown types keep the attachment fallback, so a flipped
+		// query parameter can never execute.
+		inline := r.URL.Query().Get("disposition") == "inline" && files.InlinePreview(f.MimeType)
+		bare, _, mimeErr := mime.ParseMediaType(f.MimeType)
+		if inline {
+			w.Header().Set("Content-Type", f.MimeType)
+			w.Header().Set("Content-Disposition", "inline")
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+		} else {
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": f.OriginalName}))
+		}
 		w.Header().Set("Content-Length", strconv.Itoa(f.Size))
-		w.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
+		// Chrome's built-in PDF viewer refuses to run inside a sandboxed CSP, so
+		// inline PDFs swap the sandbox for an inert default-src 'none' policy and
+		// explicitly allow same-origin framing. Everything else stays sandboxed.
+		if inline && mimeErr == nil && bare == "application/pdf" {
+			w.Header().Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'self'")
+			w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+		} else {
+			w.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
+		}
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.WriteHeader(200)
 		io.Copy(w, source)

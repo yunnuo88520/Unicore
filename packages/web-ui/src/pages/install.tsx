@@ -190,7 +190,7 @@ function InstallWizard({ web, initialProfile, onDone }: { web: WebClient; initia
   }
   return <main className="flex w-full flex-1 flex-col items-center px-4 pb-10 pt-24 sm:px-6 sm:pt-12">
     <div className="flex items-center gap-2 text-xl font-medium text-ink"><BrandLockup /></div>
-    <div className="mt-6 w-full max-w-4xl rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-10">
+    <div className="mt-6 w-full max-w-4xl rounded-2xl border border-line bg-background p-5 shadow-card sm:p-10">
       <header className="flex flex-col items-center gap-3 text-center">
         <p className="text-sm text-muted">{t('首次安装')}</p>
         <h1 className="text-2xl font-medium text-ink">{result ? t('一切就绪，开始构建') : t('为你的产品，准备一个起点')}</h1>

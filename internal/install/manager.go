@@ -433,6 +433,18 @@ func (m *Manager) AdminPath(ctx context.Context) string {
 	}
 	return "/admin"
 }
+
+// AdminPathFrom resolves the administrator entry path from an already-loaded
+// settings map while keeping APP_ADMIN_PATH override precedence.
+func (m *Manager) AdminPathFrom(values map[string]string) string {
+	if m.adminOverride != "" {
+		return m.adminOverride
+	}
+	if path := values["admin.path"]; path != "" {
+		return path
+	}
+	return "/admin"
+}
 func (m *Manager) Status() contracts.InstallStatus {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

@@ -252,11 +252,26 @@ func (s *Service) Values(ctx context.Context) (map[string]string, error) {
 	return s.readWithDefaults(ctx, false)
 }
 
+// ValuesFrom clones an already-loaded raw settings map and applies compatibility
+// and non-sensitive defaults without performing any database query or decryption.
+func (s *Service) ValuesFrom(raw map[string]string) map[string]string {
+	cloned := make(map[string]string, len(raw))
+	for k, v := range raw {
+		cloned[k] = v
+	}
+	values, _ := s.applyDefaults(cloned, false)
+	return values
+}
+
 func (s *Service) readWithDefaults(ctx context.Context, decrypt bool) (map[string]string, error) {
 	values, err := s.Store.ReadSettings(ctx)
 	if err != nil {
 		return nil, err
 	}
+	return s.applyDefaults(values, decrypt)
+}
+
+func (s *Service) applyDefaults(values map[string]string, decrypt bool) (map[string]string, error) {
 	for _, key := range []string{"security.force_admin_2fa", "security.force_user_2fa"} {
 		if _, ok := values[key]; !ok && values["security.force_2fa"] == "true" {
 			values[key] = "true"
@@ -289,6 +304,7 @@ func (s *Service) readWithDefaults(ctx context.Context, decrypt bool) (map[strin
 			if d.Key == "oidc.client_secret" {
 				values["_oidc_credential_revision"] = value
 			}
+			var err error
 			value, err = s.Secrets.Open(value)
 			if err != nil {
 				return nil, err
@@ -327,12 +343,20 @@ func (s *Service) List(ctx context.Context) (contracts.Settings, error) {
 	return result, nil
 }
 func (s *Service) Value(ctx context.Context, key string) (string, error) {
-	values, err := s.Raw(ctx)
-	if err != nil {
-		return "", err
-	}
 	for _, d := range Definitions {
 		if d.Key == key && applies(d, s.Profile) {
+			var (
+				values map[string]string
+				err    error
+			)
+			if d.Sensitive {
+				values, err = s.Raw(ctx)
+			} else {
+				values, err = s.Values(ctx)
+			}
+			if err != nil {
+				return "", err
+			}
 			return values[key], nil
 		}
 	}

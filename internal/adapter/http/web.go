@@ -324,9 +324,26 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 	data := runtime.Metadata(profile, config.Metadata.DeploymentKind)
 	data.Stage = "M3b"
 	data.Installed = config.Install.Installed()
+	var (
+		settingsValues map[string]string
+		hasSettings    bool
+	)
+	if service != nil && profile == runtime.WebPlatform {
+		if cached, ok := r.Context().Value(requestSettingsKey{}).(*requestSettingsSnapshot); ok && cached != nil && cached.err == nil {
+			settingsValues = service.ValuesFrom(cached.values)
+			hasSettings = true
+		} else if loaded, err := service.Values(r.Context()); err == nil {
+			settingsValues = loaded
+			hasSettings = true
+		}
+	}
 	data.AdminPath = ""
 	if administratorRequest(r) {
-		data.AdminPath = config.Install.AdminPath(r.Context())
+		if hasSettings {
+			data.AdminPath = config.Install.AdminPathFrom(settingsValues)
+		} else {
+			data.AdminPath = config.Install.AdminPath(r.Context())
+		}
 	}
 	realm := "user"
 	if administratorRequest(r) {
@@ -347,44 +364,37 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 				data.Branding = &value
 			}
 		}
-		if name, err := service.Value(r.Context(), "site.name"); err == nil {
-			data.SiteName = name
-		}
-		if value, err := service.Value(r.Context(), "site.home_enabled"); err == nil {
-			enabled := value == "true"
-			data.HomeEnabled = &enabled
-		}
-		if value, err := service.Value(r.Context(), "site.description"); err == nil {
-			data.SiteDescription = &value
-		}
-		if value, err := service.Value(r.Context(), "site.copyright"); err == nil {
-			data.SiteCopyright = &value
-		}
-		if value, err := service.Value(r.Context(), "site.icp_number"); err == nil {
-			data.SiteIcpNumber = &value
-		}
-		if value, err := service.Value(r.Context(), "site.icp_url"); err == nil {
-			data.SiteIcpUrl = &value
-		}
-		if value, err := service.Value(r.Context(), "site.police_number"); err == nil {
-			data.SitePoliceNumber = &value
-		}
-		if value, err := service.Value(r.Context(), "site.footer_html"); err == nil {
-			data.SiteFooterHtml = &value
-		}
-		if value, err := service.Value(r.Context(), "maintenance.enabled"); err == nil {
-			enabled := value == "true"
-			data.MaintenanceEnabled = &enabled
-		}
-		if value, err := service.Value(r.Context(), "maintenance.message"); err == nil {
-			data.MaintenanceMessage = &value
+		if hasSettings {
+			data.SiteName = settingsValues["site.name"]
+			homeEnabled := settingsValues["site.home_enabled"] == "true"
+			data.HomeEnabled = &homeEnabled
+			desc := settingsValues["site.description"]
+			data.SiteDescription = &desc
+			copyright := settingsValues["site.copyright"]
+			data.SiteCopyright = &copyright
+			icp := settingsValues["site.icp_number"]
+			data.SiteIcpNumber = &icp
+			icpURL := settingsValues["site.icp_url"]
+			data.SiteIcpUrl = &icpURL
+			police := settingsValues["site.police_number"]
+			data.SitePoliceNumber = &police
+			footerHTML := settingsValues["site.footer_html"]
+			data.SiteFooterHtml = &footerHTML
+			maintEnabled := settingsValues["maintenance.enabled"] == "true"
+			data.MaintenanceEnabled = &maintEnabled
+			maintMsg := settingsValues["maintenance.message"]
+			data.MaintenanceMessage = &maintMsg
 		}
 	}
 	if identity != nil {
 		if session, err := requestIdentitySession(r, identity); err == nil && (!administratorRequest(r) || platform.HasManagementAccess(session.User)) {
 			data.CurrentUser = &session.User
 			if platform.HasManagementAccess(session.User) {
-				data.AdminPath = config.Install.AdminPath(r.Context())
+				if hasSettings {
+					data.AdminPath = config.Install.AdminPathFrom(settingsValues)
+				} else {
+					data.AdminPath = config.Install.AdminPath(r.Context())
+				}
 			}
 			data.CsrfToken = &session.CsrfToken
 			if entries, err := identity.Store.ListMenuConfig(r.Context()); err == nil {
@@ -398,8 +408,12 @@ func metadata(config Config, r *http.Request) contracts.Bootstrap {
 				data.Navigation = &projected
 			}
 			if identity.Personal != nil {
-				if info, e := identity.Personal.Profile(r.Context(), rawSession(r)); e == nil {
-					required := info.Force2fa && !info.TotpEnabled
+				err := identity.Personal.CheckMFAEnrollment(r.Context(), rawSession(r))
+				if err == nil {
+					required := false
+					data.MfaEnrollmentRequired = &required
+				} else if errors.Is(err, platform.ErrMFAEnrollment) {
+					required := true
 					data.MfaEnrollmentRequired = &required
 				}
 			}

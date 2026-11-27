@@ -122,6 +122,26 @@ func (p *Personal) Profile(ctx context.Context, token string) (contracts.Account
 	return p.profile(ctx, s)
 }
 
+// CheckMFAEnrollment verifies whether the session must enroll TOTP before
+// accessing non-account endpoints, without loading avatars or decrypting secrets.
+func (p *Personal) CheckMFAEnrollment(ctx context.Context, token string) error {
+	s, err := p.Store.PersonalSession(ctx, Hash(token))
+	if err != nil {
+		return err
+	}
+	if p.Settings == nil || p.Settings.Store == nil {
+		return nil
+	}
+	values, err := p.Settings.Store.ReadSettings(ctx)
+	if err != nil {
+		return err
+	}
+	if settings.Force2FA(values, HasManagementAccess(s.User)) && s.State.Secret == "" {
+		return ErrMFAEnrollment
+	}
+	return nil
+}
+
 // SaveProfile validates the complete change before atomically saving it.
 // Omitted avatar_file_id preserves the reference; an empty value clears it.
 func (p *Personal) SaveProfile(ctx context.Context, token string, input contracts.ProfileInput) (contracts.AccountProfile, error) {

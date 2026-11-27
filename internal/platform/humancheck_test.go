@@ -5,8 +5,8 @@ package platform_test
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
@@ -16,6 +16,10 @@ import (
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/platform"
 )
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (fn roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return fn(r) }
 
 func TestHumanCheckConfigReadiness(t *testing.T) {
 	if (platform.HumanCheckConfig{Provider: "turnstile", TurnstileSecretKey: "s"}).Ready() != true {
@@ -34,18 +38,21 @@ func TestHumanCheckConfigReadiness(t *testing.T) {
 
 func TestTurnstileVerifierRoundTrip(t *testing.T) {
 	var received urlForm
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	client := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		_ = r.ParseForm()
 		received = urlForm{secret: r.PostFormValue("secret"), response: r.PostFormValue("response"), remoteip: r.PostFormValue("remoteip")}
-		w.Header().Set("Content-Type", "application/json")
+		body := `{"success":false}`
 		if received.response == "good" {
-			_, _ = w.Write([]byte(`{"success":true}`))
-			return
+			body = `{"success":true}`
 		}
-		_, _ = w.Write([]byte(`{"success":false}`))
-	}))
-	defer server.Close()
-	verifier := humancheck.Verifier{HTTPClient: server.Client(), SiteVerifyURL: server.URL}
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+			Body:       io.NopCloser(strings.NewReader(body)),
+			Request:    r,
+		}, nil
+	})}
+	verifier := humancheck.Verifier{HTTPClient: client, SiteVerifyURL: "https://turnstile.example.test/siteverify"}
 	config := platform.HumanCheckConfig{Provider: "turnstile", TurnstileSecretKey: "site-secret"}
 	if err := verifier.Verify(context.Background(), config, "good", "", "203.0.113.9"); err != nil {
 		t.Fatal("valid token rejected", err)

@@ -381,12 +381,23 @@ func (m *Manager) Installed() bool {
 // verification provider; empty when the switches are off or not applicable.
 func (m *Manager) HumanCheckOrigins(ctx context.Context) []string {
 	m.mu.RLock()
-	defer m.mu.RUnlock()
-	if m.settingService == nil || m.config.Profile != runtime.WebPlatform {
+	service := m.settingService
+	profile := m.config.Profile
+	m.mu.RUnlock()
+	if service == nil || profile != runtime.WebPlatform {
 		return nil
 	}
-	values, err := m.settingService.Raw(ctx)
-	if err != nil || (values["security.human_check_enabled"] != "true") {
+	values, err := service.Store.ReadSettings(ctx)
+	if err != nil {
+		return nil
+	}
+	return HumanCheckOriginsFrom(values)
+}
+
+// HumanCheckOriginsFrom resolves CSP origins from an already-loaded settings map
+// without decrypting unrelated sensitive settings.
+func HumanCheckOriginsFrom(values map[string]string) []string {
+	if values["security.human_check_enabled"] != "true" {
 		return nil
 	}
 	switch values["security.human_check_provider"] {

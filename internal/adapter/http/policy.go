@@ -270,7 +270,7 @@ func policyHandler(config Config) func(http.Handler) http.Handler {
 						webError(w, platform.ErrForbidden)
 						return
 					}
-					*r = *r.WithContext(context.WithValue(r.Context(), policySessionKey{}, session))
+					r = r.WithContext(context.WithValue(r.Context(), policySessionKey{}, session))
 				}
 
 				next.ServeHTTP(w, r)

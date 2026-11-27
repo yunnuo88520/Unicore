@@ -176,6 +176,9 @@ type Service struct {
 	uploadLocks [64]sync.Mutex
 	// Rotate bounded expiry scans past referenced records without starving later files.
 	cleanupCursor string
+	originsMu     sync.RWMutex
+	cachedOrigins []string
+	originsValid  bool
 }
 
 func (s *Service) fileLock(id string) *sync.Mutex {

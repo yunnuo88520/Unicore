@@ -285,13 +285,8 @@ func require(manager *install.Manager, w http.ResponseWriter, r *http.Request, p
 	}
 	identity := manager.Identity(administratorRequest(r))
 	if identity != nil && identity.Personal != nil && !strings.Contains(r.URL.Path, "/account/") && !strings.HasSuffix(r.URL.Path, "/auth/logout") && !strings.HasSuffix(r.URL.Path, "/auth/session") {
-		info, err := identity.Personal.Profile(r.Context(), rawSession(r))
-		if err != nil {
+		if err := identity.Personal.CheckMFAEnrollment(r.Context(), rawSession(r)); err != nil {
 			webError(w, err)
-			return session, false
-		}
-		if info.Force2fa && !info.TotpEnabled {
-			webError(w, platform.ErrMFAEnrollment)
 			return session, false
 		}
 	}

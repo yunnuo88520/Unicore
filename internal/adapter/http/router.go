@@ -3,6 +3,7 @@
 package httpadapter
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -24,14 +25,22 @@ import (
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/monitor"
-	"github.com/yunnuo/unicore/internal/observability"
 	"github.com/yunnuo/unicore/internal/notify"
+	"github.com/yunnuo/unicore/internal/observability"
 	"github.com/yunnuo/unicore/internal/platform"
 	"github.com/yunnuo/unicore/internal/realtime"
+	"github.com/yunnuo/unicore/internal/runtime"
 	"github.com/yunnuo/unicore/internal/updateport"
 	"github.com/yunnuo/unicore/internal/usecase"
 	apispec "github.com/yunnuo/unicore/packages/contracts"
 )
+
+type requestSettingsKey struct{}
+
+type requestSettingsSnapshot struct {
+	values map[string]string
+	err    error
+}
 
 type Config struct {
 	Updates          updateport.API
@@ -85,13 +94,21 @@ func New(config Config) http.Handler {
 					connect += " " + strings.Join(fs.Origins(r.Context()), " ")
 				}
 				// Click-through human verification loads the provider widget; widen
-				// script/frame/connect/img only while a switch is enabled.
-				if origins := config.Install.HumanCheckOrigins(r.Context()); len(origins) > 0 {
-					joined := strings.Join(origins, " ")
-					scripts += " " + joined
-					connect += " " + joined
-					images += " " + joined
-					frames = " frame-src " + joined + ";"
+				// script/frame/connect/img only while a switch is enabled. Reuse the
+				// single settings read downstream for maintenance gating.
+				_, service, _, profile := config.Install.Services()
+				if service != nil && profile == runtime.WebPlatform {
+					values, err := service.Store.ReadSettings(r.Context())
+					r = r.WithContext(context.WithValue(r.Context(), requestSettingsKey{}, &requestSettingsSnapshot{values: values, err: err}))
+					if err == nil {
+						if origins := install.HumanCheckOriginsFrom(values); len(origins) > 0 {
+							joined := strings.Join(origins, " ")
+							scripts += " " + joined
+							connect += " " + joined
+							images += " " + joined
+							frames = " frame-src " + joined + ";"
+						}
+					}
 				}
 			}
 			w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src "+scripts+"; style-src 'self' 'unsafe-inline'; img-src "+images+"; connect-src "+connect+";"+frames+" frame-ancestors 'none'; base-uri 'self'")
@@ -158,8 +175,14 @@ func New(config Config) http.Handler {
 				path := r.URL.Path
 				if strings.HasPrefix(path, "/api/v1/") && path != "/api/v1/bootstrap" && !strings.HasPrefix(path, "/api/v1/admin/") && !strings.HasPrefix(path, "/api/v1/health/") {
 					_, service, _, profile := config.Install.Services()
-					if profile == "web-platform" && service != nil {
-						values, err := service.Store.ReadSettings(r.Context())
+					if profile == runtime.WebPlatform && service != nil {
+						var values map[string]string
+						var err error
+						if cached, ok := r.Context().Value(requestSettingsKey{}).(*requestSettingsSnapshot); ok && cached != nil {
+							values, err = cached.values, cached.err
+						} else {
+							values, err = service.Store.ReadSettings(r.Context())
+						}
 						if err != nil {
 							failure(w, 503, "NOT_READY", "存储尚未就绪")
 							return

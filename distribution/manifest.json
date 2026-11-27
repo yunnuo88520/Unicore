@@ -1241,6 +1241,7 @@
     "packages/web-ui/src/modules/notes/notes.tsx",
     "packages/web-ui/src/navigation-icon-catalog.ts",
     "packages/web-ui/src/navigation-icon-keywords.json",
+    "packages/web-ui/src/navigation-icon-picker.tsx",
     "packages/web-ui/src/navigation-icons.tsx",
     "packages/web-ui/src/navigation-view.tsx",
     "packages/web-ui/src/navigation.test.ts",

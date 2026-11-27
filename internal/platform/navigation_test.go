@@ -40,6 +40,31 @@ func frontendPageOrder(t *testing.T) []string {
 	return pages
 }
 
+func frontendBuiltinIcons(t *testing.T) map[string]string {
+	t.Helper()
+	raw, err := os.ReadFile("../../packages/web-ui/src/navigation.ts")
+	if err != nil {
+		t.Skipf("frontend navigation model unavailable: %v", err)
+	}
+	match := regexp.MustCompile(`builtinIcons: Record<string, string> = \{([\s\S]*?)\};`).FindSubmatch(raw)
+	if match == nil {
+		t.Fatal("builtinIcons not found in the frontend model")
+	}
+	icons := map[string]string{}
+	entryPattern := regexp.MustCompile(`(?:'([^']+)'|([A-Za-z0-9_]+))\s*:\s*'([^']+)'`)
+	for _, m := range entryPattern.FindAllSubmatch(match[1], -1) {
+		key := string(m[1])
+		if key == "" {
+			key = string(m[2])
+		}
+		icons[key] = string(m[3])
+	}
+	if len(icons) == 0 {
+		t.Fatal("frontend builtinIcons is empty")
+	}
+	return icons
+}
+
 func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 	seed := DefaultNavigation()
 	surfacesOf := map[string][]string{}
@@ -175,6 +200,17 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 	for id := range registry {
 		if !contains(defaultPageOrder, id) && !contains(frontendOrder, id) {
 			t.Fatal("Go registry page missing from the frontend order", id)
+		}
+	}
+	frontendIcons := frontendBuiltinIcons(t)
+	for _, page := range baseNavigationPages {
+		if frontendIcons[page.ID] != navigationIcons[page.ID] {
+			t.Fatalf("builtin icon drifted for %q: go=%q frontend=%q", page.ID, navigationIcons[page.ID], frontendIcons[page.ID])
+		}
+	}
+	for id, icon := range frontendIcons {
+		if navigationIcons[id] != icon {
+			t.Fatalf("unexpected frontend builtinIcon %q=%q (go=%q)", id, icon, navigationIcons[id])
 		}
 	}
 

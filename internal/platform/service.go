@@ -282,7 +282,7 @@ func (s *Service) AllowIP(ctx context.Context, ip string) error {
 	if s.Settings == nil {
 		return nil
 	}
-	values, err := s.Settings.Raw(ctx)
+	values, err := s.Settings.Values(ctx)
 	if err != nil {
 		return err
 	}
@@ -295,7 +295,7 @@ func (s *Service) passwordAllowed(ctx context.Context, password string) error {
 	if s.Settings == nil {
 		return nil
 	}
-	values, err := s.Settings.Raw(ctx)
+	values, err := s.Settings.Values(ctx)
 	if err != nil {
 		return err
 	}

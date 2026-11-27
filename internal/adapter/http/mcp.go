@@ -40,7 +40,7 @@ func mountMCP(api chi.Router, config Config) {
 			if !ok {
 				return
 			}
-			values, err := settingsService.Raw(r.Context())
+			values, err := settingsService.Values(r.Context())
 			if err != nil {
 				failure(w, 503, "NOT_READY", "存储尚未就绪")
 				return
@@ -84,7 +84,7 @@ func mountMCP(api chi.Router, config Config) {
 		// Re-read through the settings service so the response reflects the
 		// committed projection, not the request payload.
 		_, settingsService, _, _ := config.Install.Services()
-		fresh, err := settingsService.Raw(r.Context())
+		fresh, err := settingsService.Values(r.Context())
 		if err != nil {
 			failure(w, 503, "NOT_READY", "存储尚未就绪")
 			return
@@ -203,7 +203,7 @@ func mountMCP(api chi.Router, config Config) {
 		if !ok {
 			return
 		}
-		values, err := settingsService.Raw(r.Context())
+		values, err := settingsService.Values(r.Context())
 		if err != nil {
 			failure(w, 503, "NOT_READY", "存储尚未就绪")
 			return

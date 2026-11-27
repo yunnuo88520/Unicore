@@ -31,10 +31,19 @@ function bootstrapPath(payload: unknown): string {
   const path = (payload as { data?: { admin_path?: string } })?.data?.admin_path;
   return typeof path === 'string' && path.startsWith('/') ? path.replace(/\/$/, '') : '';
 }
+function manualChunks(id: string): string | undefined {
+  if (!id.includes('node_modules') && !id.includes('/packages/contracts/')) return undefined;
+  if (id.includes('/node_modules/react-dom/') || id.includes('/node_modules/react/')) return 'vendor-react';
+  if (id.includes('/node_modules/@tanstack/')) return 'vendor-tanstack';
+  if (id.includes('/node_modules/@radix-ui/')) return 'vendor-radix';
+  if (id.includes('/node_modules/lucide-react/')) return 'vendor-icons';
+  if (id.includes('/packages/contracts/') || id.includes('/node_modules/zod/')) return 'vendor-contracts';
+  return undefined;
+}
 export default defineConfig({
   plugins: [react(), tailwindcss(), features.plugin, administratorEntry()], define: features.define,
   // Runtime images and the instance manifest belong to the API server too.
   // Falling through to Vite's SPA fallback returns HTML with status 200 for an image.
   server: { port: 5173, strictPort: true, proxy: { '/api': apiURL, '/brand-assets': apiURL, '/site.webmanifest': apiURL } },
-  build: { rollupOptions: { input: { client: 'index.html', administrator: 'admin.html' } }, outDir: 'static', emptyOutDir: false },
+  build: { rollupOptions: { input: { client: 'index.html', administrator: 'admin.html' }, output: { manualChunks } }, outDir: 'static', emptyOutDir: false },
 });

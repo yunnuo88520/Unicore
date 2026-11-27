@@ -46,7 +46,7 @@ func mountAuthentication(api chi.Router, config Config) {
 			if !decode(w, r, &input) {
 				return
 			}
-			values, err := service.Raw(r.Context())
+			values, err := service.Values(r.Context())
 			if err != nil {
 				webError(w, err)
 				return

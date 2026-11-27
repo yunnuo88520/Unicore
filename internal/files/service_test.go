@@ -19,6 +19,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -456,5 +457,87 @@ func TestUploadPathsAndExtensions(t *testing.T) {
 	defer reopened.Close()
 	if _, err = reopened.Files().Access(ctx, a, grant.FileID); err != nil {
 		t.Fatal("custom path lost after restart", err)
+	}
+}
+
+type blockingLocationsRepo struct {
+	files.Repository
+	mu      sync.Mutex
+	armed   bool
+	started chan struct{}
+	release chan struct{}
+}
+
+func (r *blockingLocationsRepo) Locations(ctx context.Context) ([]files.Location, error) {
+	ls, err := r.Repository.Locations(ctx)
+	r.mu.Lock()
+	armed := r.armed
+	if armed {
+		r.armed = false
+	}
+	r.mu.Unlock()
+	if armed {
+		close(r.started)
+		<-r.release
+	}
+	return ls, err
+}
+
+type browserOriginStore struct {
+	blob.Store
+	origin string
+}
+
+func (s browserOriginStore) Browser(context.Context, string) error { return nil }
+func (s browserOriginStore) Origin() string                        { return s.origin }
+
+func TestOriginsCacheRejectsStaleInflightWriteback(t *testing.T) {
+	ctx := context.Background()
+	m, a, _ := setup(t)
+	s := m.Files()
+	baseFactory := s.Factory
+	s.Factory = func(l files.Location, c files.Credentials) (blob.Store, error) {
+		if l.Provider == "s3" {
+			return browserOriginStore{origin: "https://cdn.example.test"}, nil
+		}
+		return baseFactory(l, c)
+	}
+	repo := &blockingLocationsRepo{
+		Repository: s.Repo,
+		armed:      true,
+		started:    make(chan struct{}),
+		release:    make(chan struct{}),
+	}
+	s.Repo = repo
+
+	var wg sync.WaitGroup
+	var stale []string
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		stale = s.Origins(ctx)
+	}()
+	<-repo.started
+	if _, err := s.SaveLocation(ctx, contracts.StorageLocationInput{
+		Name:      "CDN",
+		Provider:  "s3",
+		Endpoint:  "https://s3.example.test",
+		Bucket:    "bucket-a",
+		Region:    "us-east-1",
+		AccessKey: "ak",
+		SecretKey: "sk",
+	}, "", a.ID); err != nil {
+		close(repo.release)
+		wg.Wait()
+		t.Fatal(err)
+	}
+	close(repo.release)
+	wg.Wait()
+	if len(stale) != 0 {
+		t.Fatalf("expected pre-save snapshot for in-flight caller, got %v", stale)
+	}
+	got := s.Origins(ctx)
+	if len(got) != 1 || got[0] != "https://cdn.example.test" {
+		t.Fatalf("stale writeback poisoned Origins cache: %v", got)
 	}
 }

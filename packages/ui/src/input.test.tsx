@@ -46,7 +46,7 @@ it('exports the control surface through cva for composition', () => {
   expect(controlVariants()).toContain('focus-visible:ring-focus');
   expect(controlVariants()).toContain('aria-invalid:border-danger');
   expect(controlVariants()).toContain('border-line');
-  expect(controlVariants()).toContain('bg-field');
+  expect(controlVariants()).toContain('bg-surface');
 });
 
 it('keeps aria-label-only textareas visually unlabelled', () => {

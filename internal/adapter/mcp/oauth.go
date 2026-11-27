@@ -49,7 +49,7 @@ func (s *Surface) oauthGate(w http.ResponseWriter, r *http.Request) (map[string]
 		http.NotFound(w, r)
 		return nil, false
 	}
-	values, err := settings.Raw(r.Context())
+	values, err := settings.Values(r.Context())
 	if err != nil {
 		http.Error(w, "storage unavailable", http.StatusServiceUnavailable)
 		return nil, false

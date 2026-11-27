@@ -336,6 +336,7 @@ func (s *Service) invalidateOrigins() {
 	s.originsMu.Lock()
 	s.cachedOrigins = nil
 	s.originsValid = false
+	s.originsVersion++
 	s.originsMu.Unlock()
 }
 
@@ -346,6 +347,7 @@ func (s *Service) Origins(ctx context.Context) []string {
 		s.originsMu.RUnlock()
 		return out
 	}
+	version := s.originsVersion
 	s.originsMu.RUnlock()
 
 	ls, e := s.Repo.Locations(ctx)
@@ -365,8 +367,10 @@ func (s *Service) Origins(ctx context.Context) []string {
 		}
 	}
 	s.originsMu.Lock()
-	s.cachedOrigins = append([]string(nil), result...)
-	s.originsValid = true
+	if s.originsVersion == version {
+		s.cachedOrigins = append([]string(nil), result...)
+		s.originsValid = true
+	}
 	s.originsMu.Unlock()
 	return result
 }

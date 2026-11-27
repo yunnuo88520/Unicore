@@ -35,17 +35,15 @@ import {
   useShellOptions, useSessionNotice, usePageProps, type PageProps, type PageComponent,
 } from './router';
 import { ErrorPage } from './pages/error';
+import { InstallPage } from './pages/install';
+import { HomePage } from './pages/home';
+import { LoginPage, VerifyEmailPage, ResetPasswordPage } from './pages/auth';
 import { NotFoundPage } from './pages/not-found';
 import { ForbiddenPage } from './pages/forbidden';
 
 const PasswordDialog = lazy(() => import('./password-dialog').then(module => ({ default: module.PasswordDialog })));
 const AccountSettingsModal = lazy(() => import('./account-settings/modal').then(module => ({ default: module.AccountSettingsModal })));
 const LiveLogsButton = lazy(() => import('./live-logs').then(module => ({ default: module.LiveLogsButton })));
-const InstallPage = lazy(() => import('./pages/install').then(module => ({ default: module.InstallPage })));
-const HomePage = lazy(() => import('./pages/home').then(module => ({ default: module.HomePage })));
-const LoginPage = lazy(() => import('./pages/auth').then(module => ({ default: module.LoginPage })));
-const VerifyEmailPage = lazy(() => import('./pages/auth').then(module => ({ default: module.VerifyEmailPage })));
-const ResetPasswordPage = lazy(() => import('./pages/auth').then(module => ({ default: module.ResetPasswordPage })));
 const AuthorizePage = lazy(() => import('./pages/authorize').then(module => ({ default: module.AuthorizePage })));
 
 export { DashboardWidgetRegistry } from './registry';
@@ -160,9 +158,7 @@ function WorkspaceShell() {
     return <PagePropsProvider value={props}>
       <div className="relative flex min-h-dvh flex-col bg-background">
         <div className="absolute top-[15px] end-[20px] z-[45] rounded-lg border border-line bg-surface px-2 py-[5px] shadow-tint"><ClientControls /></div>
-        <Suspense fallback={<div className="flex flex-1 items-center justify-center p-6 text-sm text-muted" role="status">{t('页面加载中…')}</div>}>
-          <InstallPage {...props} />
-        </Suspense>
+        <InstallPage {...props} />
         <SiteFooter metadata={data} compact />
       </div>
     </PagePropsProvider>;
@@ -200,11 +196,7 @@ function WorkspaceShell() {
   if (data.capabilities.authentication && publicHome && data.home_enabled && !rootAuthFlow && (basename === 'home' || (!basename && !data.current_user))) {
     if (!basename) return <Navigate to="/home" replace />;
     const props: PageProps = { page: 'overview', client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
-    return <PagePropsProvider value={props}>
-      <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-background p-6 text-sm text-muted" role="status">{t('页面加载中…')}</div>}>
-        <HomePage {...props} />
-      </Suspense>
-    </PagePropsProvider>;
+    return <PagePropsProvider value={props}><HomePage {...props} /></PagePropsProvider>;
   }
   if (basename === 'home' && data.current_user) return <Navigate to="/" replace />;
   if (data.capabilities.authentication && (!data.current_user || /^(verify-email|reset-password)$/.test(basename)) && client.web) {
@@ -217,9 +209,7 @@ function WorkspaceShell() {
         <div className="flex flex-1 items-center justify-center px-4 py-8 sm:px-6 sm:py-6">
           <div className="relative w-full max-w-[1200px] overflow-hidden rounded-3xl border border-line bg-background shadow-card">
             <div className="absolute end-4 top-4 z-[45]"><ClientControls /></div>
-            <Suspense fallback={<div className="flex min-h-[24rem] items-center justify-center p-6 text-sm text-muted" role="status">{t('页面加载中…')}</div>}>
-              <Flow {...props} />
-            </Suspense>
+            <Flow {...props} />
           </div>
         </div>
         <SiteFooter metadata={data} compact />

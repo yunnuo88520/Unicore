@@ -37,7 +37,7 @@ func mountMcpOauth(api chi.Router, config Config) {
 			failure(w, 404, "NOT_AVAILABLE", "此运行形态不提供该能力")
 			return nil, nil, false
 		}
-		values, err := settingsService.Raw(r.Context())
+		values, err := settingsService.Values(r.Context())
 		if err != nil {
 			failure(w, 503, "NOT_READY", "存储尚未就绪")
 			return nil, nil, false

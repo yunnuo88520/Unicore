@@ -242,6 +242,17 @@ func applies(_ SettingDefinition, profile contracts.Profile) bool {
 
 // Raw is internal-only: HTTP must use List so secrets never enter responses.
 func (s *Service) Raw(ctx context.Context) (map[string]string, error) {
+	return s.readWithDefaults(ctx, true)
+}
+
+// Values returns all settings with compatibility defaults applied without
+// decrypting sensitive keys. Sensitive keys are cleared so callers can never
+// mistake ciphertext for plaintext.
+func (s *Service) Values(ctx context.Context) (map[string]string, error) {
+	return s.readWithDefaults(ctx, false)
+}
+
+func (s *Service) readWithDefaults(ctx context.Context, decrypt bool) (map[string]string, error) {
 	values, err := s.Store.ReadSettings(ctx)
 	if err != nil {
 		return nil, err
@@ -264,6 +275,10 @@ func (s *Service) Raw(ctx context.Context) (map[string]string, error) {
 			value = d.Default
 		}
 		if d.Sensitive && value != "" {
+			if !decrypt {
+				values[d.Key] = ""
+				continue
+			}
 			if s.Secrets == nil {
 				return nil, errors.New("secret storage unavailable")
 			}
@@ -487,7 +502,7 @@ func MailBaseURL(values map[string]string, fallback string) string {
 // AlertingRules reads the internal alert rule JSON; an empty value means the
 // rule set was never initialized and the defaults apply.
 func (s *Service) AlertingRules(ctx context.Context) (string, error) {
-	values, err := s.Raw(ctx)
+	values, err := s.Values(ctx)
 	if err != nil {
 		return "", err
 	}

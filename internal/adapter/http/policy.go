@@ -254,6 +254,13 @@ func policyHandler(config Config) func(http.Handler) http.Handler {
 				failure(w, 500, "ROUTE_POLICY_UNDECLARED", "接口缺少契约声明，已拒绝执行")
 				return
 			}
+			if config.Install != nil && config.Install.Installed() && len(operation.Policy.Profiles) > 0 {
+				_, _, _, profile := config.Install.Services()
+				if !profileAllowed(operation.Policy.Profiles, string(profile)) {
+					failure(w, 404, "NOT_FOUND", "接口不存在")
+					return
+				}
+			}
 			switch operation.Policy.Access {
 			case "public", "install-token", "local":
 				if operation.Policy.Access == "public" && strings.HasSuffix(r.URL.Path, "/bootstrap") && r.Header.Get("Authorization") != "" {
@@ -335,6 +342,15 @@ func policyHandler(config Config) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), policySessionKey{}, session)))
 		})
 	}
+}
+
+func profileAllowed(allowed []string, actual string) bool {
+	for _, candidate := range allowed {
+		if candidate == actual {
+			return true
+		}
+	}
+	return false
 }
 
 // resolveSession performs the shared session gate: installation state, profile

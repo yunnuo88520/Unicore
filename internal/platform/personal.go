@@ -99,7 +99,7 @@ func (p *Personal) totpNow() int64 {
 }
 
 func (p *Personal) profile(ctx context.Context, s PersonalSession) (contracts.AccountProfile, error) {
-	values, err := p.Settings.Raw(ctx)
+	values, err := p.Settings.Values(ctx)
 	// Privileged accounts use the management security policy on every login surface.
 	administrator := HasManagementAccess(s.User)
 	force2fa := settings.Force2FA(values, administrator)
@@ -149,7 +149,7 @@ func (p *Personal) SaveProfile(ctx context.Context, token string, input contract
 	if !utf8.ValidString(name) || utf8.RuneCountInString(name) > 80 || strings.ContainsAny(name, "\r\n\x00") {
 		return contracts.AccountProfile{}, ErrInput
 	}
-	values, err := p.Settings.Raw(ctx)
+	values, err := p.Settings.Values(ctx)
 	if err != nil {
 		return contracts.AccountProfile{}, err
 	}

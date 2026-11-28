@@ -80,7 +80,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 
 标注说明：**[源码强制]** 违反即编译失败或运行时拒绝（`scripts/check-boundaries`、策略中间件或装配缺失兜底）；**[产品约束]** 维护者确认的产品意图，当前实现与其一致，改变它属于产品决策，须先修订本文并获维护者确认；**[维护约定]** 文档与流程纪律，靠评审与检查维持。
 
-1. [源码强制] CLI 不引入 HTTP server、Wails、SQL 驱动和平台身份模块；CLI 不拥有持久化状态。Web 包运维子命令与 ops 工具不属于 CLI 形态（见第 1 节）。证据：`internal/adapter/cli/command.go`、`internal/bootstrap/core.go`、`scripts/check-boundaries`。
+1. CLI 不启动 HTTP server、不拥有持久化状态，也不装配应用 HTTP 适配器、Wails、SQL 驱动和平台身份模块；允许在适配器和组合根使用出站 HTTP 客户端。依赖检查强制装配边界，但不能区分标准库的客户端与服务端调用，禁止启动服务须通过代码评审和行为验证。Web 包运维子命令与 ops 工具不属于 CLI 形态（见第 1 节）。证据：`internal/adapter/cli/command.go`、`internal/bootstrap/core.go`、`scripts/check-boundaries`。
 2. [产品约束] Standalone 是单用户产品，但**不等于 Platform 超级管理员**：不得因没有身份体系就默认继承平台管理能力。平台身份治理服务（internal/platform）、管理端 API 与管理后台 SPA 不得被 Standalone 装配或暴露；运行时边界仍为装配省略 + 非 platform 管理接口 404。**物理表存在是独立事实**：沿用现有 Catalog，三个 UI profile 都包含 platform（ADR-0042 整合的单一 @1 终态基线），Standalone 会创建 RBAC 等表但不开放对应治理能力。本次保留该成员归属，数据库隔离后续独立决策，见 [ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md)；不能以表存在推导功能已装配，也不能依据旧隔离表述擅自删除本地表或改 profile。
 3. [产品约束] Standalone 两个载体的功能集、业务语义、菜单与页面呈现规则必须一致；差异只允许来自第 5 节清单，且新增差异必须先在本文明示。
 4. [源码强制 + 维护约定] 契约与形态隔离分四层执行，新增接口时各层都要落实：

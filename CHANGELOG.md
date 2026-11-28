@@ -5,6 +5,14 @@ All notable changes to Unicore are documented here. 本文件只记录面向使�
 
 ## Unreleased
 
+### 中文
+
+- 修复派生 CLI 的出站 HTTP 客户端被依赖检查误拒绝；保留领域、用例和服务端装配边界，并说明标准库服务端调用需要额外审查。
+
+### English
+
+- Allow derived CLI adapters to use outbound HTTP clients while retaining domain, use case, and server assembly boundaries; document the separate review needed for standard-library server calls.
+
 ## 0.2.1 — 2026-11-26
 
 ### 中文

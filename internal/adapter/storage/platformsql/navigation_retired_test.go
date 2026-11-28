@@ -5,10 +5,10 @@ package platformsql
 import (
 	"context"
 	"encoding/json"
-	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"reflect"
 	"testing"
 
+	"github.com/yunnuo/unicore/internal/adapter/storage/sqlstore"
 	"github.com/yunnuo/unicore/internal/contracts"
 	"github.com/yunnuo/unicore/internal/platform"
 )
@@ -51,7 +51,10 @@ func exerciseRetireAPIDocsNavigation(t *testing.T, ctx context.Context, store *s
 	child.ID = "retained-child"
 	child.SectionID = "system"
 	child.ParentID = &retired.ID
-	for _, node := range []contracts.NavigationNode{retired, custom, child} {
+	collision := custom
+	collision.ID = "retained-actions-1"
+	action := contracts.NavigationNode{ID: "retained-operation", SectionID: "system", Surfaces: []string{"administrator"}, Type: "action", ParentID: &retired.ID, Permission: strPtr("notes:update"), OperationIds: []string{"updateNote"}, Visible: true, OpenMode: "same_tab"}
+	for _, node := range []contracts.NavigationNode{retired, custom, child, collision, action} {
 		raw, _ := json.Marshal(node)
 		if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_navigation_nodes(id,section_id,node_type,payload) VALUES(?,?,?,?)", node.ID, node.SectionID, node.Type, string(raw)); err != nil {
 			t.Fatal(err)
@@ -60,6 +63,10 @@ func exerciseRetireAPIDocsNavigation(t *testing.T, ctx context.Context, store *s
 	if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_role_menus(role_id,menu_id) VALUES(?,?)", role.ID, retired.ID); err != nil {
 		t.Fatal(err)
 	}
+	if _, err = store.Exec(ctx, store.DB, "INSERT INTO unicore_role_actions(role_id,action_id) VALUES(?,?)", role.ID, action.ID); err != nil {
+		t.Fatal(err)
+	}
+	role.ActionIds = []string{action.ID}
 	if _, err = store.Exec(ctx, store.DB, "UPDATE unicore_navigation_state SET version=version+1 WHERE id=1"); err != nil {
 		t.Fatal(err)
 	}
@@ -80,8 +87,21 @@ func exerciseRetireAPIDocsNavigation(t *testing.T, ctx context.Context, store *s
 	if !reflect.DeepEqual(byID[custom.ID], custom) {
 		t.Fatal("business docs changed", byID[custom.ID])
 	}
+	if !reflect.DeepEqual(byID[collision.ID], collision) {
+		t.Fatal("action carrier overwrote a custom node", byID[collision.ID])
+	}
 	if byID[child.ID].ParentID != nil || byID[child.ID].Visible {
 		t.Fatal("custom child lost or revealed", byID[child.ID])
+	}
+	if err = validateNavigation(contracts.Navigation{Sections: updated.Sections, Nodes: updated.Nodes}, contracts.Navigation{Sections: updated.Sections, Nodes: updated.Nodes}); err != nil {
+		t.Fatal("retained custom actions make the upgraded tree unsaveable", err)
+	}
+	savedAction := byID[action.ID]
+	if !sameActionBinding(action, savedAction) || savedAction.ParentID == nil || byID[text(savedAction.ParentID)].Type != "page" {
+		t.Fatal("custom action binding or parent lost", savedAction)
+	}
+	if byID[text(savedAction.ParentID)].Visible {
+		t.Fatal("recovered action parent became a sidebar entry")
 	}
 	for _, node := range initial.Nodes {
 		if !reflect.DeepEqual(byID[node.ID], node) {
@@ -93,7 +113,7 @@ func exerciseRetireAPIDocsNavigation(t *testing.T, ctx context.Context, store *s
 		t.Fatal(err)
 	}
 	for _, saved := range roles.Items {
-		if saved.ID == role.ID && (!reflect.DeepEqual(saved.Permissions, role.Permissions) || !reflect.DeepEqual(saved.MenuIds, role.MenuIds) || !reflect.DeepEqual(saved.OperationIds, role.OperationIds)) {
+		if saved.ID == role.ID && (!reflect.DeepEqual(saved.Permissions, role.Permissions) || !reflect.DeepEqual(saved.MenuIds, role.MenuIds) || !reflect.DeepEqual(saved.ActionIds, role.ActionIds) || !reflect.DeepEqual(saved.OperationIds, role.OperationIds)) {
 			t.Fatal("unrelated authorization changed", saved)
 		}
 	}
@@ -103,6 +123,10 @@ func exerciseRetireAPIDocsNavigation(t *testing.T, ctx context.Context, store *s
 				t.Fatal("workspace retained docs")
 			}
 		}
+	}
+	updated, err = repo.SaveNavigation(ctx, contracts.MenuSaveInput{Version: updated.Version, Sections: updated.Sections, Nodes: updated.Nodes}, admin.ID)
+	if err != nil {
+		t.Fatal("upgraded tree cannot be saved", err)
 	}
 	if err = repo.EnsureNavigation(ctx); err != nil {
 		t.Fatal(err)

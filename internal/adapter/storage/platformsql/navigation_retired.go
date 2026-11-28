@@ -4,6 +4,7 @@ package platformsql
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"strings"
 
@@ -29,7 +30,9 @@ func (r *Repository) retireAPIDocsNavigation(ctx context.Context) error {
 		return err
 	}
 	retired := map[string]contracts.NavigationNode{}
+	nodes := map[string]contracts.NavigationNode{}
 	for _, node := range n.Nodes {
+		nodes[node.ID] = node
 		if node.Type == "page" && text(node.RouteID) == "api-docs" {
 			retired[node.ID] = node
 		}
@@ -42,10 +45,12 @@ func (r *Repository) retireAPIDocsNavigation(ctx context.Context) error {
 		return err
 	}
 	kept := make([]contracts.NavigationNode, 0, len(n.Nodes))
+	carriers := map[string]string{}
 	for _, node := range n.Nodes {
 		if _, removed := retired[node.ID]; removed {
 			continue
 		}
+		originalParent := text(node.ParentID)
 		seen := map[string]bool{}
 		for parent, removed := retired[text(node.ParentID)]; removed && !seen[parent.ID]; parent, removed = retired[text(node.ParentID)] {
 			seen[parent.ID] = true
@@ -56,6 +61,29 @@ func (r *Repository) retireAPIDocsNavigation(ctx context.Context) error {
 		}
 		if _, removed := retired[text(node.ActiveMenu)]; removed {
 			node.ActiveMenu = nil
+		}
+		if _, removed := retired[originalParent]; removed && node.Type == "action" {
+			parent, exists := nodes[text(node.ParentID)]
+			if !exists || parent.Type != "page" {
+				// An action requires a page parent. Keep custom action IDs and
+				// authorization bindings under a hidden, valid overview carrier;
+				// an orphan or directory parent would block every future save.
+				id := carriers[originalParent]
+				if id == "" {
+					for suffix := 1; ; suffix++ {
+						id = fmt.Sprintf("retained-actions-%d", suffix)
+						if _, taken := nodes[id]; !taken {
+							break
+						}
+					}
+					route := "overview"
+					carrier := contracts.NavigationNode{ID: id, SectionID: node.SectionID, ParentID: node.ParentID, Type: "page", RouteID: &route, Surfaces: append([]string{}, retired[originalParent].Surfaces...), Sort: retired[originalParent].Sort, OpenMode: "same_tab", OperationIds: []string{}}
+					nodes[id] = carrier
+					kept = append(kept, carrier)
+					carriers[originalParent] = id
+				}
+				node.ParentID = &id
+			}
 		}
 		kept = append(kept, node)
 	}

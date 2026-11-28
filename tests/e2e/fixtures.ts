@@ -131,25 +131,34 @@ export function captchaAnswer(image: string) {
   return [...Buffer.from(image.split(',')[1], 'base64').toString().matchAll(/>([0-9])<\/text>/g)].map(match => match[1]).join('');
 }
 
-async function submitLogin(page: Page, username: string, password: string) {
+async function submitLogin(page: Page, username: string, password: string, operation: 'login' | 'adminLogin') {
   await page.getByLabel('账号或邮箱').fill(username);
   await page.getByLabel('密码', { exact: true }).fill(password);
   const image = await page.getByAltText('六位数字验证码，点击刷新').getAttribute('src');
   await page.getByLabel('图形验证码', { exact: true }).fill(captchaAnswer(image!));
-  await page.getByRole('button', { name: '登录工作空间' }).click();
+  const login = operations[operation];
+  const endpoint = new URL(login.path, page.url()).href;
+  // Password verification can outlast the default five-second DOM assertion
+  // on a busy runner. Observe the actual response within the SDK's request
+  // deadline first, and fail immediately if authentication was rejected.
+  const [response] = await Promise.all([
+    page.waitForResponse(response => response.url() === endpoint && response.request().method() === login.method, { timeout: 20000 }),
+    page.getByRole('button', { name: '登录工作空间' }).click(),
+  ]);
+  expect(response.status(), 'login must succeed before waiting for the workspace').toBe(200);
 }
 
 // Administrator sessions start at /admin; members land on the workspace home.
 // Accounts whose landing page is not granted see the standalone 403 page instead.
 export async function adminLogin(page: Page, url: string, username: string, password: string) {
   await page.goto(`${url}/admin`);
-  await submitLogin(page, username, password);
+  await submitLogin(page, username, password, 'adminLogin');
   await expect(page.getByRole('heading', { name: '工作台概览' }).or(page.getByRole('heading', { name: '没有访问权限' }))).toBeVisible();
 }
 
 export async function workspaceLogin(page: Page, url: string, username: string, password = memberPassword) {
   await page.goto(`${url}/login`);
-  await submitLogin(page, username, password);
+  await submitLogin(page, username, password, 'login');
   await expect(page.getByRole('heading', { name: '工作台概览' }).or(page.getByRole('heading', { name: '没有访问权限' }))).toBeVisible();
 }
 

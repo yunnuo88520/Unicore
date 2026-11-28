@@ -64,6 +64,8 @@ Platform 超级管理员在「系统设置 → 账户安全」配置登录会话
 | 个人令牌 MCP 接入提示 | 已实现（访问令牌分区顶部提示：接入地址复制与最小权限角色引导，服务启用且本人视图时显示） | 不呈现（不装配） | 不呈现（不装配） | 不适用 |
 | 管理后台 SPA（admin.html） | — | 独立入口，需 identity 服务（standalone 请求 404；desktop 无此入口） | 不适用 | 不适用 |
 
+Standalone 的 macOS 桌面下载使用 DMG，保留应用拖入 Applications 的 Finder 布局；打包从完整工作镜像的独立副本压缩并校验，不改变安装入口或本地使用者的业务权限。验证流程见 [打包与发行](../03-runbooks/release.md)。
+
 派生应用的自定义控制台独立提供 Shell，框架不替它放置侧栏或品牌入口。`ConsoleShellProps.workspaces` 提供当前会话可达的用户、可用管理和已授权控制台目标；Shell 可在合适位置渲染 `WorkspaceSwitcher`。管理入口使用 bootstrap 的 `admin_path`，跨 Web 入口重新加载；切换其他自定义控制台使用应用路由。管理后台仍通过现有账号菜单返回 `/` 用户工作空间，再进入自定义控制台；注册表不扩展到管理员 SPA，也不改变身份或 API realm。
 
 关闭 `FEATURE_UPDATER` 后保留共享版本号，不显示系统更新菜单、日志页或任何检查/安装操作，不请求更新 API；没有运行期更新启停设置。单独开启 `FEATURE_LICENSE` 时，原 edition 预留页以「应用授权」呈现，不恢复更新按钮。

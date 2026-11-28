@@ -209,7 +209,7 @@ func (a *Accounts) Complete(ctx context.Context, token, purpose, password, ip st
 }
 
 func (a *Accounts) emailAllowed(ctx context.Context, email, ip string, restrictDomain bool) error {
-	values, err := a.Settings.Raw(ctx)
+	values, err := a.Settings.Values(ctx)
 	if err != nil {
 		return err
 	}
@@ -219,7 +219,7 @@ func (a *Accounts) emailAllowed(ctx context.Context, email, ip string, restrictD
 	return nil
 }
 func (a *Accounts) registrationAllowed(ctx context.Context, input contracts.RegisterInput, ip string) error {
-	values, err := a.Settings.Raw(ctx)
+	values, err := a.Settings.Values(ctx)
 	if err != nil {
 		return err
 	}

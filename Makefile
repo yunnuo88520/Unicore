@@ -74,7 +74,7 @@ test-web:
 	pnpm test
 audit:
 	pnpm audit:deps
-test-e2e:
+test-e2e: build-web
 	pnpm test:e2e
 test-notes:
 	pnpm test:notes

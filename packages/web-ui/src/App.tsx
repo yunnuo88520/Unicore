@@ -13,7 +13,7 @@ export { defineConsoles, consoleHref, consolePageHref, type ConsoleDefinition, t
 export { WorkspaceSwitcher } from './workspace-switcher';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbSeparator, MessageProvider, PageHeader } from '@unicore/ui';
 import { SiteFooter } from './site-footer';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { RouterProvider, Outlet, Navigate, createBrowserHistory, useRouter, useRouterState, type RouterHistory } from '@tanstack/react-router';
 import { ChevronRight, ChevronsUpDown, ExternalLink, FlaskConical, Info, KeyRound, LayoutDashboard, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Radio, RotateCcw, Settings2, ShieldCheck, UserRound } from 'lucide-react';
 import { buildNavigation, isLinkEntry, routePath, type NavEntry } from './navigation';
@@ -23,13 +23,11 @@ import type { AppClient, Bootstrap } from '@unicore/sdk';
 import { AppError } from '@unicore/sdk';
 import { setCustomAccent, useResolvedTheme, useTheme, type Theme } from '@unicore/theme';
 import { DashboardWidgetRegistry } from './registry';
-import { PasswordDialog } from './password-dialog';
-import { AccountSettingsModal, type AccountSettingsPage } from './account-settings/modal';
+import type { AccountSettingsPage } from './account-settings/modal';
 import { roleDisplayLabels } from './role-display';
 import { UserAvatar, displayLabel } from './user-avatar';
 import { SessionBoundary, useSession } from './session';
 import { routes, canAccess, isAdminRealm, isAdministrator, pageOwnsHeading, type Page } from './routes';
-import { LiveLogsButton } from './live-logs';
 import { Modal, Button, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, Tooltip } from '@unicore/ui';
 import { setPreferences, usePreferences } from '@unicore/theme/preferences';
 import {
@@ -40,9 +38,13 @@ import { ErrorPage } from './pages/error';
 import { InstallPage } from './pages/install';
 import { HomePage } from './pages/home';
 import { LoginPage, VerifyEmailPage, ResetPasswordPage } from './pages/auth';
-import { AuthorizePage } from './pages/authorize';
 import { NotFoundPage } from './pages/not-found';
 import { ForbiddenPage } from './pages/forbidden';
+
+const PasswordDialog = lazy(() => import('./password-dialog').then(module => ({ default: module.PasswordDialog })));
+const AccountSettingsModal = lazy(() => import('./account-settings/modal').then(module => ({ default: module.AccountSettingsModal })));
+const LiveLogsButton = lazy(() => import('./live-logs').then(module => ({ default: module.LiveLogsButton })));
+const AuthorizePage = lazy(() => import('./pages/authorize').then(module => ({ default: module.AuthorizePage })));
 
 export { DashboardWidgetRegistry } from './registry';
 export type { PageProps, PageComponent } from './router';
@@ -100,7 +102,11 @@ function WorkspaceShell() {
   // enrollment gate pins it on the security page, and OIDC binding callbacks
   // land here with their one-shot result.
   const [account, setAccount] = useState<{ open: boolean; page: AccountSettingsPage; oidc?: string }>({ open: false, page: 'profile' });
-  const openAccount = (page: AccountSettingsPage = 'profile', oidc?: string) => setAccount({ open: true, page, oidc });
+  const [accountLoaded, setAccountLoaded] = useState(false);
+  const openAccount = (page: AccountSettingsPage = 'profile', oidc?: string) => {
+    setAccountLoaded(true);
+    setAccount({ open: true, page, oidc });
+  };
   const { navCollapsed, layout } = usePreferences();
   const pathname = useRouterState({ select: state => state.location.pathname });
   const searchStr = useRouterState({ select: state => state.location.searchStr });
@@ -221,7 +227,13 @@ function WorkspaceShell() {
   // platform accounts; guests stay on the login wall above until they sign in.
   if (page === 'authorize' && data.current_user) {
     const props: PageProps = { page, client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
-    return <PagePropsProvider value={props}><main className="min-h-dvh bg-background"><AuthorizePage {...props} /></main></PagePropsProvider>;
+    return <PagePropsProvider value={props}>
+      <main className="min-h-dvh bg-background">
+        <Suspense fallback={<div className="flex min-h-dvh items-center justify-center p-6 text-sm text-muted" role="status">{t('页面加载中…')}</div>}>
+          <AuthorizePage {...props} />
+        </Suspense>
+      </main>
+    </PagePropsProvider>;
   }
 
   const administration = data.identity_realm === 'administrator';
@@ -243,9 +255,9 @@ function WorkspaceShell() {
       navigation={<SideNavigation page={page} data={data} client={client} onNavigate={() => setMobileOpen(false)} onAbout={() => { setMobileOpen(false); setAbout(true); }} administration={administration} onOpenAccount={() => openAccount('profile')} onOpenPassword={() => setPasswordOpen(true)} refresh={refresh} />}
       header={<TopBar page={page} data={data} client={client} settingsLabel={settingsLabel} connection={metadata.isSuccess ? 'connected' : metadata.isPending ? 'pending' : 'error'} mobileOpen={mobileOpen} onOpenMobile={() => setMobileOpen(true)} onOpenAccount={() => openAccount('profile')} onOpenPassword={() => setPasswordOpen(true)} refresh={refresh} navToggleVisible={layout !== 'full'} />}
       overlays={<>
-        {passwordOpen && client.web && <PasswordDialog web={client.web} onClose={() => setPasswordOpen(false)} />}
+        {passwordOpen && client.web && <Suspense fallback={null}><PasswordDialog web={client.web} onClose={() => setPasswordOpen(false)} /></Suspense>}
         {about && <About onClose={() => setAbout(false)} />}
-        {client.web && data.current_user && <AccountSettingsModal open={account.open} onClose={() => setAccount(state => ({ ...state, open: false }))} defaultPage={account.page} pinned={enrollment} client={client} metadata={data} refresh={refresh} oidc={account.oidc} />}
+        {client.web && data.current_user && (accountLoaded || account.open || !!account.oidc) && <Suspense fallback={null}><AccountSettingsModal open={account.open} onClose={() => setAccount(state => ({ ...state, open: false }))} defaultPage={account.page} pinned={enrollment} client={client} metadata={data} refresh={refresh} oidc={account.oidc} /></Suspense>}
       </>}
     >
       {enrollment && <p role="alert" className="mb-4 rounded-lg border border-line bg-primary-soft p-4 text-sm text-ink">{t('实例要求启用双重验证，请先完成安全设置。')}</p>}
@@ -426,7 +438,7 @@ function TopBar({ page, data, client, settingsLabel, connection, mobileOpen, onO
       <span className="mx-1 h-4 w-px bg-line max-sm:hidden" aria-hidden="true" />
       {/* Standalone has no accounts or login flow: its bell rides the local surface without a session user. */}
       {(client.notifications || client.web) && (data.profile === 'web-standalone' || data.profile === 'desktop' || data.profile === 'web-platform' && user && !data.mfa_enrollment_required) && <AnnouncementCenter inbox={(client.notifications || client.web)!} web={client.web} administrator={data.identity_realm === 'administrator'} standalone={data.profile !== 'web-platform'} />}
-      {isAdministrator(data) && user && client.web && !data.mfa_enrollment_required && <LiveLogsButton web={client.web} />}
+      {isAdministrator(data) && user && client.web && !data.mfa_enrollment_required && <Suspense fallback={null}><LiveLogsButton web={client.web} /></Suspense>}
       <ClientControls />
       {data.profile === 'web-platform' && user && (
         <DropdownMenu>

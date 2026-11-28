@@ -138,12 +138,13 @@ export function defaultNavigation(_surface: NavigationSection['surfaces'], profi
   return { version: 0, sections, nodes };
 }
 const builtinIcons: Record<string, string> = {
-  overview: 'LayoutDashboard', notes: 'NotebookPen', site: 'Settings2', storage: 'Cloud', files: 'Files',
+  overview: 'LayoutDashboard', site: 'Settings2', storage: 'Cloud', files: 'Files',
   users: 'UserRound', administrators: 'UserCog', announcements: 'Megaphone', 'account-policy': 'ShieldCheck', mail: 'Mail', 'mail-templates': 'Mail',
   'notification-channels': 'Webhook', 'notification-templates': 'FileText', 'system-notifications': 'Bell', logs: 'ScrollText', edition: 'PackageCheck',
   roles: 'ShieldCheck', departments: 'Network', tasks: 'ListChecks', menus: 'LayoutDashboard', dictionaries: 'FileText', posts: 'UserCog',
   'access-tokens': 'ShieldCheck', 'api-docs': 'BookOpen',
-  monitor: 'Activity', 'monitor-services': 'Radar', 'monitor-resources': 'Cpu',
+  monitor: 'Activity', 'monitor-services': 'Radar', 'monitor-resources': 'Cpu', 'monitor-events': 'ScrollText',
+  'ai-access': 'Bot', 'ai-tools': 'Wrench', 'ai-calls': 'ScrollText', 'ai-oauth': 'Webhook',
 };
 // Module icons merge after the builtins so a seeded tree and the client default match.
 const defaultIcons: Record<string, string> = { ...builtinIcons, ...Object.fromEntries(uiModules().flatMap(item => Object.entries(item.icons ?? []))) };

@@ -198,6 +198,7 @@ func (s *Service) SaveLocation(ctx context.Context, input contracts.StorageLocat
 	if e := s.Repo.SaveLocation(ctx, l, create, actor); e != nil {
 		return l.StorageLocation, ErrUnavailable
 	}
+	s.invalidateOrigins()
 	l.Configured = true
 	return l.StorageLocation, nil
 }
@@ -301,7 +302,11 @@ func (s *Service) RemoveLocation(ctx context.Context, locationID, actor string) 
 	if l.Provider == "local" || l.ID == active || busy {
 		return ErrBusy
 	}
-	return s.Repo.RemoveLocation(ctx, l.ID, actor)
+	if e := s.Repo.RemoveLocation(ctx, l.ID, actor); e != nil {
+		return e
+	}
+	s.invalidateOrigins()
+	return nil
 }
 func (s *Service) Browser(ctx context.Context, locationID, origin string) error {
 	s.mu.Lock()
@@ -327,7 +332,24 @@ func (s *Service) Browser(ctx context.Context, locationID, origin string) error 
 	}
 	return nil
 }
+func (s *Service) invalidateOrigins() {
+	s.originsMu.Lock()
+	s.cachedOrigins = nil
+	s.originsValid = false
+	s.originsVersion++
+	s.originsMu.Unlock()
+}
+
 func (s *Service) Origins(ctx context.Context) []string {
+	s.originsMu.RLock()
+	if s.originsValid {
+		out := append([]string(nil), s.cachedOrigins...)
+		s.originsMu.RUnlock()
+		return out
+	}
+	version := s.originsVersion
+	s.originsMu.RUnlock()
+
 	ls, e := s.Repo.Locations(ctx)
 	if e != nil {
 		return nil
@@ -344,6 +366,12 @@ func (s *Service) Origins(ctx context.Context) []string {
 			}
 		}
 	}
+	s.originsMu.Lock()
+	if s.originsVersion == version {
+		s.cachedOrigins = append([]string(nil), result...)
+		s.originsValid = true
+	}
+	s.originsMu.Unlock()
 	return result
 }
 func validFile(in contracts.FileUploadInput) bool {

@@ -14,7 +14,8 @@ import {
   buildMenuTree, buildNavigation, copyMenuNode, defaultNavigation, filterMenuTree, flattenNavigation, isRegisteredPage, menuNodeLabel, menuNodeTarget,
   newNavigationNode, routeSurfaces, sectionTitle, validNavigationUrl, type MenuTreeNode,
 } from '../../navigation';
-import { NavigationIconPicker, resolveNavigationIcon } from '../../navigation-icons';
+import { resolveNavigationIcon } from '../../navigation-icons';
+import { NavigationIconPicker } from '../../navigation-icon-picker';
 import { routes } from '../../routes';
 import { roleDisplayLabel, roleDisplayName } from '../../role-display';
 import { invalidateAfter } from '../../queries';

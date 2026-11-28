@@ -73,7 +73,7 @@ func mountTokens(api chi.Router, config Config) {
 		if !decode(w, r, &input) {
 			return
 		}
-		values, err := t.Identity.Settings.Raw(r.Context())
+		values, err := t.Identity.Settings.Values(r.Context())
 		if err != nil {
 			webError(w, err)
 			return

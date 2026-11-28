@@ -19,7 +19,7 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 
 - Platform 与 Standalone(Web) 共用同一 `cmd/server` 源码，源码构建默认 Platform，发行时以 ldflags 注入各发行包默认 profile（`scripts/release.mjs`），安装后 profile 持久化于 `installation.json` 且不可变（`internal/install/manager.go`）。
 - Standalone 的两个载体必须保持产品等效：同一套页面（`packages/web-ui`）、同一套业务语义、同一份数据 schema（当前 `migrations/catalog.json` 中 web-standalone 与 desktop 均为 core + platform + module.notes；共享表不等于装配平台治理，见 ADR-0046）。允许的差异仅限 [第 5 节](#5-载体层允许的差异) 清单。
-- CLI 直接调用 `internal/bootstrap.Core()`（纯内存，无 HTTP/Wails/SQL），见 `internal/adapter/cli/command.go`。
+- CLI 直接调用 `internal/bootstrap.Core()`（纯内存，无 HTTP server/Wails/SQL）；出站 HTTP 客户端在适配器与组合根注入，领域/用例仍不依赖 `net/http`，见 `internal/adapter/cli/command.go`。
 - Web 发行包内 `unicore` 可执行文件附带的服务运维子命令（backup/manage/service/admin 等，`cmd/server/commands.go` → `internal/webmanage`、`internal/maintenance`）属于 **Web 形态的实例运维面**，不是 CLI 产品形态的能力；独立维护工具 `unicore-ops`（`cmd/ops`）是源码构建用的等价离线备份工具，随 project-template 分发，不进用户发行包。CLI 形态与这些运维命令是两个概念。
 
 ### 1.1 术语
@@ -80,14 +80,14 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 
 标注说明：**[源码强制]** 违反即编译失败或运行时拒绝（`scripts/check-boundaries`、策略中间件或装配缺失兜底）；**[产品约束]** 维护者确认的产品意图，当前实现与其一致，改变它属于产品决策，须先修订本文并获维护者确认；**[维护约定]** 文档与流程纪律，靠评审与检查维持。
 
-1. [源码强制] CLI 不引入 HTTP server、Wails、SQL 驱动和平台身份模块；CLI 不拥有持久化状态。Web 包运维子命令与 ops 工具不属于 CLI 形态（见第 1 节）。证据：`internal/adapter/cli/command.go`、`internal/bootstrap/core.go`、`scripts/check-boundaries`。
+1. CLI 不启动 HTTP server、不拥有持久化状态，也不装配应用 HTTP 适配器、Wails、SQL 驱动和平台身份模块；允许在适配器和组合根使用出站 HTTP 客户端。依赖检查强制装配边界，但不能区分标准库的客户端与服务端调用，禁止启动服务须通过代码评审和行为验证。Web 包运维子命令与 ops 工具不属于 CLI 形态（见第 1 节）。证据：`internal/adapter/cli/command.go`、`internal/bootstrap/core.go`、`scripts/check-boundaries`。
 2. [产品约束] Standalone 是单用户产品，但**不等于 Platform 超级管理员**：不得因没有身份体系就默认继承平台管理能力。平台身份治理服务（internal/platform）、管理端 API 与管理后台 SPA 不得被 Standalone 装配或暴露；运行时边界仍为装配省略 + 非 platform 管理接口 404。**物理表存在是独立事实**：沿用现有 Catalog，三个 UI profile 都包含 platform（ADR-0042 整合的单一 @1 终态基线），Standalone 会创建 RBAC 等表但不开放对应治理能力。本次保留该成员归属，数据库隔离后续独立决策，见 [ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md)；不能以表存在推导功能已装配，也不能依据旧隔离表述擅自删除本地表或改 profile。
 3. [产品约束] Standalone 两个载体的功能集、业务语义、菜单与页面呈现规则必须一致；差异只允许来自第 5 节清单，且新增差异必须先在本文明示。
 4. [源码强制 + 维护约定] 契约与形态隔离分四层执行，新增接口时各层都要落实：
    - **契约声明**（维护约定）：operation 必须带 `x-unicore`（access/permissions/superAdmin 等）。
-   - **策略中间件**（源码强制）：整体缺失 `x-unicore` 的已注册路由直接 500（ROUTE_POLICY_UNDECLARED）；access/permissions/superAdmin 由中间件执行，且权限点/operation/superAdmin 校验仅在 web-platform 生效（`internal/adapter/http/policy.go`）。
+   - **策略中间件**（源码强制）：整体缺失 `x-unicore` 的已注册路由直接 500（ROUTE_POLICY_UNDECLARED）；`profiles`、access/permissions/superAdmin 均由中间件执行（非允许 profile 返回 404），且权限点/operation/superAdmin 校验仅在 web-platform 生效（`internal/adapter/http/policy.go`）。
    - **装配省略**（源码强制）：identity/branding/mailer 与云存储仅在 web-platform 装配；Standalone 的 files 仅为本地业务附件，不暴露平台存储管理接口。
-   - **handler 自查**（维护约定）：**`x-unicore.profiles` 声明不被中间件执行**——形态隔离的最后一环是各 handler 的 profile 自查（如 `notes.go`、`announcements.go`、`updates.go`）。新增非全形态接口必须写 handler 自查，不得只声明 profiles 字段。
+   - **handler 自查**（纵深防御）：各非全形态 handler 仍保留 profile 自查（如 `notes.go`、`announcements.go`、`updates.go`），即使路由层配置或单元测试绕过中间件亦不暴露跨形态能力。
    前端隐藏菜单或按钮不构成权限控制。Standalone 页面只呈现已装配的本机能力；平台专属功能与载体不具备的能力不显示占位、标签或权限引导，直达地址按不存在处理。
 5. [源码强制] 菜单授权不授予 API：menu_ids、action_ids、operation_ids 三个命名空间相互独立，服务端授权是唯一执行点（会话投影只读存储权限点，无运行时派生，`internal/adapter/storage/platformsql/repository.go`、[ADR-0050](../adr/ADR-0050-explicit-authorization-baseline.md)）。
 6. [源码强制] profile 在安装后不可变（`internal/install/manager.go`）；不得提供运行期形态切换。发行包默认 profile 的部署期覆盖属有意设计（[D15 已裁决](pending-decisions.md)）。

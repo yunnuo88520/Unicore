@@ -243,3 +243,42 @@ func TestDenialAuditRows(t *testing.T) {
 		t.Fatal("csrf denial audit", csrf)
 	}
 }
+
+func TestPolicyEnforcesDeclaredProfiles(t *testing.T) {
+	standalone, err := install.Open(t.Context(), install.Options{DataDir: t.TempDir(), Profile: "web-standalone"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = standalone.Close() })
+	tokenBytes, _ := os.ReadFile(standalone.TokenPath())
+	if _, _, err = standalone.Complete(t.Context(), strings.TrimSpace(string(tokenBytes)), contracts.InstallInput{Profile: "web-standalone", Database: contracts.DatabaseInput{Driver: "sqlite"}, SiteName: "Standalone", BaseUrl: "http://localhost"}); err != nil {
+		t.Fatal(err)
+	}
+	standaloneRouter := New(Config{
+		Core:     bootstrap.Core(),
+		Install:  standalone,
+		Metadata: runtime.Metadata(runtime.WebStandalone, "development"),
+		Assets:   fstest.MapFS{"index.html": {Data: []byte("app")}},
+		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
+	})
+	for _, tc := range []struct {
+		method, path string
+	}{
+		{"GET", "/api/v1/auth/captcha"},
+		{"GET", "/api/v1/admin/users"},
+	} {
+		w := httptest.NewRecorder()
+		standaloneRouter.ServeHTTP(w, httptest.NewRequest(tc.method, "http://localhost"+tc.path, nil))
+		if w.Code != http.StatusNotFound {
+			t.Fatalf("standalone %s %s: want 404, got %d %s", tc.method, tc.path, w.Code, w.Body.String())
+		}
+	}
+
+	_, platformRouter, request := enforcementRouter(t)
+	_, _ = actionInstall(t, request)
+	w := httptest.NewRecorder()
+	platformRouter.ServeHTTP(w, httptest.NewRequest("GET", "http://localhost/api/v1/settings", nil))
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("platform GET /api/v1/settings: want 404, got %d %s", w.Code, w.Body.String())
+	}
+}

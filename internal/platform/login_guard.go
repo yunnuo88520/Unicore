@@ -70,7 +70,7 @@ func (s *Service) LoginAllowed(ctx context.Context, ip string) error {
 func (s *Service) loginResult(ctx context.Context, ip string, success bool) {
 	limit, minutes := 5, 15
 	if s.Settings != nil {
-		if values, err := s.Settings.Raw(ctx); err == nil {
+		if values, err := s.Settings.Values(ctx); err == nil {
 			if n, e := strconv.Atoi(values["security.login_failure_limit"]); e == nil {
 				limit = n
 			}

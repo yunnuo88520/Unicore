@@ -85,9 +85,9 @@ Unicore 的产品形态只有三种。`framework.manifest.json` 中的四个 pro
 3. [产品约束] Standalone 两个载体的功能集、业务语义、菜单与页面呈现规则必须一致；差异只允许来自第 5 节清单，且新增差异必须先在本文明示。
 4. [源码强制 + 维护约定] 契约与形态隔离分四层执行，新增接口时各层都要落实：
    - **契约声明**（维护约定）：operation 必须带 `x-unicore`（access/permissions/superAdmin 等）。
-   - **策略中间件**（源码强制）：整体缺失 `x-unicore` 的已注册路由直接 500（ROUTE_POLICY_UNDECLARED）；access/permissions/superAdmin 由中间件执行，且权限点/operation/superAdmin 校验仅在 web-platform 生效（`internal/adapter/http/policy.go`）。
+   - **策略中间件**（源码强制）：整体缺失 `x-unicore` 的已注册路由直接 500（ROUTE_POLICY_UNDECLARED）；`profiles`、access/permissions/superAdmin 均由中间件执行（非允许 profile 返回 404），且权限点/operation/superAdmin 校验仅在 web-platform 生效（`internal/adapter/http/policy.go`）。
    - **装配省略**（源码强制）：identity/branding/mailer 与云存储仅在 web-platform 装配；Standalone 的 files 仅为本地业务附件，不暴露平台存储管理接口。
-   - **handler 自查**（维护约定）：**`x-unicore.profiles` 声明不被中间件执行**——形态隔离的最后一环是各 handler 的 profile 自查（如 `notes.go`、`announcements.go`、`updates.go`）。新增非全形态接口必须写 handler 自查，不得只声明 profiles 字段。
+   - **handler 自查**（纵深防御）：各非全形态 handler 仍保留 profile 自查（如 `notes.go`、`announcements.go`、`updates.go`），即使路由层配置或单元测试绕过中间件亦不暴露跨形态能力。
    前端隐藏菜单或按钮不构成权限控制。Standalone 页面只呈现已装配的本机能力；平台专属功能与载体不具备的能力不显示占位、标签或权限引导，直达地址按不存在处理。
 5. [源码强制] 菜单授权不授予 API：menu_ids、action_ids、operation_ids 三个命名空间相互独立，服务端授权是唯一执行点（会话投影只读存储权限点，无运行时派生，`internal/adapter/storage/platformsql/repository.go`、[ADR-0050](../adr/ADR-0050-explicit-authorization-baseline.md)）。
 6. [源码强制] profile 在安装后不可变（`internal/install/manager.go`）；不得提供运行期形态切换。发行包默认 profile 的部署期覆盖属有意设计（[D15 已裁决](pending-decisions.md)）。

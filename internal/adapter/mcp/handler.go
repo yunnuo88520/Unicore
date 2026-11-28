@@ -92,7 +92,7 @@ func (s *Surface) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	values, err := settings.Raw(r.Context())
+	values, err := settings.Values(r.Context())
 	if err != nil {
 		http.Error(w, "storage unavailable", http.StatusServiceUnavailable)
 		return

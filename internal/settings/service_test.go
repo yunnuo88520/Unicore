@@ -441,3 +441,33 @@ func TestNotificationSectionsPreserveOtherSavedValues(t *testing.T) {
 		t.Fatal("write scope or server metadata persisted")
 	}
 }
+
+func TestValuesAndValuesFromSkipSecretDecryption(t *testing.T) {
+	ctx := context.Background()
+	raw := map[string]string{
+		"mail.password":      "encrypted-ciphertext",
+		"site.name":          "Unicore Custom",
+		"security.force_2fa": "true",
+	}
+	service := &Service{Store: &memoryStore{values: raw}, Profile: "web-platform"}
+	values, err := service.Values(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if values["mail.password"] != "" {
+		t.Fatalf("sensitive value leaked or stayed populated: %q", values["mail.password"])
+	}
+	if values["site.name"] != "Unicore Custom" || values["security.force_admin_2fa"] != "true" || values["admin.path"] != "/admin" {
+		t.Fatalf("unexpected non-sensitive defaults: %+v", values)
+	}
+	if got, err := service.Value(ctx, "site.name"); err != nil || got != "Unicore Custom" {
+		t.Fatalf("non-sensitive Value failed without Secrets: %q %v", got, err)
+	}
+	if _, err := service.Value(ctx, "mail.password"); err == nil {
+		t.Fatal("sensitive Value succeeded without Secrets")
+	}
+	cloned := service.ValuesFrom(raw)
+	if cloned["mail.password"] != "" || cloned["site.name"] != "Unicore Custom" || raw["mail.password"] != "encrypted-ciphertext" {
+		t.Fatalf("ValuesFrom mutated input or failed defaults: cloned=%+v raw=%+v", cloned, raw)
+	}
+}

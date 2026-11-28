@@ -1474,7 +1474,13 @@
     "tests/tooling/framework-source.mjs",
     "tsconfig.json",
     "vitest.config.ts",
-    "tests/e2e/branding-dev.spec.ts"
+    "tests/e2e/branding-dev.spec.ts",
+    "internal/files/controlled.go",
+    "internal/files/controlled_test.go",
+    "internal/adapter/storage/platformsql/department_resources_test.go",
+    "internal/adapter/http/api_versions.go",
+    "internal/adapter/http/api_versions_test.go",
+    "internal/adapter/http/api_versions_contract_fixture_test.go"
   ],
   "ownership": {
     "product-owned": [

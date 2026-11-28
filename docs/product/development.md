@@ -88,7 +88,7 @@ Git 来源中选中的文件有未提交修改时，创建器默认拒绝导出�
 业务主体关系（如代理与订单的归属）属于业务模块，框架只提供身份、授权与数据范围基础。模块按既有三层完成服务端校验，前端传入的角色名、主体 ID 或工作台 ID 一律不可信：
 
 1. **权限点与 operation**：每个读写 operation 在契约中声明 `x-unicore.permissions`/`permissionMode`；handler 用 `require(...)` 复核权限点，运行时策略中间件按访问类与授权集 fail-closed。
-2. **数据范围**：需要按组织或本人收敛时，用 `identity.Store.DataScope(ctx, user, "<资源权限点>")` 解析 `ScopeFilter`，逐行用 `scope.Contains(subjectID)` 校验归属；写操作在存储事务内用 `AuthorizeScopedMutation` 复核浏览与写入范围的交集。笔记管理（`internal/adapter/http/notes.go`）是完整参考实现。
+2. **数据范围**：需要按组织或本人收敛时，用 `identity.Store.DataScope(ctx, user, "<资源权限点>")` 解析 `ScopeFilter`，用户拥有的资源逐行用 `scope.Contains(subjectID)` 校验；部门拥有的资源用 `DepartmentScope(ctx, user, "<资源权限点>")` 与 `ContainsDepartment`，保留空部门且不枚举成员。写操作在存储事务内持有安装锁，用户资源用 `AuthorizeScopedMutation`，部门资源用 `AuthorizeDepartmentMutation`，转移用 `AuthorizeDepartmentTransfer` 同时校验持久化源与目标，并交集校验浏览及写权限范围。笔记管理（`internal/adapter/http/notes.go`）是完整参考实现。
 3. **主体关系**：超出现有数据范围表达的业务归属（如"代理只能看被授权的订单"）由模块自建关系表并在查询与写入两侧校验；同一账号持有多角色时按显式权限并集生效，业务上下文不得放大授权。
 
 ## 应用发版与框架版本
@@ -128,3 +128,15 @@ make build-web build-cli
 ## 替换示例业务
 
 笔记与 CLI 文本分析均为参考业务。关闭笔记的构建命令、永久移除源码的入口以及既有实例的数据处理，见 [裁剪示例与可选能力](features.md)。笔记模块的角色配置示例见 [源码导读](https://unicore.ebox.vip/03-runbooks/business-example#角色与权限示例)。
+
+### 部门业务产物的受控下载
+
+部门资产的审计创建者不是当前归属。业务模块持久化资源 department_id/version/deleted_at 及 file_id 引用，在列表、计数、明细、删除与归档使用相同范围。`files.ControlledStore` 提供可插拔私有字节访问：实现 `ResourceAuthorizer.WithResourceFiles`，从当前主体重新解析操作权限及部门 scope，在读事务/锁内校验每个文件的当前资源归属，返回绑定主体、Revision 与有序文件清单。对象键必须不可变，模块负责引用保护和清理账本。
+
+由 `Sign` 签发短期 token，模块自己声明的已认证下载 API 每次用当前请求调用 `Open`，再流式输出并在取消时关闭 reader；多文件自动重新生成 ZIP。不要将部门产物注册成个人文件、伪造 Admin、扩大 CreatorIDs，或把 ZIP/云直链交给静态缓存绕过当前授权。转移/删除/产物替换递增 Revision，旧 token 在打开对象前失效；已发出字节无法撤回。框架没有具体设备或订单业务，模块仍负责其资源查询、分页/计数及批次历史外壳。既有个人文件继续使用原有所有权规则。
+
+### 额外 API 根版本
+
+优先在 `/api/v1/<module>/<business-version>/...` 组织业务版本。确需独立根时，在唯一 OpenAPI 声明完整 `/api/vN/...` 路径与 x-unicore 策略，生成 SDK operation，然后通过 `httpadapter.Config.APIVersions` 登记 `APIVersion{Root: "/api/v2", Register: registerBusiness}`。Register 接收受控 Chi router；嵌套注册仍逐叶子匹配完整契约。不要自行 Mount 原始 handler、重写成 v1 或手拼客户端路径。
+
+所有显式根共享维护模式（bootstrap/admin/health 例外）、profile、会话/权限、PAT、CSRF/Origin、登录限流、审计与 JSON 错误。模块用 `httpadapter.RequestSession(r)` 读取已鉴权主体，不能通过重新读 Cookie 扩大 Bearer 主体。v1 的认证/OIDC/文件接口保持原路径，不自动复制；未知根 404，未声明叶子 fail-closed。新增模块的真实路由↔契约遍历须覆盖完整注册表。

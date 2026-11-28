@@ -7,7 +7,7 @@
 
 响应遵循 `{code, data, request_id}`；失败为 `{code, message, request_id, fields?}`。错误 code 的默认状态和安全提示登记于契约根级 `x-error-codes`（非 operation 级）；生成 ErrorCatalog 给 HTTP、presenter 与桌面复用。除 x-unicore 外，部分 operation 另带人工维护的 `x-permission` 人读注解，修改权限声明时须与 x-unicore 同步，避免两处口径漂移。上下文相关提示可以更具体，但不能暴露原始错误、数据库信息或提交值。字段错误使用 name 或 `changes[0].value` 等路径，表单显示摘要并聚焦对应控件。请求 ID 可以反馈给维护者排查。
 
-SDK HttpTransport 的业务方法调用生成 operation，统一处理 Cookie、CSRF、20 秒超时、取消与 AppError。页面只访问 AppClient/WebClient，不拼 HTTP 路径；浏览器 OIDC 回调由导航完成，不能当 JSON 调用。Wails 复用适用 DTO，CLI 保持无 HTTP/平台依赖。
+SDK HttpTransport 的业务方法调用生成 operation，统一处理 Cookie、CSRF、20 秒超时、取消与 AppError。页面只访问 AppClient/WebClient，不拼 HTTP 路径；浏览器 OIDC 回调由导航完成，不能当 JSON 调用。Wails 复用适用 DTO；CLI 不装配 HTTP server 或平台身份，出站 HTTP 客户端只在适配器与组合根注入，领域/用例不依赖 net/http。
 
 校验支持 `$ref`、object/array/string/integer/boolean、required、additionalProperties、enum、长度/正则、数值/列表范围、uniqueItems 与 x-max-utf8-bytes，以及 email、绝对 URI、date-time 格式。生成器拒绝未实现的 schema keyword；这是明确的 OpenAPI 子集，不是完整 JSON Schema 实现。Go/TS 共用 validation-cases.json 验证输入边界；整数限于 JavaScript 安全整数。业务条件（安装 profile、密码策略、非空白、权限委派等）继续在领域/服务层验证。新增约束需同步两端解释器和共享样例，不能只改表单。
 
@@ -22,3 +22,5 @@ SDK HttpTransport 的业务方法调用生成 operation，统一处理 Cookie、
 两域使用固定路径和 identityRealm 元数据，见 [ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)。管理员 auth/bootstrap 可公开最小投影，本人 account 必须管理员会话；其余管理资源必须声明 permissions/superAdmin。禁止身份请求头选域或跨域重试。
 
 客户端与 API 凭证遵守 [ADR-0041](../adr/ADR-0041-api-token-authentication.md)：新增业务适配器优先消费 policySessionKey 中的统一主体，不得绕过中间件重新假设 Cookie。显式 Bearer 不回落 Cookie，也不混用；PAT 的 operation 范围独立于 super_admin 快捷放行。令牌管理只允许 Cookie，写请求继续 CSRF。浏览器之外的客户端使用 [API 认证](../product/api-authentication.md) 中的 JWT/刷新流程；不把 Refresh Token 当 Access Token。
+
+额外 API 根版本通过 `Config.APIVersions` 显式登记，完整路径仍以 OpenAPI 为源，不能将新版本路径别名到 v1 的 operation。注册面统一使用 policyRouter；维护模式/恢复例外、管理工作台、审计以同一根注册表计算，profile、会话、PAT 路径限制、CSRF/Origin 与限流继续共享。模块用 RequestSession 消费策略主体，路由↔契约双向遍历使用真实完整根路由；未知根 JSON 404，错误方法 JSON 405。框架默认仅 v1，无自动 v2 接口；见 [ADR-0053](../adr/ADR-0053-explicit-api-version-registration.md)。

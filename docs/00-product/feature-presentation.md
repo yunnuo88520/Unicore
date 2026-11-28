@@ -95,7 +95,7 @@ Platform 用户域、管理员域与 Standalone 两载体共享 `@unicore/ui` �
 
 ## 5. CLI 呈现
 
-- 命令树即信息架构：`unicore version`、`unicore execute`（`internal/adapter/cli/command.go`）。新增命令遵循 [add-cli-command](../../.agents/skills/add-cli-command/SKILL.md)：stdin/文件输入、结构化输出、退出码表达失败，不引入 UI/HTTP/持久化依赖。
+- 命令树即信息架构：`unicore version`、`unicore execute`（`internal/adapter/cli/command.go`）。新增命令遵循 [add-cli-command](../../.agents/skills/add-cli-command/SKILL.md)：stdin/文件输入、结构化输出、退出码表达失败，不引入 UI/HTTP server/自身持久化依赖；出站 HTTP 客户端只在适配器与组合根注入。
 - CLI 不适用菜单、页面、仪表盘、设置页规则；其「呈现」规范仅为：命令名与帮助文本中英文一致、输出机器可读（结构化优先于散文）。
 
 ## 6. 直接访问与越权行为
@@ -146,3 +146,5 @@ Platform 和 Standalone 的笔记编辑弹窗复用 FileUploadDialog；上传先
 安装连接属于 Web 实例安装面，Platform/Standalone Web 都提供 TLS 关闭、仅加密、证书及主机名校验三种模式；桌面自动 SQLite，CLI 不装配。tls_verify 只改变连接校验，不新增实例设置、业务权限或数据库表。
 
 共享表单遵循[表单交互规范](../product/form-interaction.md)。Platform 用户/管理员与 Standalone Web/Desktop 使用同一套原语；新建/编辑实体默认使用固定头部、独立滚动正文与固定操作区的 FormDrawer，实体字段默认单列、固定上置标签、surface 底色与细边框，列表不重复套卡片；短确认/查看/临时任务使用 Modal；候选搜索为锚定浮层，打开后不改变后续字段位置；新密码提供可见性切换与强度提示，邮箱/短信/动态口令使用六格输入，图形验证码使用普通输入框配刷新图片。认证页沿用共享输入框底色，保证明暗主题下的静止输入区域可辨认。地区、出生日期等示例控件不自动注册产品字段、菜单或持久化。
+
+部门资源范围与业务产物受控下载为 Platform 模块扩展端口，无新增框架菜单、页面或仪表盘。模块呈现按当前权限和资源部门过滤，历史批次外壳不意味着保留原部门产物访问；列表、计数、明细和归档保持同一范围。Standalone 两载体不增加部门治理，CLI 不装配。显式 API 根注册仅属 Web 传输装配，不增加产品能力或界面；已登记根的 `/admin/` 工作台选择及访问策略与 v1 一致，完整路径和客户端调用来自契约。

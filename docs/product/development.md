@@ -61,7 +61,7 @@ Git 来源中选中的文件有未提交修改时，创建器默认拒绝导出�
 3. Platform 的服务端检查权限和资源归属；菜单、按钮、API 授权相互独立。账号可持多个角色，用户与管理工作台共用会话。
 4. 前端通过 AppClient 调用接口，复用 WorkspaceLayout、表单和消息组件。界面同时提供中英文，运行 `pnpm check:i18n`。
 
-在线接口参考可通过 `APP_API_DOCS=true` 开启 `/api-docs` 和 `/openapi.json`，默认关闭。开发细节见 [API 契约](https://unicore.ebox.vip/02-standards/api-contract)、[权限参考](https://unicore.ebox.vip/api/permissions)、[前端基础](https://unicore.ebox.vip/03-runbooks/frontend-foundations) 和 [UI 组件](ui-components.md)。
+Web 在线接口参考可通过 `APP_API_DOCS=true` 开启独立 `/api-docs` 和原始 `/openapi.json`，默认关闭；启用后公开只读，无需管理员或用户登录。完整契约不等于当前形态启用或当前账号可调用，见 [中英文开发者文档](api-reference.md)。开发细节见 [API 契约](https://unicore.ebox.vip/02-standards/api-contract)、[权限参考](https://unicore.ebox.vip/api/permissions)、[前端基础](https://unicore.ebox.vip/03-runbooks/frontend-foundations) 和 [UI 组件](ui-components.md)。
 
 ### 业务导航规划
 

@@ -11,7 +11,7 @@ SDK HttpTransport 的业务方法调用生成 operation，统一处理 Cookie、
 
 校验支持 `$ref`、object/array/string/integer/boolean、required、additionalProperties、enum、长度/正则、数值/列表范围、uniqueItems 与 x-max-utf8-bytes，以及 email、绝对 URI、date-time 格式。生成器拒绝未实现的 schema keyword；这是明确的 OpenAPI 子集，不是完整 JSON Schema 实现。Go/TS 共用 validation-cases.json 验证输入边界；整数限于 JavaScript 安全整数。业务条件（安装 profile、密码策略、非空白、权限委派等）继续在领域/服务层验证。新增约束需同步两端解释器和共享样例，不能只改表单。
 
-启动 `APP_API_DOCS=true build/bin/server` 后，在线 `/api-docs` 使用随应用打包的 Swagger UI（本地依赖，无 CDN 外呼）读取 `/openapi.json`，兼容路径 `/docs/api` 跳转到该参考页。默认关闭时 `/openapi.json` 与 `/docs/api` 返回 404，应用内参考页提示文档不可用。生成文件 `packages/contracts/reference.gen.html` 仍是不依赖脚本的离线参考，与在线页分别保留。文档包含全部 profile 的操作，当前实例只装配适用能力；文档不携带实例配置或凭据。参考页通过 AppClient 加载契约，禁用请求测试（`supportedSubmitMethods: []`）、校验外呼与持久化认证，不保存 Cookie、令牌或其他凭据；独立 API 调用仍受各 operation 的认证、CSRF 和权限控制。
+启动 `APP_API_DOCS=true build/bin/server` 后，在线 `/api-docs` 使用随应用打包的 Swagger UI（本地依赖，无 CDN 外呼）读取 `/openapi.json`，兼容路径 `/docs/api` 跳转到该参考页。默认关闭时 `/openapi.json` 与 `/docs/api` 返回 404，独立 `/api-docs` 也返回 404。生成文件 `packages/contracts/reference.gen.html` 仍是不依赖脚本的离线参考，与在线页分别保留。文档包含全部 profile 的操作，当前实例只装配适用能力；文档不携带实例配置或凭据。页面和原始契约启用后均公开可读，无需登录；文档不受管理员权限保护，也不代表业务 API 免鉴权。API 文档不注册为工作台/菜单页面；旧绑定在启动时定向移除。参考页通过 AppClient 加载契约，禁用请求测试（`supportedSubmitMethods: []`）、校验外呼与持久化认证，不保存 Cookie、令牌或其他凭据；独立 API 调用仍受各 operation 的认证、CSRF 和权限控制。
 
 上传 operation 可在 x-unicore.maxBodyBytes 声明 1–768 KiB 的 JSON 体上限；通用 decoder 按真实路由读取元数据，未声明仍为 64 KiB。当前品牌 PUT 单独为 768 KiB，图片原始上限为 500 KiB；禁止为新增上传全局放大所有 API。品牌图片格式或解码失败、原始字节超限、解码内存预算超限分别返回 BRAND_INVALID、BRAND_UPLOAD_TOO_LARGE、BRAND_IMAGE_TOO_LARGE，不能混为文件大小错误。公开品牌 PNG 与 manifest 是固定格式静态资源接口，不属于 JSON 业务契约。
 
@@ -24,3 +24,5 @@ SDK HttpTransport 的业务方法调用生成 operation，统一处理 Cookie、
 客户端与 API 凭证遵守 [ADR-0041](../adr/ADR-0041-api-token-authentication.md)：新增业务适配器优先消费 policySessionKey 中的统一主体，不得绕过中间件重新假设 Cookie。显式 Bearer 不回落 Cookie，也不混用；PAT 的 operation 范围独立于 super_admin 快捷放行。令牌管理只允许 Cookie，写请求继续 CSRF。浏览器之外的客户端使用 [API 认证](../product/api-authentication.md) 中的 JWT/刷新流程；不把 Refresh Token 当 Access Token。
 
 额外 API 根版本通过 `Config.APIVersions` 显式登记，完整路径仍以 OpenAPI 为源，不能将新版本路径别名到 v1 的 operation。注册面统一使用 policyRouter；维护模式/恢复例外、管理工作台、审计以同一根注册表计算，profile、会话、PAT 路径限制、CSRF/Origin 与限流继续共享。模块用 RequestSession 消费策略主体，路由↔契约双向遍历使用真实完整根路由；未知根 JSON 404，错误方法 JSON 405。框架默认仅 v1，无自动 v2 接口；见 [ADR-0053](../adr/ADR-0053-explicit-api-version-registration.md)。
+
+独立地址、旧实例保留策略与中英文说明见 [开发者文档](../product/api-reference.md)。

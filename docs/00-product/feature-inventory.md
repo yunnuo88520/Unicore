@@ -18,7 +18,7 @@
 | 管理员账号管理 | 已实现，super_admin 保护最后管理员 | 不装配 | 不装配 | unicore_personal_accounts | `internal/platform/roles.go` |
 | 管理端凭据委派 | 已实现：users:credentials:write 独立范围，邮箱另需 users:update 范围；完整管理目标仅超管，PAT 禁止，旧角色不自动授予 | 不装配 | 不装配 | 复用 unicore_users 与安全状态表 | `internal/adapter/storage/platformsql/repository.go`、[ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md) |
 | 角色与操作级授权（RBAC） | 已实现：服务端保留元数据 + 完整高级 API 选择器 + 显式撤销；更新强制 version CAS，内置 user 固定 self，复制后可调 | 不装配 | 不装配 | unicore_roles 等（platform 基线含 version） | `internal/platform/roles.go`、`internal/platform/operations.go`、[角色需求](feature-roles.md)、[权限契约](../api/permissions.md) |
-| 菜单与导航授权 | 已实现：共享导航树 CAS + 菜单节点角色补丁（导航 version/expected_role_ids，实际改变角色也递增其版本）；停用模块后保留既有菜单绑定及授权，其他菜单仍可保存；标签仅显式分配，超管默认访问不绕过 surface/隐藏禁用祖先 | 不装配（导航由客户端默认树生成） | 不适用 | unicore_navigation_state | `internal/platform/navigation.go`、`internal/adapter/storage/platformsql/navigation.go`、`packages/web-ui/src/navigation.ts` |
+| 菜单与导航授权 | 已实现：共享导航树 CAS + 菜单节点角色补丁（导航 version/expected_role_ids，实际改变角色也递增其版本）；停用模块后保留既有菜单绑定及授权，其他菜单仍可保存；允许显示是配置意图，提示当前账号实际侧栏及多个失败条件；超管默认访问不绕过 surface/隐藏禁用祖先 | 不装配（导航由客户端默认树生成） | 不适用 | unicore_navigation_state | `internal/platform/navigation.go`、`internal/adapter/storage/platformsql/navigation.go`、`packages/web-ui/src/navigation.ts` |
 | 部门与数据范围 | 已实现，权限特定五值范围；显式部门 ID（含空部门）、事务读写交集及源/目标转移校验，PAT 单角色 | 不装配 | 不装配 | unicore_departments | `internal/platform/datascope.go` |
 | 岗位管理 | 已实现（组织人事岗位，非内容帖子） | 不装配 | 不装配 | unicore_posts | `internal/adapter/http/posts.go` |
 | 数据字典 | 已实现（管理端 CRUD + 用户端只读） | 不装配 | 不装配 | unicore_dict_types | `internal/adapter/http/dictionaries.go` |
@@ -155,3 +155,9 @@ Platform 两工作台与 Standalone 两载体共用连续的顶栏/正文背景�
 | --- | --- | --- | --- | --- | --- |
 | 部门业务产物受控下载端口 | 已实现：签发/消费复核主体与资源，私有字节转发及同范围 ZIP；模块实现资源仓储/引用/清理 | 不装配部门治理 | 不装配 | 模块自管，无框架 metadata 迁移 | `internal/files/controlled.go`、[ADR-0052](../adr/ADR-0052-department-resources-controlled-downloads.md) |
 | 显式 API 根版本注册 | 已实现，完整契约叶子及共享安全门控 | Web 载体可登记本地业务，desktop 无 HTTP 根；不增加平台身份 | 不适用 | 无 | `internal/adapter/http/api_versions.go`、[ADR-0053](../adr/ADR-0053-explicit-api-version-registration.md) |
+
+## 独立开发者工具
+
+| 功能单元 | Platform | Standalone | CLI | 持久化 | 证据 |
+| --- | --- | --- | --- | --- | --- |
+| 独立 API 开发者文档 | 条件支持：默认关闭，启用后公开只读 | Web 条件支持；desktop 无 HTTP 端点 | 不适用 | 无新表；启动定向清理退役页面绑定 | [开发者文档](../product/api-reference.md)、[ADR-0054](../adr/ADR-0054-independent-api-reference.md) |

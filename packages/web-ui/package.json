@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./src/App.tsx",
+    "./api-docs": "./src/api-docs-app.tsx",
     "./admin": "./src/admin-app.tsx",
     "./i18n": "./src/i18n.ts",
     "./layout": "./src/workspace-layout.tsx",

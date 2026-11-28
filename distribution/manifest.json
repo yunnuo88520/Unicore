@@ -446,6 +446,19 @@
       "title": "MCP 客户端接入",
       "site_group": "integrate",
       "site_order": 4
+    },
+    {
+      "source": "docs/product/api-reference.md",
+      "target": "docs/product/api-reference.md",
+      "audiences": [
+        "project-template",
+        "public-site",
+        "public-wiki"
+      ],
+      "title": "API 开发者文档",
+      "site_group": "develop",
+      "site_order": 8,
+      "slug": "API-Reference"
     }
   ],
   "template_files": [
@@ -1481,7 +1494,14 @@
     "internal/adapter/http/api_versions.go",
     "internal/adapter/http/api_versions_test.go",
     "internal/adapter/http/api_versions_contract_fixture_test.go",
-    "packages/sdk/src/api-roots.test.ts"
+    "packages/sdk/src/api-roots.test.ts",
+    "packages/web-ui/src/api-docs-app.tsx",
+    "packages/web-ui/src/api-docs-app.test.tsx",
+    "packages/web-ui/src/navigation-status.ts",
+    "packages/web-ui/src/navigation-status.test.ts",
+    "internal/adapter/storage/platformsql/navigation_retired.go",
+    "internal/adapter/storage/platformsql/navigation_retired_test.go",
+    "tests/e2e/api-reference.spec.ts"
   ],
   "ownership": {
     "product-owned": [

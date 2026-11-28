@@ -203,6 +203,7 @@ func New(config Config) http.Handler {
 		})
 	}
 	if config.APIDocs {
+		router.Get("/api-docs", func(w http.ResponseWriter, r *http.Request) { serveEntry(config.Assets, "index.html", w, r) })
 		router.Get("/openapi.json", func(w http.ResponseWriter, r *http.Request) {
 			content, _ := apispec.Assets.ReadFile("openapi.json")
 			w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -212,6 +213,7 @@ func New(config Config) http.Handler {
 			http.Redirect(w, r, "/api-docs", http.StatusFound)
 		})
 	} else {
+		router.Get("/api-docs", http.NotFound)
 		router.Get("/openapi.json", http.NotFound)
 		router.Get("/docs/api", http.NotFound)
 	}

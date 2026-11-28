@@ -27,7 +27,7 @@ it('normalizes page keys for the administrator entry', () => {
 
 it('shares page heading ownership with the shell', () => {
   expect(pageOwnsHeading('roles')).toBe(true);
-  expect(pageOwnsHeading('api-docs')).toBe(true);
+  expect(pageOwnsHeading('api-docs')).toBe(false);
   expect(pageOwnsHeading('site')).toBe(false);
   expect(pageOwnsHeading('notes')).toBe(false);
   expect(pageOwnsHeading('note-management')).toBe(false);

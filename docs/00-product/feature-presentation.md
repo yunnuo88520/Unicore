@@ -33,7 +33,7 @@ MySQL 库默认排序规则为 `utf8mb4_unicode_ci` 时，Platform 通过 platfo
 1. Platform：服务端投影。bootstrap 按 surface（user/administrator）经 `platform.NavigationFor` 投影导航树，非 super_admin 逐节点校验 `menu_ids`；动作节点按 `action_ids` + 权限点校验。前端 `buildNavigation` 仅在 web-platform 采用服务端树。
 2. Standalone：客户端本地构建。`defaultNavigation` 按 profile 过滤：剔除 personal/administration 组与 system 组（仅保留 `edition`），不提供外观设置页面。两载体使用同一份本地默认树逻辑；系统更新位于最后。
 3. CLI：不适用图形导航规则；呈现即命令树（`unicore --help`）与结构化输出。
-4. 页面可见性（`packages/web-ui/src/routes.ts` `canAccess`）在权限点之外有形态硬规则：Platform 用户域永不呈现 `site/api-docs/announcements`（管理面拆分，[ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)）；`api-docs` 需 `api_docs` 能力且仅 Web 形态（desktop 无契约端点）；`edition`（系统更新）在 Platform 仅 super_admin，其他形态看 updater 能力。
+4. 页面可见性（`packages/web-ui/src/routes.ts` `canAccess`）在权限点之外有形态硬规则：Platform 用户域永不呈现 `site/announcements`（管理面拆分，[ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)）；API 文档移出工作台，Web 独立公开只读入口按 `api_docs` 开关启用（desktop 无契约端点）；`edition`（系统更新）在 Platform 仅 super_admin，其他形态看 updater 能力。
 5. 菜单、页面、功能不是同一概念：菜单授权（menu_ids）只决定入口，不授予 API；按钮动作（action）与接口授权（operation）独立命名空间。前端隐藏只是体验层，服务端才是执行点。
 6. Platform 停用可选模块时，持久化菜单仍保留该模块的页面、动作和显式授权，以便重新启用后继续使用原配置；侧栏按当前前端注册及能力过滤，不呈现停用页面，相关模块 API 仍不可用。保存其他菜单可原样保留失效绑定，不自动删除或重授角色配置；新增或改绑失效的启用页面及动作继续拒绝，已注册页面的 surface 和操作权限约束继续生效。
 
@@ -54,7 +54,7 @@ Platform 超级管理员在「系统设置 → 账户安全」配置登录会话
 | 顶部通知收件箱 | 已实现（公告与账号通知） | 已实现（仅账号通知） | 已实现（Web / 原生桥、本地通知；无公告） | 不装配 |
 | 基础设置（site 与模块业务分组） | 不呈现（管理面拆分） | 已实现（settings:read） | 不呈现（无实例设置项） | 不适用 |
 | 系统更新（edition；仅相同 Catalog 指纹可安装，默认不要求 OS 证书） | 仅版本号，无检查操作 | 条件支持（编译期 updater + super_admin；后台每 6 小时检查，安装须确认） | 条件支持（同一编译开关与检查调度；web 本机 loopback / desktop 桥） | 不装配 |
-| API 文档 | 不呈现 | 已实现（api_docs 能力） | 条件支持（web 开启 `api_docs` 时）；desktop 不适用 | 不适用 |
+| API 开发者文档 | 不作为菜单 | 不作为菜单 | Web 独立 `/api-docs`，默认关闭；开启后与原始契约均公开只读；desktop 不适用 | 不适用 |
 | 个人中心（账号菜单弹窗：个人资料/安全设置/登录会话/访问令牌四分区） | 已实现（侧栏账号卡片与顶栏头像菜单打开；强制 2FA 时钉住安全分区） | 已实现（管理员域镜像） | 不呈现（无账号） | 不适用 |
 | 运行监控（概览/服务/资源/运行事件，含主机硬件图表卡片、会话趋势与事件流） | 不呈现（用户域硬排除） | 已实现（仅 super_admin；系统区域末位「运行监控」目录四页） | 已实现（业务区「运行监控」单页 + 单层 Tabs 四页签，两载体等效；不适用卡片不渲染） | 不适用 |
 | 告警规则管理与告警通知 | 不呈现（用户域硬排除） | 已实现（规则管理内嵌于资源监控页底部，仅 super_admin 渲染；端点 superAdmin+monitor:read；无独立菜单；通知走既有渠道；运行事件页展示告警触发/恢复/归因转移/通知失败） | 已实现（无配置入口，内置默认规则自动启用；告警事件直接呈现在「运行事件」Tab；Web/GUI 等效） | 不适用 |

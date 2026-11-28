@@ -7,6 +7,8 @@ All notable changes to Unicore are documented here. 本文件只记录面向使�
 
 ### 中文
 
+- 将 API 文档移为默认关闭的独立 Web 公开只读入口，定向清理旧内置菜单且保留业务配置；菜单管理明确允许显示与当前账号实际可见性，并显示多个限制原因。
+
 - 新增部门资源范围与事务转移授权 API，保留空部门及 PAT 单角色；业务产物可通过受控下载端口在签发和消费时重新鉴权，批量 ZIP 保持同范围。
 - 新增显式 API 根版本注册入口，统一契约策略、维护模式、会话/权限、凭证限制和审计；既有 v1 路径保持兼容。
 - 修复派生 CLI 的出站 HTTP 客户端被依赖检查误拒绝；保留领域、用例和服务端装配边界，并说明标准库服务端调用需要额外审查。
@@ -14,6 +16,8 @@ All notable changes to Unicore are documented here. 本文件只记录面向使�
 - 修复 macOS 桌面 DMG 打包时源镜像残留文件锁导致的转换失败；使用独立镜像副本保留安装器布局并完成压缩校验。
 
 ### English
+
+- Move API documentation to an independent public read-only Web entry, disabled by default; retire only obsolete built-in menus while preserving business configuration, and explain simultaneous current-account sidebar restrictions.
 
 - Add department resource scopes and transactional transfer authorization while retaining empty departments and PAT single-role boundaries; controlled artifact downloads reauthorize issuance and consumption, including scoped ZIP archives.
 - Add explicit API root registration with shared contract policy, maintenance, session/permission, credential and audit gates while preserving existing v1 paths.

@@ -1437,6 +1437,7 @@
     "tests/e2e/branding.spec.ts",
     "tests/e2e/error-pages.spec.ts",
     "tests/e2e/file-governance.spec.ts",
+    "tests/e2e/fixture-auth.spec.ts",
     "tests/e2e/fixtures.ts",
     "tests/e2e/foundations.spec.ts",
     "tests/e2e/framework-capabilities.spec.ts",

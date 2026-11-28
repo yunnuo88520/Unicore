@@ -3,8 +3,11 @@
 // with the saved toast, switches its four pages from the nav rail, and closes on Escape.
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MessageProvider } from '@unicore/ui';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { Workspace } from '../App';
+import { AccountSettingsModal } from './modal';
 import { grantUI } from '../test-authorization';
 import type { AppClient, Bootstrap } from '@unicore/sdk';
 
@@ -47,6 +50,9 @@ beforeEach(() => { localStorage.clear(); window.location.hash = ''; });
 it('opens from the sidebar account menu with the profile page and commits the nickname on blur', async () => {
   const api = client();
   const dialog = await openPersonalCenter(api);
+  // Wait for the dialog's initial focus before editing: it is installed by an
+  // effect after mount and must not race the clear/type sequence on slow runners.
+  await waitFor(() => expect(dialog).toHaveFocus());
   expect(within(dialog).getByRole('heading', { name: '个人资料' })).toBeVisible();
   // The nav rail lists all four personal pages.
   for (const label of ['个人资料', '安全设置', '登录会话', '访问令牌']) {
@@ -54,7 +60,9 @@ it('opens from the sidebar account menu with the profile page and commits the ni
   }
   const nickname = within(dialog).getByLabelText('昵称');
   await userEvent.clear(nickname);
+  expect(nickname).toHaveValue('');
   await userEvent.type(nickname, '云核');
+  expect(nickname).toHaveValue('云核');
   await userEvent.tab();
   await waitFor(() => expect(api.web!.saveAccountProfile).toHaveBeenCalledWith({ display_name: '云核' }));
   // The saved toast floats under the panel; unchanged values never save.
@@ -85,4 +93,22 @@ it('closes on Escape and keeps the account menu working afterwards', async () =>
   await userEvent.click(screen.getByRole('button', { name: '侧栏账号菜单' }));
   await userEvent.click(await screen.findByRole('menuitem', { name: '个人中心' }));
   expect(await screen.findByRole('dialog', { name: '个人中心' })).toBeVisible();
+});
+
+it('does not steal focus or restore a cleared nickname when the pinned state changes', async () => {
+  const api = client();
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const renderModal = (pinned: boolean) => <QueryClientProvider client={queryClient}><MessageProvider>
+    <AccountSettingsModal open pinned={pinned} onClose={() => {}} client={api} metadata={metadata} refresh={() => {}} />
+  </MessageProvider></QueryClientProvider>;
+  const view = render(renderModal(false));
+  const nickname = await screen.findByLabelText('昵称');
+  await userEvent.clear(nickname);
+  expect(nickname).toHaveFocus();
+  expect(nickname).toHaveValue('');
+  view.rerender(renderModal(true));
+  expect(nickname).toHaveFocus();
+  await userEvent.type(nickname, '云核');
+  await userEvent.tab();
+  await waitFor(() => expect(api.web!.saveAccountProfile).toHaveBeenCalledWith({ display_name: '云核' }));
 });

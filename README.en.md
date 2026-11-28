@@ -41,7 +41,7 @@ Disable the notes demo at build time with `FEATURE_NOTES=false`; see [feature tr
 
 ## Create your application
 
-Install Go 1.26.11+, Node.js 22.22.2+ (see [package.json](package.json) for other supported versions), pnpm 11.25.0, Git, Make, and ripgrep. Desktop development also requires the [Wails native dependencies](https://wails.io/docs/gettingstarted/installation).
+Install Go 1.26.11+, Node.js 22.22.2+ (see [package.json](package.json) for other supported versions), pnpm 11.25.0, Git, Make, and ripgrep. Desktop development also requires the [Wails native dependencies](https://wails.io/docs/gettingstarted/installation); native DMG regression tests on macOS also require Python 3 (standard library only).
 
 Run this from a clean framework checkout. The destination must be outside the repository and must not already exist:
 
@@ -117,3 +117,5 @@ Find usage and development guides in the [documentation index](docs/README.md). 
 ## License
 
 [MIT License](LICENSE). Commercial use, modification, and redistribution are permitted with the copyright and license notices retained.
+
+Online API reference is disabled by default on Web profiles. Enable `APP_API_DOCS=true` and visit root `/api-docs` or raw `/openapi.json`; both are public read-only descriptions without sign-in, while business API authentication remains enforced. The reference is independent of workspace menus and is unavailable on Wails desktop/CLI. See the [bilingual developer guide](docs/product/api-reference.md) for profile limits and existing-instance upgrades.

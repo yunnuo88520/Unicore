@@ -41,7 +41,7 @@ Platform 支持统一账号、多角色、邮箱验证、OIDC 和服务端权限
 
 ## 创建自己的应用
 
-准备 Go 1.26.11+、Node.js 22.22.2+（其他支持版本见 [package.json](package.json)）、pnpm 11.25.0、Git、Make 和 ripgrep。桌面开发另需 [Wails 原生依赖](https://wails.io/docs/gettingstarted/installation)。
+准备 Go 1.26.11+、Node.js 22.22.2+（其他支持版本见 [package.json](package.json)）、pnpm 11.25.0、Git、Make 和 ripgrep。桌面开发另需 [Wails 原生依赖](https://wails.io/docs/gettingstarted/installation)；macOS 的原生 DMG 回归测试还需 Python 3（仅使用标准库）。
 
 在干净的框架源码仓库中执行，目标目录应位于仓库之外且尚不存在：
 

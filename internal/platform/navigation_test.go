@@ -118,12 +118,8 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 			if node.RouteID == nil || *node.RouteID != node.ID {
 				t.Fatal("page route mismatch", node)
 			}
-			// api-docs is the top-level tail of the system region instead of a
-			// directory child, so it carries its own fixed sort.
 			wantSort := sortRank[*node.RouteID]
-			if *node.RouteID == "api-docs" {
-				wantSort = 30
-			} else if *node.RouteID == "files" {
+			if *node.RouteID == "files" {
 				// The file catalog is a top-level system entry at sort 27 on
 				// both seeded and client-computed navigation trees.
 				wantSort = 27
@@ -141,15 +137,9 @@ func TestDefaultNavigationIsomorphicWithFrontend(t *testing.T) {
 			t.Fatal("unexpected default node type", node)
 		}
 	}
-	// The API reference stays an administrator-only top-level system entry:
-	// members never see it and no directory owns it.
 	for _, node := range seed.Nodes {
-		if node.ID != "api-docs" {
-			continue
-		}
-		if node.SectionID != "system" || node.ParentID != nil || node.Sort != 30 ||
-			!contains(node.Surfaces, "administrator") || contains(node.Surfaces, "user") {
-			t.Fatal("api-docs drifted from the administrator-only system top level", node)
+		if text(node.RouteID) == "api-docs" {
+			t.Fatal("developer docs became a menu", node)
 		}
 	}
 	// The 超级管理员 directory hosts every administration page; personal and

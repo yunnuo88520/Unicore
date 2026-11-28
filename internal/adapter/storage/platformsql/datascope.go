@@ -17,7 +17,55 @@ import (
 // DataScope unions only scopes from roles granting the requested permission.
 // Callers must name the resource permission; unrelated roles cannot widen it.
 func (r *Repository) DataScope(ctx context.Context, user contracts.User, permission string) (platform.ScopeFilter, error) {
-	return r.dataScope(ctx, r.Store.DB, user, permission)
+	return r.resolveDataScope(ctx, r.Store.DB, user, permission, true)
+}
+
+// DepartmentScope resolves department ownership without expanding department
+// members. Personal user-owned repositories should continue using DataScope.
+func (r *Repository) DepartmentScope(ctx context.Context, user contracts.User, permission string) (platform.ScopeFilter, error) {
+	return r.resolveDataScope(ctx, r.Store.DB, user, permission, false)
+}
+
+// AuthorizeDepartmentMutation runs after LockInstallation in the same transaction
+// that reads the resource's current department/deleted state and writes the change.
+// Every prerequisite (usually browse) is intersected with the mutation scope.
+func (r *Repository) AuthorizeDepartmentMutation(ctx context.Context, tx *sql.Tx, actorID, departmentID, writePoint, operation string, prerequisitePoints ...string) error {
+	return r.authorizeDepartments(ctx, tx, actorID, []string{departmentID}, writePoint, operation, prerequisitePoints...)
+}
+
+// AuthorizeDepartmentTransfer checks BOTH the persisted source and proposed
+// destination against each permission's fresh scope. It never treats a creator
+// ID as a department. The caller holds the installation lock until commit.
+func (r *Repository) AuthorizeDepartmentTransfer(ctx context.Context, tx *sql.Tx, actorID, sourceID, destinationID, writePoint, operation string, prerequisitePoints ...string) error {
+	return r.authorizeDepartments(ctx, tx, actorID, []string{sourceID, destinationID}, writePoint, operation, prerequisitePoints...)
+}
+
+func (r *Repository) authorizeDepartments(ctx context.Context, tx *sql.Tx, actorID string, departments []string, writePoint, operation string, prerequisitePoints ...string) error {
+	if tx == nil || writePoint == "" || operation == "" {
+		return platform.ErrForbidden
+	}
+	actor, err := r.actor(ctx, tx, actorID, writePoint)
+	if err != nil {
+		return err
+	}
+	if !platform.OperationAllowed(actor, operation) {
+		return platform.ErrForbidden
+	}
+	for _, point := range append([]string{writePoint}, prerequisitePoints...) {
+		if point == "" || !platform.Has(actor, point) {
+			return platform.ErrForbidden
+		}
+		filter, err := r.resolveDataScope(ctx, tx, actor, point, false)
+		if err != nil {
+			return err
+		}
+		for _, department := range departments {
+			if !filter.ContainsDepartment(department) {
+				return sql.ErrNoRows
+			}
+		}
+	}
+	return nil
 }
 
 // AuthorizeScopedMutation must run under LockInstallation. Resolve the current
@@ -45,12 +93,28 @@ func (r *Repository) AuthorizeScopedMutation(ctx context.Context, tx *sql.Tx, ac
 	return nil
 }
 func (r *Repository) dataScope(ctx context.Context, q sqlstore.Runner, user contracts.User, permission string) (platform.ScopeFilter, error) {
-	filter := platform.ScopeFilter{UserIDs: []string{user.ID}}
-	if platform.IsSuper(user) {
-		return platform.ScopeFilter{All: true}, nil
+	return r.resolveDataScope(ctx, q, user, permission, true)
+}
+
+func (r *Repository) resolveDataScope(ctx context.Context, q sqlstore.Runner, user contracts.User, permission string, expandUsers bool) (platform.ScopeFilter, error) {
+	// Defensively preserve the token's single role even if a module passed the
+	// full account resource instead of the narrowed request principal.
+	if platform.TokenRole(ctx, user.ID) != "" {
+		var err error
+		user, err = r.principalUser(ctx, q, user.ID)
+		if err != nil || user.Status != "active" {
+			if err == nil {
+				err = platform.ErrForbidden
+			}
+			return platform.ScopeFilter{}, err
+		}
 	}
+	filter := platform.ScopeFilter{UserIDs: []string{user.ID}}
 	if permission == "" {
 		return filter, platform.ErrForbidden
+	}
+	if platform.IsSuper(user) {
+		return platform.ScopeFilter{All: true}, nil
 	}
 	if user.ID == "" {
 		return filter, nil
@@ -100,11 +164,18 @@ func (r *Repository) dataScope(ctx context.Context, q sqlstore.Runner, user cont
 	if all {
 		return platform.ScopeFilter{All: true}, nil
 	}
-	ids, err := r.scopeUsersWith(ctx, q, user.ID, own, below, custom)
+	departments, err := r.scopeDepartmentsWith(ctx, q, user.ID, own, below, custom)
 	if err != nil {
-		return filter, err
+		return platform.ScopeFilter{}, err
 	}
-	filter.UserIDs = ids
+	filter.DepartmentIDs = setSlice(departments)
+	sort.Strings(filter.DepartmentIDs)
+	if expandUsers {
+		filter.UserIDs, err = r.usersInDepartments(ctx, q, user.ID, departments)
+		if err != nil {
+			return platform.ScopeFilter{}, err
+		}
+	}
 	return filter, nil
 }
 
@@ -115,6 +186,14 @@ func (r *Repository) scopeUsers(ctx context.Context, self string, own, below boo
 	return r.scopeUsersWith(ctx, r.Store.DB, self, own, below, custom)
 }
 func (r *Repository) scopeUsersWith(ctx context.Context, q sqlstore.Runner, self string, own, below bool, custom map[string]bool) ([]string, error) {
+	departments, err := r.scopeDepartmentsWith(ctx, q, self, own, below, custom)
+	if err != nil {
+		return nil, err
+	}
+	return r.usersInDepartments(ctx, q, self, departments)
+}
+
+func (r *Repository) scopeDepartmentsWith(ctx context.Context, q sqlstore.Runner, self string, own, below bool, custom map[string]bool) (map[string]bool, error) {
 	var ownDepartment string
 	if own || below {
 		var department sql.NullString
@@ -127,7 +206,9 @@ func (r *Repository) scopeUsersWith(ctx context.Context, q sqlstore.Runner, self
 	}
 	departments := map[string]bool{}
 	for id := range custom {
-		departments[id] = true
+		if id != "" {
+			departments[id] = true
+		}
 	}
 	if ownDepartment != "" {
 		departments[ownDepartment] = true
@@ -141,6 +222,10 @@ func (r *Repository) scopeUsersWith(ctx context.Context, q sqlstore.Runner, self
 			departments[id] = true
 		}
 	}
+	return departments, nil
+}
+
+func (r *Repository) usersInDepartments(ctx context.Context, q sqlstore.Runner, self string, departments map[string]bool) ([]string, error) {
 	result := []string{self}
 	if len(departments) == 0 {
 		return result, nil

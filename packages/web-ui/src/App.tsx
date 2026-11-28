@@ -186,10 +186,6 @@ function WorkspaceShell() {
     (Object.hasOwn(routes, basename) && !canAccess(page, data)) ||
     ['home', 'login', 'register', 'forgot-password', 'email-login', 'resend-verification', 'registration-success', 'verify-email', 'reset-password'].includes(basename)
   )) return <main className="min-h-dvh bg-background"><NotFoundPage /></main>;
-  if (page === 'api-docs') {
-    const props: PageProps = { page, client, metadata: data, registry, theme, setTheme, refresh: () => void metadata.refetch() };
-    return <PagePropsProvider value={props}><main className="min-h-dvh bg-background p-4 sm:p-6"><div className="mb-4 flex justify-end"><ClientControls /></div><Outlet /></main></PagePropsProvider>;
-  }
   // /home is public for guests and members; / remains the signed-in workspace.
   const publicHome = data.identity_realm !== 'administrator';
   const rootAuthFlow = !basename && (data.mfa_pending || authCallback || !!notice);

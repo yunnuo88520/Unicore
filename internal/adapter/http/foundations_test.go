@@ -62,7 +62,7 @@ func TestActualRoutesMatchContract(t *testing.T) {
 func TestOfflineContractDocs(t *testing.T) {
 	for _, enabled := range []bool{false, true} {
 		router := New(Config{Core: bootstrap.Core(), APIDocs: enabled, Assets: fstest.MapFS{"index.html": {Data: []byte("SPA")}}})
-		for _, path := range []string{"/openapi.json", "/docs/api"} {
+		for _, path := range []string{"/openapi.json", "/docs/api", "/api-docs"} {
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
 			if !enabled {
@@ -85,8 +85,8 @@ func TestOfflineContractDocs(t *testing.T) {
 				if err := json.Unmarshal(w.Body.Bytes(), &spec); err != nil || len(spec.Paths) == 0 {
 					t.Fatal("invalid source contract")
 				}
-			} else if !strings.Contains(w.Body.String(), "API 文档") || strings.Contains(w.Body.String(), "<script") {
-				t.Fatal("offline docs missing or needs scripts")
+			} else if w.Body.String() != "SPA" {
+				t.Fatal("developer entry did not serve the independent frontend")
 			}
 		}
 	}

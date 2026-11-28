@@ -31,7 +31,7 @@ dev-server: check-features
 	go run -tags '$(FEATURE_TAGS)' ./cmd/server
 dev-desktop: check-features
 	pnpm design:generate
-	cd cmd/desktop && wails dev -tags 'desktop $(FEATURE_TAGS)'
+	cd cmd/desktop && wails dev -tags 'desktop,$(FEATURE_TAGS)'
 dev-cli:
 	go run ./cmd/cli $(ARGS)
 generate:
@@ -93,7 +93,7 @@ build-cli:
 	go build -trimpath -ldflags '$(LDFLAGS)' -o build/bin/$(CLI_COMMAND)$(EXE_SUFFIX) ./cmd/cli
 build-desktop: check-features
 	pnpm design:generate
-	cd cmd/desktop && wails build -tags 'desktop $(FEATURE_TAGS)' -ldflags '$(LDFLAGS)'
+	cd cmd/desktop && wails build -tags 'desktop,$(FEATURE_TAGS)' -ldflags '$(LDFLAGS)'
 	pnpm check:native --bundle
 build-ops:
 	go build -trimpath -ldflags '$(LDFLAGS)' -o build/bin/$(OPS_COMMAND)$(EXE_SUFFIX) ./cmd/ops

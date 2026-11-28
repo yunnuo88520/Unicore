@@ -18,8 +18,8 @@
 | 管理员账号管理 | 已实现，super_admin 保护最后管理员 | 不装配 | 不装配 | unicore_personal_accounts | `internal/platform/roles.go` |
 | 管理端凭据委派 | 已实现：users:credentials:write 独立范围，邮箱另需 users:update 范围；完整管理目标仅超管，PAT 禁止，旧角色不自动授予 | 不装配 | 不装配 | 复用 unicore_users 与安全状态表 | `internal/adapter/storage/platformsql/repository.go`、[ADR-0046](../adr/ADR-0046-credential-delegation-role-concurrency.md) |
 | 角色与操作级授权（RBAC） | 已实现：服务端保留元数据 + 完整高级 API 选择器 + 显式撤销；更新强制 version CAS，内置 user 固定 self，复制后可调 | 不装配 | 不装配 | unicore_roles 等（platform 基线含 version） | `internal/platform/roles.go`、`internal/platform/operations.go`、[角色需求](feature-roles.md)、[权限契约](../api/permissions.md) |
-| 菜单与导航授权 | 已实现：共享导航树 CAS + 菜单节点角色补丁（导航 version/expected_role_ids，实际改变角色也递增其版本）；停用模块后保留既有菜单绑定及授权，其他菜单仍可保存；标签仅显式分配，超管默认访问不绕过 surface/隐藏禁用祖先 | 不装配（导航由客户端默认树生成） | 不适用 | unicore_navigation_state | `internal/platform/navigation.go`、`internal/adapter/storage/platformsql/navigation.go`、`packages/web-ui/src/navigation.ts` |
-| 部门与数据范围 | 已实现，五值数据范围 fail-closed | 不装配 | 不装配 | unicore_departments | `internal/platform/datascope.go` |
+| 菜单与导航授权 | 已实现：共享导航树 CAS + 菜单节点角色补丁（导航 version/expected_role_ids，实际改变角色也递增其版本）；停用模块后保留既有菜单绑定及授权，其他菜单仍可保存；允许显示是配置意图，提示当前账号实际侧栏及多个失败条件；超管默认访问不绕过 surface/隐藏禁用祖先 | 不装配（导航由客户端默认树生成） | 不适用 | unicore_navigation_state | `internal/platform/navigation.go`、`internal/adapter/storage/platformsql/navigation.go`、`packages/web-ui/src/navigation.ts` |
+| 部门与数据范围 | 已实现，权限特定五值范围；显式部门 ID（含空部门）、事务读写交集及源/目标转移校验，PAT 单角色 | 不装配 | 不装配 | unicore_departments | `internal/platform/datascope.go` |
 | 岗位管理 | 已实现（组织人事岗位，非内容帖子） | 不装配 | 不装配 | unicore_posts | `internal/adapter/http/posts.go` |
 | 数据字典 | 已实现（管理端 CRUD + 用户端只读） | 不装配 | 不装配 | unicore_dict_types | `internal/adapter/http/dictionaries.go` |
 | 个人中心（资料/换邮箱/TOTP/会话设备，账号菜单弹窗承载） | 已实现，双域各自 19 operation | 不装配 | 不装配 | unicore_personal_accounts | `internal/platform/personal.go`、[个人中心](../03-runbooks/personal-center.md) |
@@ -108,6 +108,7 @@ Platform 两工作台与 Standalone 两载体共用连续的顶栏/正文背景�
 | 功能单元 | 载体 | 证据 |
 | --- | --- | --- |
 | Wails 桥设置兼容方法（空列表、拒绝写入） | Standalone(GUI) | `internal/adapter/desktop/bridge.go` |
+| macOS DMG 安装包（保留 Finder 拖拽安装布局；从独立镜像副本压缩，避免原工作镜像残留锁阻断转换；压缩后校验完整性） | Standalone(GUI)，macOS 分发载体 | `scripts/desktop-downloads.mjs`、`scripts/release-assets.test.mjs`、[打包验证](../03-runbooks/release.md) |
 | 原生签名更新（native 部署） | Standalone(GUI)，需 `updater`；默认不要求 OS 证书，发布者验签必需 | `internal/adapter/desktop/updates.go`、`cmd/desktop/updates_enabled.go` |
 | 单实例锁 | Standalone(GUI) | `internal/bootstrap/local/local.go` |
 | 窗口关闭后台运行（关闭=隐藏；macOS Dock/菜单栏图标恢复，Windows/Linux 托盘恢复/退出） | Standalone(GUI) | `cmd/desktop/main.go`、`cmd/desktop/tray_enabled.go`、`cmd/desktop/tray_darwin.go`，见 [ADR-0048](../adr/ADR-0048-desktop-close-background-tray.md) |
@@ -149,3 +150,14 @@ Platform 两工作台与 Standalone 两载体共用连续的顶栏/正文背景�
 - 实例默认外观（appearance.theme）、bootstrap theme 和外观页面已移除（D13）：单机/桌面外观只走设备级偏好，右上角切换不受影响。
 
 共享表单交互在 Platform 与 Standalone 两载体统一提供上置/浮动标签、六格一次性代码（邮箱/短信/动态口令）、普通图形验证码输入与刷新图片、常驻帮助、失焦校验、按候选数量选控件、范围/出生日期、双端滑块、自动补全、级联、标签与真实文件进度；实体编辑默认使用固定头尾、正文独立滚动的 FormDrawer 表单模式，字段采用单列、固定上置标签、surface 底色与细边框。数据列表统一为工具栏、单层边框表格与分页。认证与安装页使用可辨认的共享输入区域。仅为 UI 能力，无新增身份、短信服务或业务资料持久化；CLI 不适用。见 [表单交互规范](../product/form-interaction.md)。
+
+| 框架扩展单元 | Platform | Standalone | CLI | 持久化 | 证据 |
+| --- | --- | --- | --- | --- | --- |
+| 部门业务产物受控下载端口 | 已实现：签发/消费复核主体与资源，私有字节转发及同范围 ZIP；模块实现资源仓储/引用/清理 | 不装配部门治理 | 不装配 | 模块自管，无框架 metadata 迁移 | `internal/files/controlled.go`、[ADR-0052](../adr/ADR-0052-department-resources-controlled-downloads.md) |
+| 显式 API 根版本注册 | 已实现，完整契约叶子及共享安全门控 | Web 载体可登记本地业务，desktop 无 HTTP 根；不增加平台身份 | 不适用 | 无 | `internal/adapter/http/api_versions.go`、[ADR-0053](../adr/ADR-0053-explicit-api-version-registration.md) |
+
+## 独立开发者工具
+
+| 功能单元 | Platform | Standalone | CLI | 持久化 | 证据 |
+| --- | --- | --- | --- | --- | --- |
+| 独立 API 开发者文档 | 条件支持：默认关闭，启用后公开只读 | Web 条件支持；desktop 无 HTTP 端点 | 不适用 | 无新表；启动定向清理退役页面绑定 | [开发者文档](../product/api-reference.md)、[ADR-0054](../adr/ADR-0054-independent-api-reference.md) |

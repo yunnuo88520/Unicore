@@ -5,7 +5,7 @@ import { notes } from './modules/notes';
 import {defineMessages} from './i18n';
 import type { Bootstrap } from '@unicore/sdk';
 import { pageSurfaces } from './module-registry';
-import { Bell, BookOpen, Activity, Bot, Circle, Cloud, Cpu, FileText, Files, LayoutDashboard, ListChecks, Mail, Megaphone, Network, NotebookPen, PackageCheck, Palette, Radar, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Webhook, Wrench, type LucideIcon } from 'lucide-react';
+import { Bell, Activity, Bot, Circle, Cloud, Cpu, FileText, Files, LayoutDashboard, ListChecks, Mail, Megaphone, Network, NotebookPen, PackageCheck, Palette, Radar, ScrollText, Settings2, ShieldCheck, UserCog, UserRound, Webhook, Wrench, type LucideIcon } from 'lucide-react';
 
 // Dev-only component catalog: define-replaced to false in production builds, so the
 // page facts, route and module are tree-shaken out of shipped bundles. Tests assert
@@ -39,8 +39,6 @@ export const routes = defineMessages({
   menus: { label: '菜单管理', title: '菜单管理', description: '调整用户端导航的顺序、分组与可见性。', permission: 'menus:write', icon: LayoutDashboard, group: 'administration' },
   dictionaries: { label: '数据字典', title: '数据字典', description: '维护业务表单可复用的枚举字典。', permission: 'dictionaries:read', icon: FileText, group: 'administration' },
   'access-tokens': { label: '访问令牌管理', title: '访问令牌管理', description: '管理所有用户的令牌、绑定角色与有效期。', permission: 'tokens:read', icon: ShieldCheck, group: 'administration' },
-  // No permission or authenticated marker: reachable whenever the instance publishes /openapi.json (config.APIDocs).
-  'api-docs': { label: 'API 文档', title: 'API 文档', description: '浏览与下载 OpenAPI 接口契约。', icon: BookOpen },
   // OAuth consent renders outside the workspace chrome; platform accounts only.
   authorize: { label: '授权确认', title: '授权确认', description: '确认外部应用对 MCP 能力的访问授权。', icon: ShieldCheck },
   monitor: { label: '运行概览', title: '运行监控', description: '查看实例运行状态、版本与核心健康。', permission: 'monitor:read', local: true, database: true, group: 'monitor', icon: Activity },
@@ -57,7 +55,7 @@ export type Page = keyof typeof routes;
 
 const pageHeadingOwners = new Set<string>([
   'users', 'administrators', 'roles', 'departments', 'announcements', 'posts',
-  'tasks', 'menus', 'access-tokens', 'api-docs',
+  'tasks', 'menus', 'access-tokens',
   'monitor', 'monitor-services', 'monitor-resources', 'monitor-events', 'files', 'ui-preview', 'not-found',
   'ai-access', 'ai-tools', 'ai-calls', 'ai-oauth',
 ]);
@@ -114,9 +112,6 @@ export function canAccess(page: Page, metadata?: Bootstrap): boolean {
   }
 
   if (!metadata) return false;
-  // The instance publishes /openapi.json only with the api_docs capability; the
-  // desktop build has no contract endpoint, so it never gains the page.
-  if (page === 'api-docs') return !!metadata.capabilities.api_docs && (metadata.profile === 'web-platform' || metadata.profile === 'web-standalone');
   // OAuth consent is a personal platform flow, never a workspace menu page.
   if (page === 'authorize') return metadata.profile === 'web-platform' && !!metadata.current_user;
   // Updates stay super-only: restricted operators never reach the update panel.

@@ -53,10 +53,9 @@ it('lands unconfigured administrator pages in the super-administrator group with
   // The unconfigured administrator pages default into the 超级管理员 directory of the 系统管理 section.
   const administration = navigation.sections.find(section => section.id === 'system')?.entries.find(entry => entry.id === 'administration');
   expect(administration?.children.map(entry => entry.id).filter(id => ['users', 'administrators', 'menus', 'dictionaries', 'tasks'].includes(id)).sort()).toEqual(['dictionaries', 'menus', 'tasks', 'users']);
-  // API 文档 needs no permission point but the api_docs capability: with it
-  // published the page renders as the top-level tail of the system region.
+  // The independent API reference never joins the workspace tree.
   const system = navigation.sections.find(section => section.id === 'system')!;
-  expect(system.entries.map(entry => entry.id)).toEqual(['settings', 'administration', 'files', 'api-docs']);
+  expect(system.entries.map(entry => entry.id)).toEqual(['settings', 'administration', 'files']);
   expect(system.entries[2]).toMatchObject({ id: 'files', type: 'page' });
   expect(canAccess('files', metadata)).toBe(true);
   expect(canAccess('files', { ...metadata, current_user: { roles: ['ops'], permissions: ['files:access'] } } as unknown as Bootstrap)).toBe(false);
@@ -68,24 +67,14 @@ it('lands unconfigured administrator pages in the super-administrator group with
   }
 });
 
-it('hides the API reference wherever the instance does not publish the contract', () => {
-  // Members never reach api-docs regardless of the capability (realm deny).
-  const member = { profile: 'web-platform', identity_realm: 'user', capabilities: { api_docs: true }, current_user: { roles: ['super_admin'], permissions: [] } } as unknown as Bootstrap;
-  expect(canAccess('api-docs', member)).toBe(false);
-  // Administrators need the published contract: without the capability the
-  // seeded entry drops out of the system region entirely.
-  const adminWithout = { profile: 'web-platform', identity_realm: 'administrator', capabilities: {}, current_user: { roles: ['super_admin'], permissions: [] } } as unknown as Bootstrap;
-  expect(canAccess('api-docs', adminWithout)).toBe(false);
-  expect(buildNavigation(adminWithout).sections.find(section => section.id === 'system')?.entries.some(entry => entry.id === 'api-docs') ?? false).toBe(false);
-  const adminWith = { ...adminWithout, capabilities: { api_docs: true } } as unknown as Bootstrap;
-  expect(canAccess('api-docs', adminWith)).toBe(true);
-  expect(buildNavigation(adminWith).sections.find(section => section.id === 'system')?.entries.some(entry => entry.id === 'api-docs')).toBe(true);
-  // Standalone keeps the same capability gate; desktop never gains the page.
-  const standalone = { profile: 'web-standalone', capabilities: { api_docs: true }, current_user: null } as unknown as Bootstrap;
-  expect(canAccess('api-docs', standalone)).toBe(true);
-  expect(canAccess('api-docs', { ...standalone, capabilities: {} } as unknown as Bootstrap)).toBe(false);
-  const desktop = { profile: 'desktop', capabilities: { api_docs: true }, current_user: null } as unknown as Bootstrap;
-  expect(canAccess('api-docs', desktop)).toBe(false);
+it('keeps the developer reference out of every workspace and menu registry', () => {
+  expect(pageFromHash('#api-docs')).toBe('not-found');
+  for (const profile of ['web-platform', 'web-standalone', 'desktop'] as const) {
+    for (const identity_realm of ['user', 'administrator'] as const) {
+      const metadata = { profile, identity_realm, capabilities: { api_docs: true }, current_user: { roles: ['super_admin'], permissions: [] } } as unknown as Bootstrap;
+      expect(buildNavigation(metadata).sections.flatMap(section => section.entries).some(entry => entry.id === 'api-docs')).toBe(false);
+    }
+  }
 });
 
 it('recognizes OIDC callback status without treating unknown hashes as overview',()=>{expect(pageFromHash('#oidc=success')).toBe('overview');expect(pageFromHash('#account?oidc=success')).toBe('not-found');expect(pageFromHash('#oidc=unknown')).toBe('not-found');});

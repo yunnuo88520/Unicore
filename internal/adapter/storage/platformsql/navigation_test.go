@@ -251,7 +251,7 @@ func TestNavigationParentTypesAndBounds(t *testing.T) {
 
 	// The depth limit still caps a chain at maxMenuDepth levels.
 	chain := []contracts.NavigationNode{pageNode("n1", "overview", "")}
-	routes := []string{"tasks", "api-docs", "edition", "site", "dictionaries"}
+	routes := []string{"tasks", "roles", "edition", "site", "dictionaries"}
 	for index, route := range routes {
 		chain = append(chain, pageNode(fmt.Sprintf("n%d", index+2), route, fmt.Sprintf("n%d", index+1)))
 	}

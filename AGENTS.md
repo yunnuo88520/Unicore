@@ -5,7 +5,7 @@
 
 开始前核对工作区，说明影响的 profile 与验证方式。按任务读取必要源码和规范；涉及产品范围或重大架构选择时再读对应 PRD/ADR，不遍历全部 docs。
 
-1. 依赖向内：`internal/domain` 不依赖传输、数据库或认证；`internal/usecase` 只依赖领域、契约和 ports。CLI 禁止引入 HTTP、Wails、SQL 驱动和平台身份模块。
+1. 依赖向内：`internal/domain` 不依赖传输、数据库或认证；`internal/usecase` 只依赖领域、契约和 ports。CLI 可在适配器与组合根引入出站 HTTP 客户端；禁止装配应用 HTTP server、Wails、SQL 驱动和平台身份模块。领域/用例仍不得依赖 net/http。
 2. `web-platform`、`web-standalone`、`desktop`、`cli` 分别装配；平台模块不能由桌面或 CLI 引入。不得声称空壳已经具备安装、认证、数据库或升级能力。
 3. API/DTO 以 `packages/contracts/openapi.json` 为源；修改后运行 `pnpm generate`，不手改 `*.gen.*`。新增平台 API 必须声明后端权限点：运行时策略中间件按 x-unicore 访问策略 fail-closed，未声明契约的已注册路由直接拒绝，前端隐藏不构成权限控制。
 4. 新设置须登记 SettingDefinition；数据库变更须添加分方言迁移、兼容与恢复策略。未验证的数据库不声明支持。

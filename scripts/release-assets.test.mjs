@@ -2,40 +2,80 @@
 // Description: A release must reject missing, altered or mixed-source build artifacts.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {existsSync,mkdtempSync,writeFileSync,readFileSync,mkdirSync,rmSync} from 'node:fs';
-import {join} from 'node:path';
+import {existsSync,mkdtempSync,writeFileSync,readFileSync,readdirSync,mkdirSync,rmSync} from 'node:fs';
+import {join,resolve} from 'node:path';
 import {tmpdir} from 'node:os';
+import {pathToFileURL} from 'node:url';
 import {assembleRelease} from './release-assets.mjs';
 import {releaseFiles,checkReleaseLayout} from './release-layout.mjs';
 import {distributionPlan} from './distribution.mjs';
 import {loadIdentity} from './product-identity.mjs';
 import {convertDmg,desktopDownloads} from './desktop-downloads.mjs';
 
-test('DMG conversion retries a busy source at most twice and rejects other errors immediately', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'unicore-dmg-retry-'));
-  const target = join(dir, 'target.dmg');
-  const busy = Object.assign(new Error('conversion failed'), {stderr: Buffer.from('hdiutil: convert failed - Resource temporarily unavailable')});
+test('DMG conversion succeeds while the original image retains a native exclusive lock', {skip: process.platform !== 'darwin'}, () => {
+  const dir = mkdtempSync(join(tmpdir(), 'unicore-dmg-lock-'));
+  const stage = join(dir, 'stage'), source = join(dir, 'source.dmg'), target = join(dir, 'target.dmg'), mount = join(dir, 'mounted');
+  let mounted = false;
+  try {
+    mkdirSync(stage);
+    mkdirSync(mount);
+    writeFileSync(join(stage, 'payload.txt'), 'native DMG lock regression\n');
+    execFileSync('/usr/bin/hdiutil', ['create', '-fs', 'HFS+', '-volname', 'UnicoreDmgLock', '-srcfolder', stage, '-format', 'UDRW', source], {stdio: 'pipe'});
+    const original = readFileSync(source);
+    // Hold the same POSIX image-file lock documented by hdiutil's EAGAIN error.
+    // It stays held throughout conversion; elapsed time and retries cannot pass.
+    execFileSync('python3', ['-c', `
+import fcntl, subprocess, sys
+source, target, module, node = sys.argv[1:]
+with open(source, 'r+b') as image:
+    fcntl.lockf(image, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    blocked = subprocess.run(['/usr/bin/hdiutil', 'convert', source, '-format', 'UDZO', '-o', target + '.blocked.dmg'], capture_output=True)
+    assert blocked.returncode != 0, 'Expected the source image lock to block direct conversion'
+    subprocess.run([node, '--input-type=module', '-e', 'const {convertDmg} = await import(process.argv[1]); convertDmg(process.argv[2], process.argv[3]);', module, source, target], check=True)
+`, source, target, pathToFileURL(resolve('scripts/desktop-downloads.mjs')).href, process.execPath], {stdio: 'pipe', timeout: 60000});
+    assert.deepEqual(readFileSync(source), original);
+    execFileSync('/usr/bin/hdiutil', ['verify', target], {stdio: 'pipe'});
+    execFileSync('/usr/bin/hdiutil', ['attach', '-readonly', '-nobrowse', '-mountpoint', mount, target], {stdio: 'pipe'});
+    mounted = true;
+    assert.equal(readFileSync(join(mount, 'payload.txt'), 'utf8'), 'native DMG lock regression\n');
+  } finally {
+    try {
+      if (mounted) execFileSync('/usr/bin/hdiutil', ['detach', mount], {stdio: 'pipe'});
+    } finally {
+      rmSync(dir, {recursive: true, force: true});
+    }
+  }
+});
+
+test('DMG conversion preserves image bytes and cleans its private copy on success or failure', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'unicore-dmg-copy-'));
+  const source = join(dir, 'source.dmg'), target = join(dir, 'target.dmg');
+  const bytes = Buffer.from('complete image including Finder metadata');
   const forbidden = Object.assign(new Error('conversion denied'), {stderr: Buffer.from('hdiutil: permission denied')});
   try {
-    const calls = [];
-    convertDmg('source.dmg', target, (command, args) => {
-      calls.push(command === '/usr/bin/hdiutil' ? args[0] : `sleep ${args[0]}`);
-      if (calls.length === 1) {
-        writeFileSync(target, 'partial image');
-        throw busy;
-      }
-      assert.equal(existsSync(target), false);
+    writeFileSync(source, bytes);
+    let snapshot;
+    convertDmg(source, target, (command, args) => {
+      assert.equal(command, '/usr/bin/hdiutil');
+      snapshot = args[1];
+      assert.notEqual(snapshot, source);
+      assert.deepEqual(readFileSync(snapshot), bytes);
+      assert.deepEqual(args, ['convert', snapshot, '-format', 'UDZO', '-o', target]);
     });
-    assert.deepEqual(calls, ['convert', 'sleep 1', 'convert']);
+    assert.equal(existsSync(snapshot), false);
+    assert.deepEqual(readFileSync(source), bytes);
 
-    for (const [failure, expectedAttempts] of [[busy, 3], [forbidden, 1]]) {
-      let attempts = 0;
-      assert.throws(() => convertDmg('source.dmg', target, command => {
-        if (command === '/usr/bin/hdiutil') { attempts++; throw failure; }
-      }), error => error === failure);
-      assert.equal(attempts, expectedAttempts);
-    }
+    writeFileSync(target, 'existing download');
+    let attempts = 0;
+    assert.throws(() => convertDmg(source, target, () => {
+      attempts++;
+      throw forbidden;
+    }), error => error === forbidden);
+    assert.equal(attempts, 1);
+    assert.equal(readFileSync(target, 'utf8'), 'existing download');
+    assert.deepEqual(readdirSync(dir).sort(), ['source.dmg', 'target.dmg']);
   } finally {
     rmSync(dir, {recursive: true, force: true});
   }

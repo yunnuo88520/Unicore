@@ -370,7 +370,7 @@ test('an instance without the contract reference keeps API 文档 out of the con
   await expect(sidebar.getByRole('button', { name: 'API 文档', exact: true })).toHaveCount(0);
   // The direct URL keeps its honest unavailable state instead of a dead frame.
   await page.goto(`${instanceNoDocs.url}/admin/api-docs`);
-  await expect(page.getByText('API 文档不可用，请确认实例已启用 API 文档。', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '页面不存在', exact: true })).toBeVisible();
   await evidence(page, info, '未启用契约文档无入口', false);
 });
 

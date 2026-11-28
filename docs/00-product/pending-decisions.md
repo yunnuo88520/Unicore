@@ -12,10 +12,7 @@
 
 ## D2. API 文档页在桌面载体的缺位
 
-- 现状：`packages/web-ui/src/routes.ts` canAccess 将 desktop 排除在 api-docs 之外（无契约 HTTP 端点）；web-standalone 可经 `api_docs` 配置开启。
-- 影响：Standalone 两载体在「API 文档」页面上不等效，属呈现差异。
-- 候选：A. 接受为载体层差异（已列入形态规范第 5 节清单）；B. 桌面内嵌只读契约视图。
-- 推荐：A（契约消费本就依赖 HTTP 面；派生项目开发者用 Web 载体查看）。**待决策确认。**
+- 状态：**已裁决（2026-11-28）**。维护者明确采用独立 Web 开发者入口，桌面不提供 HTTP 文档。文档不再作为产品工作台页面，两种 Web profile 启用后公开只读，默认关闭；见 [ADR-0054](../adr/ADR-0054-independent-api-reference.md)。
 
 ## D3. Standalone 本地管理面的远程暴露策略不一致
 

@@ -23,3 +23,5 @@ metadata:
 当前形态以 [产品形态规范](../../../docs/00-product/product-forms.md) 为准；账号与会话以 [ADR-0037](../../../docs/adr/ADR-0037-unified-user-identity.md) 为准，ADR-0016 只约定分工作台入口：用户 main.tsx 与管理员 admin.tsx 独立入口，管理页只在 admin-app.tsx 装配，共享 Workspace/表单/消息/主题。单机/桌面仅业务和本地外观，不提供站点、品牌、SMTP、对象存储和后台。管理员公开 auth/bootstrap 只返回固定域最小投影；本人 account 使用统一账号会话并校验当前工作台上下文，其余管理资源须 permissions/superAdmin，不能宽泛豁免 admin 路由。新增普通用户立即 active 并验证用户入口登录；注册默认关闭，在注册设置用独立 Switch 控制开放注册与邮箱验证；仅邮箱验证、邮件登录和找回密码需要 SMTP 测试。布尔控件用 Switch，上传用自定义拖拽弹窗与 SDK 真实阶段。
 
 分片与断点续传按 [ADR-0022](../../../docs/adr/ADR-0022-resumable-uploads.md)：复用 blob.Multipart / PartReceiver、files.UploadSession 与 FileUploadDialog/SDK。先登记持久清理再 begin；对精确 staging/复制目标键清理所有未完成 upload，覆盖丢失 upload ID，不扫描无关前缀。服务端列举实际分片并核验序号/大小/ETag；本地流式合并核对 SHA-256，云端保持直传、条件复制及大对象分片复制。续传重选原文件并核对完整内容，暂停不删除、放弃走删除，确认提交复核未取消；旧凭证不能写正式键。管理员统一策略对新会话生效，普通用户只读 policy 安全投影。新增提供商必须实现/验证 multipart 权限、CORS PUT、重启续传与持久 abort 重试；厂商支持与未验证范围见 docs/support.md；按目标环境实际验证，不以历史记录代替当前结果。
+
+部门拥有的业务产物使用 files.ControlledStore 与模块 ResourceAuthorizer，在签发和每次消费时重查当前主体、权限、资源部门/删除状态与全部文件绑定；Revision 随转移/删除/替换改变，云字节也经应用转发。使用独立私有对象与模块引用/清理账本，禁止套用个人拥有者捷径或静态缓存 ZIP 绕过消费；见 ADR-0052。

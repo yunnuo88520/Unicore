@@ -54,10 +54,10 @@ it('seeds one shared default tree with ordered sections, registry-mirrored surfa
   expect(platformEdition.sort).toBeLessThan(platformAccessTokens.sort);
   expect(pages.find(node => node.route_id === 'files')).toMatchObject({ section_id: 'system', parent_id: undefined, sort: 27 });
   // Page surfaces mirror the route registry: management and system groups plus
-  // the platform admin-only pages (including the API reference) stay off the
+  // the platform admin-only pages stay off the
   // user surface; the workspace overview is registered for both workspaces and
   // every other business page defaults to the user workspace only.
-  const platformAdminOnly = new Set(['files', 'announcements', 'site', 'api-docs']);
+  const platformAdminOnly = new Set(['files', 'announcements', 'site']);
   const registry = routes as unknown as Record<string, { group?: string; surfaces?: string[] }>;
   for (const node of pages) {
     const route = registry[node.route_id!];
@@ -67,10 +67,9 @@ it('seeds one shared default tree with ordered sections, registry-mirrored surfa
       : route?.surfaces?.length ? route.surfaces : ['user'];
     expect([...node.surfaces]).toEqual(expected);
     // Two regions: system, administration and monitor pages ride their
-    // directories in the system region — API 文档 stays a top-level tail
-    // there — everything else stays in business. The personal center keeps
+    // directories in the system region; everything else stays in business. The personal center keeps
     // no navigation presence: it opens from the account menus' settings modal.
-    const systemTopLevel = node.route_id === 'api-docs' || node.route_id === 'files';
+    const systemTopLevel = node.route_id === 'files';
     expect(node.section_id).toBe(systemTopLevel || group === 'system' || group === 'administration' || group === 'monitor' || group === 'ai' ? 'system' : 'business');
     expect(node.parent_id).toBe(systemTopLevel ? undefined : group === 'system' ? 'settings' : group === 'administration' ? 'administration' : group === 'monitor' ? 'monitor-center' : group === 'ai' ? 'ai-management' : undefined);
   }
@@ -109,11 +108,9 @@ it('renders the shared administrator tree: seeded business pages, access-filtere
     .map(node => node.id);
   expect(entriesOf(navigation, 'business')).toEqual(businessSeeded.filter(id => entriesOf(navigation, 'business').includes(id)));
   // The administrator-only system region keeps the settings directory first,
-  // the administration directory behind it and the API reference as the
-  // top-level tail; directory children follow seeded order, filtered by access.
+  // the administration directory behind it; directory children follow seeded order, filtered by access.
   const system = navigation.sections.find(section => section.id === 'system')!;
-  expect(system.entries.at(-1)!.id).toBe('api-docs');
-  expect(system.entries.at(-1)!.type).toBe('page');
+  expect(system.entries.some(entry => entry.id === 'api-docs')).toBe(false);
   for (const directory of system.entries.filter(entry => entry.type === 'directory')) {
     expect(!!directory.label).toBe(true);
     const seededChildren = config.nodes
@@ -132,8 +129,7 @@ it('keeps the user workspace on the same tree: administrator surfaces gone, pers
   expect(navigation.sections.map(section => section.id)).toEqual(['business']);
   // The system region, the super-admin directory and the administrator-only
   // pages (files/announcements/site plus management pages) never reach the
-  // user workspace; canAccess also hard-denies api-docs there, even for a
-  // super admin. The personal center keeps no navigation presence.
+  // user workspace. The personal center keeps no navigation presence.
   const userWorkspace = walkAll(navigation);
   const userSeeded = config.nodes
     .filter(node => node.type === 'page' && node.surfaces.includes('user') && node.section_id === 'business' && !node.parent_id)
@@ -155,7 +151,7 @@ it('renders only menu-granted pages for a restricted operator while canAccess st
   expect(walkAll(render(operator(['storage:read'], ['settings'])))).toEqual([]);
   // A menu grant cannot conjure a page canAccess denies on this realm.
   expect(walkAll(render(operator(['storage:read'], ['settings', 'storage', 'api-docs'])))).toEqual(['settings', 'storage']);
-  expect(canAccess('api-docs', operator(['storage:read'], ['api-docs']))).toBe(false);
+  expect(registeredPath('/api-docs')).toBeUndefined();
 });
 
 it('keeps normal, rail and mobile presentations on one ordered model', () => {

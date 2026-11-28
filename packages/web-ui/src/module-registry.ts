@@ -31,7 +31,7 @@ export interface UiRoute {
 export function pageSurfaces(id: string, route?: Partial<UiRoute>): ('user' | 'administrator')[] {
   if (id === 'overview') return ['user', 'administrator'];
   if (['system', 'administration', 'monitor', 'ai'].includes(route?.group ?? '') ||
-      ['announcements', 'site', 'api-docs'].includes(id)) return ['administrator'];
+      ['announcements', 'site'].includes(id)) return ['administrator'];
   return route?.surfaces?.length ? [...route.surfaces] : ['user'];
 }
 

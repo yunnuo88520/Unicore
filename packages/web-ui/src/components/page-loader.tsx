@@ -19,7 +19,7 @@ const PAGE_SKELETONS: Record<string, PageSkeletonVariant> = {
   'system-notifications': 'form', edition: 'form', storage: 'editor', menus: 'editor', dictionaries: 'editor',
   files: 'catalog',
   monitor: 'monitor', 'monitor-services': 'cards', 'monitor-resources': 'monitor', 'monitor-events': 'feed',
-  'api-docs': 'content', 'ai-access': 'form', 'ui-preview': 'content',
+  'ai-access': 'form', 'ui-preview': 'content',
 };
 
 export function pageSkeletonForPage(page: string): PageSkeletonVariant {

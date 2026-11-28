@@ -37,7 +37,7 @@ export function validNavigationUrl(value: string): boolean {
 }
 const builtinPageOrder: string[] = [
   'overview', 'users', 'roles', 'departments', 'posts', 'menus', 'dictionaries',
-  'announcements', 'tasks', 'api-docs', 'site', 'storage', 'files', 'account-policy', 'mail', 'mail-templates',
+  'announcements', 'tasks', 'site', 'storage', 'files', 'account-policy', 'mail', 'mail-templates',
   'notification-channels', 'notification-templates', 'system-notifications', 'logs', 'edition', 'access-tokens',
   'monitor', 'monitor-services', 'monitor-resources', 'monitor-events',
   'ai-access', 'ai-tools', 'ai-calls', 'ai-oauth',
@@ -108,9 +108,7 @@ export function defaultNavigation(_surface: NavigationSection['surfaces'], profi
     // Standalone and desktop collapse the monitor group into the single
     // tabbed console page; every other platform-only group stays hidden.
     if (!platform && (id === 'note-management' || group === 'administration' || (group === 'monitor' && id !== 'monitor') || (group === 'system' && id !== 'edition'))) continue;
-    // API 文档 is a top-level page at the tail of the system region on the
-    // platform profile, after the settings and administration directories.
-    const systemTopLevel = platform && (id === 'api-docs' || id === 'files');
+    const systemTopLevel = platform && id === 'files';
     const surfaces: NavigationSection['surfaces'] = platform ? routeSurfaces(id) : bothSurfaces;
     const sectionId = platform && (systemTopLevel || group === 'system' || group === 'administration' || group === 'monitor' || group === 'ai') ? 'system' : 'business';
     const parent = platform ? systemTopLevel ? undefined : group === 'administration' ? 'administration' : group === 'system' ? 'settings' : group === 'monitor' ? 'monitor-center' : group === 'ai' ? 'ai-management' : undefined : undefined;
@@ -142,7 +140,7 @@ const builtinIcons: Record<string, string> = {
   users: 'UserRound', administrators: 'UserCog', announcements: 'Megaphone', 'account-policy': 'ShieldCheck', mail: 'Mail', 'mail-templates': 'Mail',
   'notification-channels': 'Webhook', 'notification-templates': 'FileText', 'system-notifications': 'Bell', logs: 'ScrollText', edition: 'PackageCheck',
   roles: 'ShieldCheck', departments: 'Network', tasks: 'ListChecks', menus: 'LayoutDashboard', dictionaries: 'FileText', posts: 'UserCog',
-  'access-tokens': 'ShieldCheck', 'api-docs': 'BookOpen',
+  'access-tokens': 'ShieldCheck',
   monitor: 'Activity', 'monitor-services': 'Radar', 'monitor-resources': 'Cpu', 'monitor-events': 'ScrollText',
   'ai-access': 'Bot', 'ai-tools': 'Wrench', 'ai-calls': 'ScrollText', 'ai-oauth': 'Webhook',
 };

@@ -17,12 +17,12 @@ const gates = vi.hoisted(() => {
     const promise = new Promise<unknown>((res, rej) => { resolve = res; reject = rej; });
     return { promise, resolve, reject };
   };
-  return { overview: make(), home: make(), install: make(), apiDocs: make(), aiAccess: make(), users: make() };
+  return { overview: make(), home: make(), install: make(), monitor: make(), aiAccess: make(), users: make() };
 });
 vi.mock('./pages/overview', () => gates.overview.promise);
 vi.mock('./pages/home', () => gates.home.promise);
 vi.mock('./pages/install', () => gates.install.promise);
-vi.mock('./pages/api-docs', () => gates.apiDocs.promise);
+vi.mock('./pages/monitor', () => gates.monitor.promise);
 vi.mock('./pages/admin/ai/access', () => gates.aiAccess.promise);
 vi.mock('./pages/admin/users', () => gates.users.promise);
 
@@ -84,19 +84,19 @@ it('keeps the bar running while a slow page module downloads', async () => {
 
 it('does not finish while another navigation chunk is still pending', async () => {
   gates.install.promise.catch(() => {});
-  gates.apiDocs.promise.catch(() => {});
+  gates.monitor.promise.catch(() => {});
   let router!: NavRouter;
   await mount(given => { router = given; });
   await waitFor(() => expect(screenText('overview-ready')).toBeTruthy());
   void router.navigate({ to: '/install' });
   await waitFor(() => expect(bar()).not.toBeNull(), { timeout: 2000 });
-  void router.navigate({ to: '/api-docs' });
+  void router.navigate({ to: '/monitor' });
   // The first module settles while the second is still downloading: the bar
   // must keep running for the remaining chunk.
   gates.install.resolve({ InstallPage: page('install-ready') });
   await new Promise(resolve => setTimeout(resolve, 400));
   expect(bar()).not.toBeNull();
-  gates.apiDocs.resolve({ ApiDocsPage: page('api-docs-ready') });
+  gates.monitor.resolve({ MonitorPage: page('monitor-ready') });
   await waitFor(() => expect(bar()).toBeNull(), { timeout: 2000 });
 });
 

@@ -251,7 +251,7 @@ func sameOrigin(r *http.Request) bool {
 	return true
 }
 func administratorRequest(r *http.Request) bool {
-	return strings.HasPrefix(r.URL.Path, "/api/v1/admin/")
+	return strings.HasPrefix(relativeAPIPath(r), "/admin/")
 }
 func identityCookie(r *http.Request) string {
 

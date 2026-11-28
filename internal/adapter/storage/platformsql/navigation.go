@@ -160,6 +160,9 @@ func (r *Repository) EnsureNavigation(ctx context.Context) error {
 	if err := r.initializeNavigation(ctx); err != nil {
 		return err
 	}
+	if err := r.retireAPIDocsNavigation(ctx); err != nil {
+		return err
+	}
 	if err := r.reconcileNavigationSurfaces(ctx); err != nil {
 		return err
 	}
@@ -582,6 +585,9 @@ func validateNavigation(n, previous contracts.Navigation) error {
 				return platform.ErrInput
 			}
 		case "page":
+			if text(node.RouteID) == "api-docs" {
+				return platform.ErrInput
+			}
 			registered := 0
 			for _, surface := range node.Surfaces {
 				if _, ok := platform.NavigationPage(text(node.RouteID), surface); ok {

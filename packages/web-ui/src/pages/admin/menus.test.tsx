@@ -66,6 +66,23 @@ function meta(permissions: string[], roles = ['super_admin']): Bootstrap {
   return { profile: 'web-platform', identity_realm: 'administrator', capabilities: {}, current_user: { id: 'root', roles, permissions } } as unknown as Bootstrap;
 }
 
+it('distinguishes configured display from saved sidebar state and lists simultaneous causes', async () => {
+  const config = menuList();
+  config.nodes.find(item => item.id === 'administration')!.visible = false;
+  config.nodes.find(item => item.id === 'users')!.visible = false;
+  const bootstrap = meta(['menus:write'], ['operator']);
+  bootstrap.navigation = { version: config.version, sections: config.sections, nodes: config.nodes };
+  bootstrap.current_user!.menu_ids = [];
+  mountWeb({ menuConfig: vi.fn().mockResolvedValue(config) }, bootstrap);
+  await screen.findByRole('columnheader', { name: '允许显示' });
+  await userEvent.click(screen.getByRole('button', { name: '展开全部' }));
+  const row = document.querySelector('[data-node="users"]')! as HTMLElement;
+  expect(within(row).getByText('当前账号侧栏：未显示')).toBeVisible();
+  for (const reason of ['菜单已配置为隐藏', '父级菜单已隐藏或停用', '当前账号的角色未获此菜单授权', '当前账号缺少页面访问权限']) {
+    expect(within(row).getByText(reason)).toBeVisible();
+  }
+});
+
 function mountWeb(web: Record<string, unknown>, bootstrap: Bootstrap) {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
@@ -129,7 +146,7 @@ it('renders one tree table: region root rows over nested node rows and never wor
   harness();
   expect(await screen.findByRole('row', { name: '业务' })).toBeVisible();
   expect(screen.getByRole('row', { name: '系统管理' })).toBeVisible();
-  for (const column of ['名称', '类型', '目标', '排序', '显示', '操作']) expect(screen.getByRole('columnheader', { name: column })).toBeVisible();
+  for (const column of ['名称', '类型', '目标', '排序', '允许显示', '操作']) expect(screen.getByRole('columnheader', { name: column })).toBeVisible();
   // Surfaces derive from the route registry on save: the editor itself never
   // renders a workspace/surface concept at all.
   expect(screen.queryByText('成员端')).toBeNull();

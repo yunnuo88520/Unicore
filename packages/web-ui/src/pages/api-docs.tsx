@@ -44,11 +44,11 @@ function SwaggerReference({ spec }: { spec: Record<string, unknown> }) {
   </div>;
 }
 
-export function ApiDocsPage({ client }: PageProps) {
+export function ApiDocsPage({ client }: Pick<PageProps, 'client'>) {
   const { t } = useI18n();
   const query = useQuery({ queryKey: ['api-document'], queryFn: () => client.apiDocument!(), enabled: !!client.apiDocument, retry: false });
   return <div className="flex min-w-0 flex-col gap-6">
-    <PageHeader title={t('API 文档')} description={t('数据来自实例发布的 OpenAPI 契约。')} />
+    <PageHeader title={t('API 文档')} description={t('公开只读接口说明。完整契约中的接口仍受运行形态、登录和权限限制。')} />
     <Card className="overflow-hidden"><CardContent className="flex flex-col gap-4 p-0">
     {!client.apiDocument ? <p className="p-4 text-sm text-muted">{t('当前运行形态不提供 API 文档')}</p>
       : query.isPending ? <p role="status" className="py-10 text-center text-sm text-muted">{t('正在加载 API 文档…')}</p>

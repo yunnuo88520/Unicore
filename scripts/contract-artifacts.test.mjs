@@ -34,3 +34,18 @@ test('branding upload contract accommodates a 500 KB image encoded as JSON base6
  assert.equal(spec.components.schemas.BrandingInput.properties.content.maxLength,682668);
  assert.doesNotThrow(()=>contractArtifacts(spec));
 });
+
+test('admin security validation and generated paths apply to every explicit root version',()=>{
+ for(const root of ['/api/v2','/api/v12']){
+  const spec=load();const op=structuredClone(spec.paths['/api/v1/admin/users'].get);
+  op.operationId='versionedUsers';spec.paths[`${root}/admin/users`]={get:op};
+  let source=contractArtifacts(spec).find(([path])=>path.endsWith('operations.gen.ts'))[1];
+  assert.ok(source.includes(`"path": "${root}/admin/users"`));
+  op['x-unicore'].identityRealm='user';
+  assert.throws(()=>contractArtifacts(spec),/Admin operation must fix identityRealm/);
+  op['x-unicore'].identityRealm='administrator';op.security=[{SessionCookie:[]}];
+  assert.throws(()=>contractArtifacts(spec),/Admin operation must use AdministratorSession/);
+  op.security=[{AdministratorSession:[]}];delete op['x-unicore'].uiPage;op['x-unicore'].permissions=[];
+  assert.throws(()=>contractArtifacts(spec),/Admin operation needs permissions/);
+ }
+});

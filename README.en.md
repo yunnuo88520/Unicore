@@ -117,3 +117,5 @@ Find usage and development guides in the [documentation index](docs/README.md). 
 ## License
 
 [MIT License](LICENSE). Commercial use, modification, and redistribution are permitted with the copyright and license notices retained.
+
+Online API reference is disabled by default on Web profiles. Enable `APP_API_DOCS=true` and visit root `/api-docs` or raw `/openapi.json`; both are public read-only descriptions without sign-in, while business API authentication remains enforced. The reference is independent of workspace menus and is unavailable on Wails desktop/CLI. See the [bilingual developer guide](docs/product/api-reference.md) for profile limits and existing-instance upgrades.

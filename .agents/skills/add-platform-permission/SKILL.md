@@ -24,3 +24,5 @@ metadata:
 角色更新强制正整数version，缺失/非法拒绝、过期409，创建无需version。菜单节点补丁仍用导航version+expected_role_ids，但实际改变角色也bump角色版本；导航裁剪/启动物化、整树兼容分配和部门范围清理等聚合入口同样维护，成员数变化不使编辑过期。冲突须显式重读复核，不自动替换版本重试。菜单标签仅显式分配，不代表可达；超管固定勾选禁用且不绕过surface/隐藏禁用祖先，未分配/加载/错误分别呈现。内置user固定self只读，复制自定义后可调。Standalone共享platform迁移表不代表治理装配，禁止按旧隔离措辞擅改catalog。
 
 PAT 按 ADR-0044 绑定单角色。管理事务重读 actor 必须使用 principalUser 保留请求的角色约束，不能用完整账号资源 user 投影重新合并其他角色；目标账号（包含本人）仍读取完整资源，以保护角色分配与超级管理员目标边界。新数据范围入口同时验证 Bearer 单角色和浏览器多角色语义。
+
+部门拥有的资源使用 DepartmentScope/ContainsDepartment，保留空部门；安装锁事务内用 AuthorizeDepartmentMutation，转移用 AuthorizeDepartmentTransfer 同时校验持久化源和目的部门及浏览/写权限交集。创建者变动不代表资产转移；见 ADR-0052。

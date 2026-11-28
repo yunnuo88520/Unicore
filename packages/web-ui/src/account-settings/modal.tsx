@@ -106,7 +106,9 @@ export function AccountSettingsModal({ open, onClose, defaultPage = 'profile', p
       onClose();
     };
     document.addEventListener('keydown', onKeyDown, true);
-    panelRef.current?.focus();
+    // A slow mount or a pinned-state change can run this effect after the user
+    // has already focused a control. Do not interrupt their in-progress edit.
+    if (panelRef.current && !panelRef.current.contains(document.activeElement)) panelRef.current.focus();
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {

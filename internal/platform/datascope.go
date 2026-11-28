@@ -17,16 +17,38 @@ const (
 )
 
 // ScopeFilter is the resolved visibility of one session: either unrestricted,
-// or restricted to an explicit set of platform user ids (always containing the
-// session user). Modules translate it into their own row filters without
+// or restricted to explicit platform user and department sets. DataScope expands
+// members and retains the session user; DepartmentScope skips member expansion.
+// Modules choose the ownership dimension and translate it into row filters without
 // cross-database joins.
 type ScopeFilter struct {
 	All     bool
 	UserIDs []string
+	// DepartmentIDs describes current resource ownership, independently of its
+	// audit creator. Empty departments remain visible without enumerating users.
+	DepartmentIDs []string
 }
 
 // Self reports whether the filter degrades to the personal-only behaviour.
-func (f ScopeFilter) Self() bool { return !f.All && len(f.UserIDs) == 0 }
+func (f ScopeFilter) Self() bool { return !f.All && len(f.UserIDs) == 0 && len(f.DepartmentIDs) == 0 }
+
+// ContainsDepartment checks a department-owned resource. An absent department
+// is not an ownership grant, even for All; modules must explicitly model any
+// instance-owned resources separately.
+func (f ScopeFilter) ContainsDepartment(id string) bool {
+	if id == "" {
+		return false
+	}
+	if f.All {
+		return true
+	}
+	for _, allowed := range f.DepartmentIDs {
+		if allowed == id {
+			return true
+		}
+	}
+	return false
+}
 
 // Contains checks a target against the resolved resource scope.
 func (f ScopeFilter) Contains(id string) bool {

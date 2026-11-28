@@ -388,6 +388,9 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
     }) as HttpTransport['call'];
   }
   private async request<T>(path: string, init?: RequestInit,timeoutMS=20000,binary=false): Promise<T> {
+    // Generated operations and non-direct grants carry their complete root.
+    // Reject foreign/non-API destinations before attaching session credentials.
+    if (!/^\/api\/v[1-9][0-9]*(?:\/|$)/.test(path)) throw new AppError('INVALID_RESPONSE', '服务返回了无法识别的响应');
     const epoch = this.epoch;
     let response: Response;
     const headers = new Headers(init?.headers);
@@ -396,7 +399,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
     } else if (this.csrf) headers.set('X-CSRF-Token', this.csrf);
     const timeout = AbortSignal.timeout(timeoutMS);
     const signal = init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
-    try { response = await this.fetcher(`${this.baseURL}/api/v1${path}`, { credentials: this.bearerToken === undefined ? 'same-origin' : 'omit', ...init, headers, signal }); }
+    try { response = await this.fetcher(`${this.baseURL}${path}`, { credentials: this.bearerToken === undefined ? 'same-origin' : 'omit', ...init, headers, signal }); }
     catch { throw new AppError(signal.aborted ? (timeout.aborted ? 'REQUEST_TIMEOUT' : 'REQUEST_CANCELLED') : 'NETWORK_ERROR', signal.aborted ? '请求已取消或超时' : '连接服务失败，请确认 Go 服务正在运行'); }
     if (binary && response.ok) {
       const result = await response.blob();
@@ -411,7 +414,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
     }
     if (epoch !== this.epoch) throw new AppError('SESSION_CHANGED', '会话已变化，请重新获取数据');
     if (!envelope || typeof envelope.code !== 'string' || typeof envelope.request_id !== 'string') throw new AppError('INVALID_RESPONSE', '服务返回了无法识别的响应');
-    if (response.status === 401 && envelope.code === 'AUTH_REQUIRED' && this.authenticated && path !== '/auth/login') {
+    if (response.status === 401 && envelope.code === 'AUTH_REQUIRED' && this.authenticated && path.split('?')[0] !== operations.login.path && path.split('?')[0] !== operations.adminLogin.path) {
       this.csrf = ''; this.identity = ''; this.authenticated = false; this.sessionChanged('expired');
     }
     if (!response.ok && envelope.code === 'OK') throw new AppError('HTTP_ERROR', `服务请求失败 (${response.status})`);
@@ -433,8 +436,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
     // Optional query entries arrive as undefined: they mean "absent", never the string "undefined".
     const query = new URLSearchParams(Object.entries(options?.query ?? {}).filter(([, value]) => value !== undefined && value !== null).map(([key, value]) => [key, String(value)]));
     if (query.size) path += `?${query}`;
-    const relative = path.replace(/^\/api\/v1/, '');
-    const execute = (signal?: AbortSignal) => this.request<OperationData[K]>(relative, { method: operation.method, signal, headers: { ...(input === undefined ? {} : { 'Content-Type': 'application/json' }), ...options?.headers }, ...(input === undefined ? {} : { body: JSON.stringify(input) }) },options?.timeoutMs);
+    const execute = (signal?: AbortSignal) => this.request<OperationData[K]>(path, { method: operation.method, signal, headers: { ...(input === undefined ? {} : { 'Content-Type': 'application/json' }), ...options?.headers }, ...(input === undefined ? {} : { body: JSON.stringify(input) }) },options?.timeoutMs);
     if (operation.method.toUpperCase() !== 'GET') return execute(options?.signal);
     if (options?.signal?.aborted) return Promise.reject(new AppError('REQUEST_CANCELLED', '请求已取消或超时'));
     // Identical concurrent GETs share one request. The shared fetch carries
@@ -463,7 +465,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
   private workbook(id:'exportUsers'|'userImportTemplate'|'exportFiles',search?:string):Promise<Blob> {
     const operation=operations[id];
     const query=new URLSearchParams(search?{search}:{});
-    return this.request(operation.path.replace(/^\/api\/v1/, '')+(query.size?`?${query}`:''),{method:operation.method},60000,true);
+    return this.request(operation.path+(query.size?`?${query}`:''),{method:operation.method},60000,true);
   }
   exportUsers(search?:string){return this.workbook('exportUsers',search);}
   usersImportTemplate(){return this.workbook('userImportTemplate');}
@@ -472,7 +474,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
     if(file.size>5*1024*1024||!file.name.toLowerCase().endsWith('.xlsx'))throw new AppError('INVALID_INPUT','请选择 5 MiB 以内的 XLSX 文件');
     const body=new FormData();body.append('file',file);
     const operation=operations.importUsers;
-    const result=await this.request<OperationData['importUsers']>(operation.path.replace(/^\/api\/v1/,''),{method:operation.method,body},600000);
+    const result=await this.request<OperationData['importUsers']>(operation.path,{method:operation.method,body},600000);
     return {created:result.created,errors:result.failed.map(item=>`${item.row}: ${item.error}`)};
   }
   async apiDocument():Promise<Record<string,unknown>> {
@@ -644,7 +646,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
       if (!response.ok) throw new AppError('STORAGE_UPLOAD_FAILED', '文件上传失败，请重试');
       return { success: true };
     }
-    return await this.request<{ success: boolean }>(grant.url.replace(/^\/api\/v1/, ''), { method: 'PUT', body: content, headers: { 'Content-Type': 'application/octet-stream', ...grant.headers } });
+    return await this.request<{ success: boolean }>(grant.url, { method: 'PUT', body: content, headers: { 'Content-Type': 'application/octet-stream', ...grant.headers } });
   }
   completeFileUpload(id: string) { return this.call('completeFileUpload', undefined, { params: { id } }); }
   branding() { return this.call('adminBranding'); }
@@ -691,7 +693,7 @@ export class HttpTransport implements AppClient, WebClient, FileClient, StorageC
        if(grant.direct){
         const response=await this.fetcher(grant.url,{method:'PUT',body:part,headers:grant.headers,credentials:'omit',redirect:'error',signal:AbortSignal.any([signal,AbortSignal.timeout(600000)])});
         if(!response.ok)throw new AppError('STORAGE_UPLOAD_FAILED','分片上传失败，已完成的分片会保留，可继续重试');
-       }else await this.request(grant.url.replace(/^\/api\/v1/,''),{method:'PUT',body:part,headers:grant.headers,signal},600000);
+       }else await this.request(grant.url,{method:'PUT',body:part,headers:grant.headers,signal},600000);
        loaded+=part.size;completed++;progress();break;
       }catch(error){
        if(signal.aborted||attempt>=2||error instanceof AppError&&!['NETWORK_ERROR','REQUEST_TIMEOUT','STORAGE_UPLOAD_FAILED','STORAGE_UNAVAILABLE'].includes(error.code))throw error;

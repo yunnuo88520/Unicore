@@ -89,6 +89,8 @@ PUT 角色必须携带读取到的正整数 version；缺失/非法拒绝输入�
 
 数据范围按当前权限点解析：users:read 约束用户列表与导出，users:create/update 在事务内约束目标及目的部门；files:access 约束通用文件 API，storage:read 约束管理文件列表/导出，notes:access 约束示例及其附件。同权限多角色范围取并集；其他权限角色的 all 不参与。部门/岗位目录、公告、字典、任务及实例设置属于全局对象，不套用用户行范围。
 
+部门拥有的业务资源使用 `ScopeFilter.DepartmentIDs/ContainsDepartment`；`DepartmentScope` 跳过用户展开，`DataScope` 同时保留部门与用户集合。空部门保留，未分配部门不隐式授权，创建者调岗/删除不替代资源转移。写事务在安装锁内调用 `AuthorizeDepartmentMutation`，转移用 `AuthorizeDepartmentTransfer` 校验源、目标及读写范围交集；PAT 保持单角色。业务产物可经 `files.ControlledStore` 在签发与每次消费时重新校验当前资源及每个文件，云端也通过应用流式读取；不改变个人文件拥有者捷径。见 [ADR-0052](../adr/ADR-0052-department-resources-controlled-downloads.md)。
+
 ## 角色编辑与菜单反向分配
 
 `PUT /admin/menus` 在安装锁事务内对照当前持久化树校验整树替换。停用模块导致目录项缺失时，只允许同 ID 节点保留原类型、路由、surface、权限点、operation 集合及动作父页面绑定；布局字段可编辑，角色授权不因目录缺失自动删除或扩大。新增或修改的失效绑定返回 400；已注册页面的 surface、可委派 operation 与权限点匹配、树结构及导航 version 校验仍执行。显式删除节点继续裁剪孤儿授权，并递增实际变化的角色版本。

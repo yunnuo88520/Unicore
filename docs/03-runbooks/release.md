@@ -52,6 +52,8 @@ Windows 原生 CI 在构建后执行 scripts/test-windows-startup.ps1：使用�
 
 CI 在原生 runner 打包后运行 `node scripts/check-release-entrypoints.mjs desktop`：macOS 只读挂载 DMG 并复制到临时 Applications 目录，Windows 核对下载 EXE 与原构建逐字节一致；Linux 质量 job 的 `node scripts/check-release-entrypoints.mjs web` 解包两个 Web profile，使用临时数据目录验证精确文件清单、统一入口的帮助/维护命令、配置生成/拒绝覆盖、无参数启动与 /install。均不使用真实实例数据。
 
+macOS 完成 Finder 布局并卸载工作镜像后，从完整镜像创建独立临时副本，再压缩为 DMG；副本不挂载，避免原镜像的 DiskImages 文件锁延迟释放阻断转换，同时保留镜像内的 Finder 布局与应用内容。构建时需额外容纳一份未压缩工作镜像的临时空间；副本在成功或失败后均清理，转换或完整性校验失败仍中止打包。`node --test scripts/release-assets.test.mjs` 在 macOS 使用真实 `hdiutil` 与 Python 3 标准库 `fcntl` 持有源镜像独占锁，验证原文件直接转换失败、副本转换成功，以及成品校验、只读挂载和内容读取；macOS 原生 CI 显式执行此测试，其他系统仅跳过该原生用例。
+
 ### Windows 原生 OTA 验证
 
 在 Windows/amd64 的交互式桌面会话中运行。需要 x64 Node.js、Go、Wails/CGO 原生构建依赖、WebView2 和 `tar`。先以默认特性构建当前 EXE（`FEATURE_LICENSE=false`、`FEATURE_UPDATER=true`、`FEATURE_NOTES=true`）；已有构建应与当前源码及 `VERSION` 一致。

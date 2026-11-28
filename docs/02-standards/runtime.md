@@ -25,7 +25,7 @@ Web 配置由 internal/config.LoadWeb 统一解析与验证：flag > APP_* 环�
 
 桌面默认在数据目录 logs/ 落盘（同时保留 stderr 输出）；Web 默认仅 stdout，设置 APP_LOG_FILE=true 后双写 APP_DATA_DIR/logs。单文件达到 APP_LOG_MAX_SIZE_MB 轮转为 unicore-时间戳.log，清理任务只删除本程序轮转文件：超过保留天数（桌面/单机/CLI 按 APP_LOG_MAX_AGE_DAYS，默认 0 永久）或超出总量上限的最早文件先删；目录/文件权限 0700/0600，创建失败降级回控制台日志不阻塞启动。平台 profile 的保留天数可由管理员在「系统设置 → 基础设置 → 日志」运行时调整（logging.retention_days，注册默认 30 天，取值 0–36500，0=永久，保存立即触发清理），覆盖 APP_LOG_MAX_AGE_DAYS 的启动值；单机与桌面不装配该设置，只能用环境变量并在重启后生效。日志不进入 unicore-ops 备份范围。
 
-组合根先校验配置、打开存储、绑定全部 listener，再启动 worker 和 HTTP。启动失败会逆序关闭已创建组件，清理失败合并返回。退出先排空 HTTP，再停监控/worker，最后关闭存储；到达截止时间关闭连接并取消请求 context，handler 和外部调用必须遵守取消。内部 Stack 不进入 CLI，避免引入 net/http。桌面 Wails 返回后执行存储清理，main 最后决定退出码。
+组合根先校验配置、打开存储、绑定全部 listener，再启动 worker 和 HTTP。启动失败会逆序关闭已创建组件，清理失败合并返回。退出先排空 HTTP，再停监控/worker，最后关闭存储；到达截止时间关闭连接并取消请求 context，handler 和外部调用必须遵守取消。内部 Stack 不进入 CLI，避免装配应用 HTTP server。CLI 的出站 HTTP 客户端只在适配器与组合根注入，领域/用例仍不依赖 net/http。桌面 Wails 返回后执行存储清理，main 最后决定退出码。
 
 Windows 桌面是无控制台 GUI；普通启动失败除 stderr 外还显示原生「启动失败」弹窗与错误详情，关闭后退出码为 1。更新 helper 仍使用自己的任务诊断，不弹出交互框阻塞回滚。排查时可在终端设置 APP_DATA_DIR 为独立临时目录再运行 exe，不删除真实 AppData 或安装标记。SQLite 接收绝对本地路径，构造空 authority 的 file URI（Windows 为 file:///C:/...），并转义中文、空格、#、% 等路径字符；不能将盘符作为 host。
 

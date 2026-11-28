@@ -33,7 +33,7 @@ MySQL 库默认排序规则为 `utf8mb4_unicode_ci` 时，Platform 通过 platfo
 1. Platform：服务端投影。bootstrap 按 surface（user/administrator）经 `platform.NavigationFor` 投影导航树，非 super_admin 逐节点校验 `menu_ids`；动作节点按 `action_ids` + 权限点校验。前端 `buildNavigation` 仅在 web-platform 采用服务端树。
 2. Standalone：客户端本地构建。`defaultNavigation` 按 profile 过滤：剔除 personal/administration 组与 system 组（仅保留 `edition`），不提供外观设置页面。两载体使用同一份本地默认树逻辑；系统更新位于最后。
 3. CLI：不适用图形导航规则；呈现即命令树（`unicore --help`）与结构化输出。
-4. 页面可见性（`packages/web-ui/src/routes.ts` `canAccess`）在权限点之外有形态硬规则：Platform 用户域永不呈现 `site/api-docs/announcements`（管理面拆分，[ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)）；`api-docs` 需 `api_docs` 能力且仅 Web 形态（desktop 无契约端点）；`edition`（系统更新）在 Platform 仅 super_admin，其他形态看 updater 能力。
+4. 页面可见性（`packages/web-ui/src/routes.ts` `canAccess`）在权限点之外有形态硬规则：Platform 用户域永不呈现 `site/announcements`（管理面拆分，[ADR-0016](../adr/ADR-0016-separate-client-admin-surfaces.md)）；API 文档移出工作台，Web 独立公开只读入口按 `api_docs` 开关启用（desktop 无契约端点）；`edition`（系统更新）在 Platform 仅 super_admin，其他形态看 updater 能力。
 5. 菜单、页面、功能不是同一概念：菜单授权（menu_ids）只决定入口，不授予 API；按钮动作（action）与接口授权（operation）独立命名空间。前端隐藏只是体验层，服务端才是执行点。
 6. Platform 停用可选模块时，持久化菜单仍保留该模块的页面、动作和显式授权，以便重新启用后继续使用原配置；侧栏按当前前端注册及能力过滤，不呈现停用页面，相关模块 API 仍不可用。保存其他菜单可原样保留失效绑定，不自动删除或重授角色配置；新增或改绑失效的启用页面及动作继续拒绝，已注册页面的 surface 和操作权限约束继续生效。
 
@@ -54,7 +54,7 @@ Platform 超级管理员在「系统设置 → 账户安全」配置登录会话
 | 顶部通知收件箱 | 已实现（公告与账号通知） | 已实现（仅账号通知） | 已实现（Web / 原生桥、本地通知；无公告） | 不装配 |
 | 基础设置（site 与模块业务分组） | 不呈现（管理面拆分） | 已实现（settings:read） | 不呈现（无实例设置项） | 不适用 |
 | 系统更新（edition；仅相同 Catalog 指纹可安装，默认不要求 OS 证书） | 仅版本号，无检查操作 | 条件支持（编译期 updater + super_admin；后台每 6 小时检查，安装须确认） | 条件支持（同一编译开关与检查调度；web 本机 loopback / desktop 桥） | 不装配 |
-| API 文档 | 不呈现 | 已实现（api_docs 能力） | 条件支持（web 开启 `api_docs` 时）；desktop 不适用 | 不适用 |
+| API 开发者文档 | 不作为菜单 | 不作为菜单 | Web 独立 `/api-docs`，默认关闭；开启后与原始契约均公开只读；desktop 不适用 | 不适用 |
 | 个人中心（账号菜单弹窗：个人资料/安全设置/登录会话/访问令牌四分区） | 已实现（侧栏账号卡片与顶栏头像菜单打开；强制 2FA 时钉住安全分区） | 已实现（管理员域镜像） | 不呈现（无账号） | 不适用 |
 | 运行监控（概览/服务/资源/运行事件，含主机硬件图表卡片、会话趋势与事件流） | 不呈现（用户域硬排除） | 已实现（仅 super_admin；系统区域末位「运行监控」目录四页） | 已实现（业务区「运行监控」单页 + 单层 Tabs 四页签，两载体等效；不适用卡片不渲染） | 不适用 |
 | 告警规则管理与告警通知 | 不呈现（用户域硬排除） | 已实现（规则管理内嵌于资源监控页底部，仅 super_admin 渲染；端点 superAdmin+monitor:read；无独立菜单；通知走既有渠道；运行事件页展示告警触发/恢复/归因转移/通知失败） | 已实现（无配置入口，内置默认规则自动启用；告警事件直接呈现在「运行事件」Tab；Web/GUI 等效） | 不适用 |
@@ -63,6 +63,8 @@ Platform 超级管理员在「系统设置 → 账户安全」配置登录会话
 | 个人授权应用（个人中心分区） | 已实现（「已授权应用」分区：本人 OAuth 授权列表、绑定角色、scope、最近使用与自撤销；仅平台形态出现，OAuth 关闭时隐藏） | 不呈现（不装配） | 不呈现（不装配） | 不适用 |
 | 个人令牌 MCP 接入提示 | 已实现（访问令牌分区顶部提示：接入地址复制与最小权限角色引导，服务启用且本人视图时显示） | 不呈现（不装配） | 不呈现（不装配） | 不适用 |
 | 管理后台 SPA（admin.html） | — | 独立入口，需 identity 服务（standalone 请求 404；desktop 无此入口） | 不适用 | 不适用 |
+
+Standalone 的 macOS 桌面下载使用 DMG，保留应用拖入 Applications 的 Finder 布局；打包从完整工作镜像的独立副本压缩并校验，不改变安装入口或本地使用者的业务权限。验证流程见 [打包与发行](../03-runbooks/release.md)。
 
 派生应用的自定义控制台独立提供 Shell，框架不替它放置侧栏或品牌入口。`ConsoleShellProps.workspaces` 提供当前会话可达的用户、可用管理和已授权控制台目标；Shell 可在合适位置渲染 `WorkspaceSwitcher`。管理入口使用 bootstrap 的 `admin_path`，跨 Web 入口重新加载；切换其他自定义控制台使用应用路由。管理后台仍通过现有账号菜单返回 `/` 用户工作空间，再进入自定义控制台；注册表不扩展到管理员 SPA，也不改变身份或 API realm。
 
@@ -93,7 +95,7 @@ Platform 用户域、管理员域与 Standalone 两载体共享 `@unicore/ui` �
 
 ## 5. CLI 呈现
 
-- 命令树即信息架构：`unicore version`、`unicore execute`（`internal/adapter/cli/command.go`）。新增命令遵循 [add-cli-command](../../.agents/skills/add-cli-command/SKILL.md)：stdin/文件输入、结构化输出、退出码表达失败，不引入 UI/HTTP/持久化依赖。
+- 命令树即信息架构：`unicore version`、`unicore execute`（`internal/adapter/cli/command.go`）。新增命令遵循 [add-cli-command](../../.agents/skills/add-cli-command/SKILL.md)：stdin/文件输入、结构化输出、退出码表达失败，不引入 UI/HTTP server/自身持久化依赖；出站 HTTP 客户端只在适配器与组合根注入。
 - CLI 不适用菜单、页面、仪表盘、设置页规则；其「呈现」规范仅为：命令名与帮助文本中英文一致、输出机器可读（结构化优先于散文）。
 
 ## 6. 直接访问与越权行为
@@ -144,3 +146,5 @@ Platform 和 Standalone 的笔记编辑弹窗复用 FileUploadDialog；上传先
 安装连接属于 Web 实例安装面，Platform/Standalone Web 都提供 TLS 关闭、仅加密、证书及主机名校验三种模式；桌面自动 SQLite，CLI 不装配。tls_verify 只改变连接校验，不新增实例设置、业务权限或数据库表。
 
 共享表单遵循[表单交互规范](../product/form-interaction.md)。Platform 用户/管理员与 Standalone Web/Desktop 使用同一套原语；新建/编辑实体默认使用固定头部、独立滚动正文与固定操作区的 FormDrawer，实体字段默认单列、固定上置标签、surface 底色与细边框，列表不重复套卡片；短确认/查看/临时任务使用 Modal；候选搜索为锚定浮层，打开后不改变后续字段位置；新密码提供可见性切换与强度提示，邮箱/短信/动态口令使用六格输入，图形验证码使用普通输入框配刷新图片。认证页沿用共享输入框底色，保证明暗主题下的静止输入区域可辨认。地区、出生日期等示例控件不自动注册产品字段、菜单或持久化。
+
+部门资源范围与业务产物受控下载为 Platform 模块扩展端口，无新增框架菜单、页面或仪表盘。模块呈现按当前权限和资源部门过滤，历史批次外壳不意味着保留原部门产物访问；列表、计数、明细和归档保持同一范围。Standalone 两载体不增加部门治理，CLI 不装配。显式 API 根注册仅属 Web 传输装配，不增加产品能力或界面；已登记根的 `/admin/` 工作台选择及访问策略与 v1 一致，完整路径和客户端调用来自契约。

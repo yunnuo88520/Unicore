@@ -45,6 +45,7 @@ type Store interface {
 	UpdatePost(context.Context, string, contracts.PostSaveInput, string) (contracts.Post, error)
 	DeletePost(context.Context, string, string) (contracts.Post, error)
 	DataScope(context.Context, contracts.User, string) (ScopeFilter, error)
+	DepartmentScope(context.Context, contracts.User, string) (ScopeFilter, error)
 	ListMenuConfig(context.Context) (contracts.MenuList, error)
 	SaveNavigation(context.Context, contracts.MenuSaveInput, string) (contracts.MenuList, error)
 	AssignMenuRoles(context.Context, string, contracts.MenuRoleAssignmentInput, string) (contracts.RoleList, error)

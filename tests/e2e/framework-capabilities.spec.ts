@@ -315,7 +315,7 @@ test('scheduled execution, persisted enablement, real admin charts and Scalar co
   await evidence(page, info, '管理端活动图表');
 
   const contract = page.waitForResponse(response => new URL(response.url()).pathname === '/openapi.json' && response.status() === 200);
-  await page.goto(`${instance.url}/admin/api-docs`);
+  await page.goto(`${instance.url}/api-docs`);
   const document = await (await contract).json();
   expect(document.openapi).toBe('3.1.0');
   expect(document.paths[operations.listTasks.path]).toBeDefined();

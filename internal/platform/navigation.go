@@ -16,7 +16,6 @@ var baseNavigationPages = []contracts.NavigationPage{
 	{ID: "access-tokens", Surfaces: []string{"administrator"}, Permission: "tokens:read", Group: "administration"},
 	{ID: "overview", Surfaces: []string{"user", "administrator"}},
 	{ID: "announcements", Surfaces: []string{"administrator"}, Permission: "announcements:read"},
-	{ID: "api-docs", Surfaces: []string{"administrator"}},
 	{ID: "site", Surfaces: []string{"administrator"}, Permission: "settings:read", Group: "system"},
 	{ID: "files", Surfaces: []string{"administrator"}, Permission: "storage:read", Group: "system"},
 	{ID: "storage", Surfaces: []string{"administrator"}, Permission: "storage:read", Group: "system"},
@@ -54,7 +53,7 @@ func NavigationPages() []contracts.NavigationPage {
 // the shared stable display order both seeds and editors rely on.
 var defaultPageOrder = []string{
 	"overview", "users", "roles", "departments", "posts", "menus", "dictionaries",
-	"announcements", "tasks", "api-docs", "site", "storage", "files", "account-policy", "mail", "mail-templates",
+	"announcements", "tasks", "site", "storage", "files", "account-policy", "mail", "mail-templates",
 	"notification-channels", "notification-templates", "system-notifications", "logs", "edition", "access-tokens",
 	"monitor", "monitor-services", "monitor-resources", "monitor-events",
 	"ai-access", "ai-tools", "ai-calls", "ai-oauth",
@@ -102,8 +101,8 @@ var navigationIcons = map[string]string{
 	"users": "UserRound", "administrators": "UserCog", "announcements": "Megaphone", "account-policy": "ShieldCheck", "mail": "Mail", "mail-templates": "Mail",
 	"notification-channels": "Webhook", "notification-templates": "FileText", "system-notifications": "Bell", "logs": "ScrollText", "edition": "PackageCheck",
 	"roles": "ShieldCheck", "departments": "Network", "tasks": "ListChecks", "menus": "LayoutDashboard", "dictionaries": "FileText", "posts": "UserCog",
-	"access-tokens": "ShieldCheck", "api-docs": "BookOpen",
-	"monitor": "Activity", "monitor-services": "Radar", "monitor-resources": "Cpu", "monitor-events": "ScrollText",
+	"access-tokens": "ShieldCheck",
+	"monitor":       "Activity", "monitor-services": "Radar", "monitor-resources": "Cpu", "monitor-events": "ScrollText",
 	"ai-access": "Bot", "ai-tools": "Wrench", "ai-calls": "ScrollText", "ai-oauth": "Webhook",
 	// Seeded directories carry the same icons as the frontend defaultNavigation.
 	"administration": "Users", "monitor-center": "Activity", "ai-management": "Bot",
@@ -167,13 +166,6 @@ func DefaultNavigation() contracts.Navigation {
 			parent = "ai-management"
 		}
 		sort := navigationRank(page.ID) * 10
-		if page.ID == "api-docs" {
-			// API 文档 stays a top-level node at the tail of the system region,
-			// after the settings and administration directories; mirrors the
-			// frontend defaultNavigation special case.
-			section = "system"
-			sort = 30
-		}
 		if page.ID == "files" {
 			section, parent, sort = "system", "", 27
 		}

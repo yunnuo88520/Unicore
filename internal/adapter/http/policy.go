@@ -144,7 +144,10 @@ func (p policyRouter) Mount(pattern string, h http.Handler) {
 
 // mountAPI registers every versioned API route behind the contract policy middleware.
 func mountAPI(api chi.Router, config Config) {
-	guarded := policyRouter{Router: api, config: config}
+	guarded, ok := api.(policyRouter)
+	if !ok {
+		guarded = policyRouter{Router: api, config: config}
+	}
 	if config.Install != nil {
 		mountUpdates(guarded, config)
 	}
@@ -163,7 +166,7 @@ func mountAPI(api chi.Router, config Config) {
 	}
 	for _, route := range []string{"/health/live", "/health/ready"} {
 		guarded.Get(route, func(w http.ResponseWriter, r *http.Request) {
-			if config.Install != nil && r.URL.Path == "/api/v1/health/ready" {
+			if config.Install != nil && route == "/health/ready" {
 				store, _, _, _ := config.Install.Services()
 				if store == nil {
 					failure(w, 503, "NOT_READY", "安装尚未完成")

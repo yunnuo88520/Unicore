@@ -11,12 +11,13 @@ import { Alert, Badge, Button, Card, CardContent, Checkbox, ConfirmDialog, Dropd
 import { AppFormBody, AppFormFooter } from '@unicore/form';
 import { AppError, type AppClient, type Bootstrap, type MenuList, type MenuSaveInput, type NavigationNode, type NavigationSection, type RoleList, type WebClient } from '@unicore/sdk';
 import {
-  buildMenuTree, buildNavigation, copyMenuNode, defaultNavigation, filterMenuTree, flattenNavigation, isRegisteredPage, menuNodeLabel, menuNodeTarget,
+  buildMenuTree, copyMenuNode, defaultNavigation, filterMenuTree, isRegisteredPage, menuNodeLabel, menuNodeTarget,
   newNavigationNode, routeSurfaces, sectionTitle, validNavigationUrl, type MenuTreeNode,
 } from '../../navigation';
 import { resolveNavigationIcon } from '../../navigation-icons';
 import { NavigationIconPicker } from '../../navigation-icon-picker';
 import { routes } from '../../routes';
+import { navigationStatuses, navigationReasonLabels } from '../../navigation-status';
 import { roleDisplayLabel, roleDisplayName } from '../../role-display';
 import { invalidateAfter } from '../../queries';
 import { defineMessages, t, useLocale } from '../../i18n';
@@ -284,8 +285,7 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
   });
 
   const tree = useMemo(() => (draft ? buildMenuTree(draft) : []), [draft]);
-  const sidebarNodes = useMemo(() => metadata.navigation ? new Set(buildNavigation(metadata).sections.flatMap(section =>
-    flattenNavigation(section.entries).map(({ node }) => node.id))) : undefined, [metadata]);
+  const statuses = useMemo(() => config.data ? navigationStatuses(metadata, config.data) : undefined, [metadata, config.data]);
   const defaultCollapsed = useMemo(() => draft
     ? new Set(draft.nodes.filter(node => node.type === 'directory' && draft.nodes.some(child => child.parent_id === node.id)).map(node => node.id))
     : new Set<string>(), [draft]);
@@ -424,7 +424,7 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
 
   const handlers: RowHandlers = {
     draft,
-    sidebarNodes: surface === 'administrator' ? sidebarNodes : undefined,
+    statuses,
     assignedRoles: roleList.data,
     pages: config.data?.pages ?? [],
     rolesState: roleList.isError ? 'error' : roleList.isPending ? 'loading' : 'success',
@@ -453,6 +453,7 @@ function MenuPanel({ web, metadata }: { web: WebClient; metadata: Bootstrap }) {
       <Button variant="secondary" size="sm" disabled={pending} onClick={collapseAll}><ChevronsUp size={14} />{t('收起全部')}</Button>
       <Button variant="secondary" size="sm" disabled={pending} onClick={addSection}><Plus size={14} />{t('添加区域')}</Button>
     </div>
+    <p className="text-xs text-muted">{t('允许显示仅表示菜单配置。当前账号侧栏还取决于功能、工作台、父级状态和角色权限；以下状态以已保存配置为准。')}</p>
     <MenuTreeTable rows={rows} searching={searching} handlers={handlers}
       drag={{ dragId, dropHint, onDragStart: handleDragStart, onDragOver: handleDragOver, onDrop: handleDrop, onDragEnd: endDrag }} />
     <p className="text-2xs text-subtle">{t('拖拽行到目标行的上三分之一或下三分之一插入为其前后兄弟，居中释放嵌套为其子菜单，拖到区域行移入该区域顶层。')}</p>
@@ -503,7 +504,7 @@ type TreeRow =
 
 type RowHandlers = {
   draft: Draft;
-  sidebarNodes?: ReadonlySet<string>;
+  statuses?: ReturnType<typeof navigationStatuses>;
   assignedRoles?: RoleList;
   pages: MenuList['pages'];
   rolesState: 'loading' | 'error' | 'success';
@@ -540,7 +541,7 @@ function MenuTreeTable({ rows, searching, handlers, drag }: { rows: TreeRow[]; s
         <TableHead className="max-sm:hidden">{t('类型')}</TableHead>
         <TableHead className="max-sm:hidden">{t('目标')}</TableHead>
         <TableHead>{t('排序')}</TableHead>
-        <TableHead>{t('显示')}</TableHead>
+        <TableHead>{t('允许显示')}</TableHead>
         <TableHead className="text-end">{t('操作')}</TableHead>
       </TableRow></TableHeader>
       <TableBody>
@@ -581,7 +582,7 @@ function RegionRow({ row, handlers, drag }: { row: Extract<TreeRow, { kind: 'sec
     <TableCell><Input className="h-8 w-16" type="number" aria-label={t('区域排序')} value={section.sort}
       onChange={event => handlers.onPatchSection(section.id, { sort: Number(event.target.value) || 0 })} /></TableCell>
     <TableCell><div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <LabeledSwitch label={t('显示')} checked={section.visible} onChange={value => handlers.onPatchSection(section.id, { visible: value })} />
+      <LabeledSwitch label={t('允许显示')} checked={section.visible} onChange={value => handlers.onPatchSection(section.id, { visible: value })} />
       <LabeledSwitch label={t('标题')} checked={section.show_title} onChange={value => handlers.onPatchSection(section.id, { show_title: value })} />
     </div></TableCell>
     <TableCell className="text-end">
@@ -635,8 +636,10 @@ function NodeRow({ row, handlers, drag }: { row: Extract<TreeRow, { kind: 'node'
         <span className="min-w-0">
           <span className="break-all font-medium">{menuNodeLabel(node)}</span>
           <span className="block text-2xs text-muted">{t('适用工作台：{{surfaces}}', { surfaces: node.surfaces.map(surface => surface === 'user' ? t('用户工作台') : t('管理工作台')).join(' · ') })}</span>
-          {handlers.sidebarNodes && <span className="block text-2xs text-muted">{handlers.sidebarNodes.has(node.id)
-            ? t('当前账号侧栏：已显示') : t('当前账号侧栏：未显示')}</span>}
+          {handlers.statuses?.get(node.id) && <span className="block max-w-md text-2xs text-muted">
+            <span>{handlers.statuses.get(node.id)!.visible ? t('当前账号侧栏：已显示') : t('当前账号侧栏：未显示')}</span>
+            {handlers.statuses.get(node.id)!.reasons.map(reason => <span className="block" key={reason}>{t(navigationReasonLabels[reason])}</span>)}
+          </span>}
           {handlers.onAssign && <span className="block text-2xs text-muted">{roleSummary}</span>}
         </span>
         {node.badge_dot && <span className="size-2 rounded-full bg-accent" aria-label={t('圆点标记')} />}
@@ -819,8 +822,8 @@ function NodeDialog({ state, draft, pages, onClose, onSubmit }: {
         </label>
         <NavigationIconPicker value={form.icon} onChange={icon => patch({ icon })} />
         <label className="flex items-center justify-between gap-3 text-sm font-medium text-ink sm:col-span-2">
-          {t('在导航中显示')}
-          <Switch aria-label={t('在导航中显示')} className="shrink-0 whitespace-nowrap" checked={form.visible} onChange={value => patch({ visible: value })} />
+          {t('允许在导航中显示')}
+          <Switch aria-label={t('允许在导航中显示')} className="shrink-0 whitespace-nowrap" checked={form.visible} onChange={value => patch({ visible: value })} />
         </label>
       </div>
       <Accordion items={[{ id: 'display', title: t('排序与显示选项'), content: <div className="grid gap-4 sm:grid-cols-2">

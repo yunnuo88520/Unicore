@@ -126,3 +126,31 @@ test('real exported product renames, retains business/theme and merges two frame
   for(const [key,value] of Object.entries(oldEnv)){if(value===undefined)delete process.env[key];else process.env[key]=value;}
  }
 });
+
+test('exported API registrations enforce the full security matrix for a newly declared root', {timeout:180000,skip:derived?'Framework exporter regression runs in the upstream source checkout':false},()=>{
+ const {directory,source}=snapshotFramework(repository);
+ try{
+  // Add operations to the exported authoritative contract, then compile the
+  // real embedded-contract server. No production v2 aliases or policy mocks.
+  const path=join(source,'packages/contracts/openapi.json');
+  const spec=JSON.parse(readFileSync(path));
+  const operation=(oldPath,method,id,patch={})=>{
+   const result=structuredClone(spec.paths[oldPath][method]);
+   result.operationId=id;Object.assign(result['x-unicore'],patch);return result;
+  };
+  spec.paths['/api/v2/probe']={get:operation('/api/v1/notes','get','fixtureV2Read'),post:operation('/api/v1/notes','post','fixtureV2Write',{permissions:['notes:update']})};
+  spec.paths['/api/v2/admin/probe']={get:operation('/api/v1/admin/announcements','get','fixtureV2Admin')};
+  spec.paths['/api/v2/health/live']={get:operation('/api/v1/health/live','get','fixtureV2Health')};
+  spec.paths['/api/v2/bootstrap']={get:operation('/api/v1/bootstrap','get','fixtureV2Bootstrap')};
+  spec.paths['/api/v2/standalone']={get:operation('/api/v1/settings','get','fixtureV2Standalone')};
+  spec.paths['/api/v2/auth/login']={post:operation('/api/v1/auth/login','post','fixtureV2Login')};
+  spec.paths['/api/v2/account/tokens']={get:operation('/api/v1/account/tokens','get','fixtureV2Credentials')};
+  writeFileSync(path,JSON.stringify(spec,null,2)+'\n');
+  execFileSync(process.execPath,['scripts/generate-contracts.mjs'],{cwd:source,stdio:'pipe',timeout:60000});
+  const generated=readFileSync(join(source,'packages/contracts/src/operations.gen.ts'),'utf8');
+  assert.match(generated,/"path": "\/api\/v2\/probe"/);
+  try{
+   execFileSync('go',['test','-race','-tags','api_root_fixture','./internal/adapter/http','-run','^TestRegisteredAPIRootContractFixture$','-count=1','-v'],{cwd:source,stdio:'pipe',timeout:150000});
+  }catch(error){throw new Error(`API root integration failed:\n${error.stdout??''}\n${error.stderr??''}`,{cause:error});}
+ }finally{rmSync(directory,{recursive:true,force:true});}
+});

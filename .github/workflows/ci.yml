@@ -140,6 +140,9 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev build-essential pkg-config
       - name: Verify signed update helpers on the native OS
         run: go test ./internal/updates ./internal/adapter/updatechannel ./internal/adapter/updateinstall
+      - name: Verify DMG conversion with a locked source on macOS
+        if: runner.os == 'macOS'
+        run: node --test scripts/release-assets.test.mjs
       # Windows acceptance for the cross-platform tooling: doctor must classify installed
       # pnpm correctly (not a spawn EINVAL misreport), and the suites the Windows upgrade
       # report flagged run on a real Windows checkout with the repository's own attributes.

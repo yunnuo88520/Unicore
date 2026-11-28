@@ -151,7 +151,6 @@ export function createWorkspaceRouter(options: { history: () => RouterHistory; b
     pageRoute('/ai-tools', () => import('./pages/admin/ai/tools').then(module => ({ default: module.AdminAiToolsPage })), { adminEligible: true }),
     pageRoute('/ai-calls', () => import('./pages/admin/ai/calls').then(module => ({ default: module.AdminAiCallsPage })), { adminEligible: true }),
     pageRoute('/ai-oauth', () => import('./pages/admin/ai/oauth').then(module => ({ default: module.AdminAiOauthPage })), { adminEligible: true }),
-    pageRoute('/api-docs', () => import('./pages/api-docs').then(module => ({ default: module.ApiDocsPage }))),
     pageRoute('/authorize', () => import('./pages/authorize').then(module => ({ default: module.AuthorizePage })), { search: { client_id: '', redirect_uri: '', scope: '', state: '', code_challenge: '', code_challenge_method: '', resource: '' } }),
     ...(import.meta.env.DEV && !import.meta.env.VITEST ? [pageRoute('/ui-preview', () => import('./pages/ui-preview').then(module => ({ default: module.UiPreviewPage })))] : []),
     pageRoute('/edition', () => import('./pages/edition').then(module => ({ default: module.UserEditionPage })), { adminEligible: true }),

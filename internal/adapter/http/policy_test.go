@@ -71,19 +71,18 @@ func TestPolicyRefusesUndeclaredRoutes(t *testing.T) {
 func TestAPIRoutesMatchContract(t *testing.T) {
 	manager, _, _ := newPolicyFixture(t)
 	config := Config{Core: bootstrap.Core(), Install: manager, Metadata: runtime.Metadata(runtime.WebPlatform, "development"), Assets: fstest.MapFS{"index.html": {Data: []byte("app")}}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))}
-	root := chi.NewRouter()
-	var api chi.Router
-	root.Route("/api/v1", func(sub chi.Router) {
-		api = sub
-		mountAPI(sub, config)
-	})
+	// Walk the actual root assembly, preserving complete paths across every
+	// registered version. Non-API assets and SPA routes are not contract JSON.
+	root := New(config).(chi.Router)
 	registered := map[string]bool{}
-	if e := chi.Walk(api, func(method, pattern string, _ http.Handler, _ ...func(http.Handler) http.Handler) error {
+	if e := chi.Walk(root, func(method, pattern string, _ http.Handler, _ ...func(http.Handler) http.Handler) error {
+		if !strings.HasPrefix(pattern, "/api/") {
+			return nil
+		}
 		if method == "HEAD" {
-			// HEAD rides on the GET declaration.
 			method = "GET"
 		}
-		registered[strings.ToLower(method)+" /api/v1"+pattern] = true
+		registered[strings.ToLower(method)+" "+pattern] = true
 		return nil
 	}); e != nil {
 		t.Fatal(e)

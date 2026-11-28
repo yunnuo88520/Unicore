@@ -122,6 +122,8 @@ func TestDialectMigrationsAndIdentity(t *testing.T) {
 			exerciseUserDepartments(t, ctx, repository, admin)
 			exerciseDepartmentScopeValidation(t, ctx, repository, admin)
 			exerciseDataScopes(t, ctx, store, repository, admin)
+			exerciseDepartmentResources(t, ctx, store, repository, admin)
+			exerciseRetireAPIDocsNavigation(t, ctx, store, repository, admin)
 			exerciseOIDC(t, ctx, store, repository, admin)
 			exerciseFiles(t, ctx, store, admin)
 			exerciseNotes(t, ctx, store)

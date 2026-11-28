@@ -43,6 +43,8 @@ type requestSettingsSnapshot struct {
 }
 
 type Config struct {
+	// APIVersions adds explicit contract-backed roots under the shared safety gates.
+	APIVersions      []APIVersion
 	Updates          updateport.API
 	Metadata         contracts.Bootstrap
 	Core             usecase.Executor
@@ -58,7 +60,7 @@ type Config struct {
 	AlertRulesStore  monitor.AlertRuleStore
 	Notify           *notify.Notifier
 	// MCP mounts the platform-only protocol surface; nil keeps /mcp a plain 404.
-	MCP              *mcp.Surface
+	MCP *mcp.Surface
 }
 
 func New(config Config) http.Handler {
@@ -68,9 +70,11 @@ func New(config Config) http.Handler {
 	if config.ReadinessTimeout <= 0 {
 		config.ReadinessTimeout = 2 * time.Second
 	}
+	versions := apiVersions(config)
 	router := chi.NewRouter()
 	router.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r = withAPIRoot(r, versions)
 			wrapped := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 			w = wrapped
 			start := time.Now()
@@ -172,8 +176,8 @@ func New(config Config) http.Handler {
 					}
 				}
 				// Admin recovery, public metadata and probes remain reachable during maintenance.
-				path := r.URL.Path
-				if strings.HasPrefix(path, "/api/v1/") && path != "/api/v1/bootstrap" && !strings.HasPrefix(path, "/api/v1/admin/") && !strings.HasPrefix(path, "/api/v1/health/") {
+				apiPath := relativeAPIPath(r)
+				if apiPath != "" && apiPath != "/bootstrap" && !strings.HasPrefix(apiPath, "/admin/") && !strings.HasPrefix(apiPath, "/health/") {
 					_, service, _, profile := config.Install.Services()
 					if profile == runtime.WebPlatform && service != nil {
 						var values map[string]string
@@ -199,6 +203,7 @@ func New(config Config) http.Handler {
 		})
 	}
 	if config.APIDocs {
+		router.Get("/api-docs", func(w http.ResponseWriter, r *http.Request) { serveEntry(config.Assets, "index.html", w, r) })
 		router.Get("/openapi.json", func(w http.ResponseWriter, r *http.Request) {
 			content, _ := apispec.Assets.ReadFile("openapi.json")
 			w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -208,6 +213,7 @@ func New(config Config) http.Handler {
 			http.Redirect(w, r, "/api-docs", http.StatusFound)
 		})
 	} else {
+		router.Get("/api-docs", http.NotFound)
 		router.Get("/openapi.json", http.NotFound)
 		router.Get("/docs/api", http.NotFound)
 	}
@@ -215,9 +221,7 @@ func New(config Config) http.Handler {
 	router.Get("/brand-assets/{name}", func(w http.ResponseWriter, r *http.Request) { serveBrandAsset(config, w, r) })
 	router.Head("/brand-assets/{name}", func(w http.ResponseWriter, r *http.Request) { serveBrandAsset(config, w, r) })
 	mcp.Mount(router, config.MCP)
-	router.Route("/api/v1", func(api chi.Router) {
-		mountAPI(api, config)
-	})
+	mountAPIVersions(router, config, versions)
 	apiError := func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 404, contracts.ErrorResponse{Code: "NOT_FOUND", Message: "接口不存在", RequestID: w.Header().Get("X-Request-ID")})
 	}

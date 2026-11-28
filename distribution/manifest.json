@@ -1480,7 +1480,8 @@
     "internal/adapter/storage/platformsql/department_resources_test.go",
     "internal/adapter/http/api_versions.go",
     "internal/adapter/http/api_versions_test.go",
-    "internal/adapter/http/api_versions_contract_fixture_test.go"
+    "internal/adapter/http/api_versions_contract_fixture_test.go",
+    "packages/sdk/src/api-roots.test.ts"
   ],
   "ownership": {
     "product-owned": [

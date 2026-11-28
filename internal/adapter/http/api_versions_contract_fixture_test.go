@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/yunnuo/unicore/internal/audit"
 	"github.com/yunnuo/unicore/internal/bootstrap"
 	"github.com/yunnuo/unicore/internal/contracts"
+	"github.com/yunnuo/unicore/internal/install"
 	"github.com/yunnuo/unicore/internal/platform"
 	apispec "github.com/yunnuo/unicore/packages/contracts"
 )
@@ -159,6 +161,41 @@ func TestRegisteredAPIRootContractFixture(t *testing.T) {
 	w = request("POST", "/api/v2/auth/login", "", "", "", false)
 	if w.Code != 429 {
 		t.Fatal("new root bypassed login throttle", w.Code, w.Body.String())
+	}
+	// Standalone can register local module APIs while retaining its loopback
+	// handler guard and refusing platform session operations at the same root.
+	local, err := install.Open(t.Context(), install.Options{DataDir: t.TempDir(), Profile: "web-standalone"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer local.Close()
+	installToken, err := os.ReadFile(local.TokenPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err = local.Complete(t.Context(), strings.TrimSpace(string(installToken)), contracts.InstallInput{Profile: "web-standalone", Database: contracts.DatabaseInput{Driver: "sqlite"}, SiteName: "Local root", BaseUrl: "http://localhost"}); err != nil {
+		t.Fatal(err)
+	}
+	localConfig := Config{Core: bootstrap.Core(), Install: local, Logger: config.Logger, APIVersions: []APIVersion{{Root: "/api/v2", Register: func(api chi.Router) {
+		api.Get("/standalone", func(w http.ResponseWriter, r *http.Request) {
+			if coreAccess(local, w, r) {
+				success(w, map[string]bool{"local": true})
+			}
+		})
+		api.Get("/admin/probe", handler)
+	}}}}
+	localRoot := New(localConfig)
+	for _, tc := range []struct {
+		path, peer string
+		status     int
+	}{{"/api/v2/standalone", "127.0.0.1:1234", 200}, {"/api/v2/standalone", "192.0.2.73:1234", 403}, {"/api/v2/admin/probe", "127.0.0.1:1234", 404}} {
+		r := httptest.NewRequest("GET", "http://localhost"+tc.path, nil)
+		r.RemoteAddr = tc.peer
+		w := httptest.NewRecorder()
+		localRoot.ServeHTTP(w, r)
+		if w.Code != tc.status {
+			t.Fatal("standalone root", tc, w.Code, w.Body.String())
+		}
 	}
 	// Compare full routes with the temporary contract, without a v1 prefix graft.
 	registered := map[string]bool{}

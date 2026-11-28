@@ -18,7 +18,7 @@
 
 请求在路由匹配前按同一注册表标记根版本。维护模式与 bootstrap/admin/health 恢复例外、管理工作台选择和审计 realm 都使用相对于已登记根的路径；不继续硬编码 v1。profile、会话、权限/operation、PAT 路径限制、CSRF/Origin、登录限流和响应安全头走已有共享中间件。模块处理器用 `RequestSession` 取得策略层主体，避免重新读取 Cookie 而丢失 PAT 绑定角色。
 
-框架认证/OIDC callback、文件上传下载和 bootstrap 等既有接口保持 v1，不复制整套接口到新版本；业务通常仍可沿用 `/api/v1/<module>/<business-version>/...`。新版本的业务接口由模块自行声明、实现及登记，不能将 incoming URL 改写成 v1 后匹配旧权限。客户端请求路径来自生成的 operation 描述。生成链对所有 `/api/vN/admin/` 保持管理员 realm、security scheme 和权限声明检查。
+框架认证/OIDC callback、文件上传下载和 bootstrap 等既有接口保持 v1，不复制整套接口到新版本；业务通常仍可沿用 `/api/v1/<module>/<business-version>/...`。新版本的业务接口由模块自行声明、实现及登记，不能将 incoming URL 改写成 v1 后匹配旧权限。客户端请求路径来自生成的 operation 描述；SDK 不剥离或强加 v1 前缀，JSON、二进制、multipart 与本地上传 grant 都保留完整根路径，附带会话凭证前拒绝外部或非 API 目标。生成链对所有 `/api/vN/admin/` 保持管理员 realm、security scheme 和权限声明检查。
 
 ## 验证
 

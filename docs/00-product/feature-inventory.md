@@ -108,6 +108,7 @@ Platform 两工作台与 Standalone 两载体共用连续的顶栏/正文背景�
 | 功能单元 | 载体 | 证据 |
 | --- | --- | --- |
 | Wails 桥设置兼容方法（空列表、拒绝写入） | Standalone(GUI) | `internal/adapter/desktop/bridge.go` |
+| macOS DMG 安装包（保留 Finder 拖拽安装布局；从独立镜像副本压缩，避免原工作镜像残留锁阻断转换；压缩后校验完整性） | Standalone(GUI)，macOS 分发载体 | `scripts/desktop-downloads.mjs`、`scripts/release-assets.test.mjs`、[打包验证](../03-runbooks/release.md) |
 | 原生签名更新（native 部署） | Standalone(GUI)，需 `updater`；默认不要求 OS 证书，发布者验签必需 | `internal/adapter/desktop/updates.go`、`cmd/desktop/updates_enabled.go` |
 | 单实例锁 | Standalone(GUI) | `internal/bootstrap/local/local.go` |
 | 窗口关闭后台运行（关闭=隐藏；macOS Dock/菜单栏图标恢复，Windows/Linux 托盘恢复/退出） | Standalone(GUI) | `cmd/desktop/main.go`、`cmd/desktop/tray_enabled.go`、`cmd/desktop/tray_darwin.go`，见 [ADR-0048](../adr/ADR-0048-desktop-close-background-tray.md) |

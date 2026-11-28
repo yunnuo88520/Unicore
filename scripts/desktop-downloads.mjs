@@ -1,9 +1,9 @@
 // Author: yunnuo <ymz@ebox.vip>
 // Description: User-facing native downloads; tar archives remain the OTA transport.
 import {execFileSync} from 'node:child_process';
-import {cpSync,existsSync,mkdirSync,rmSync,symlinkSync,readFileSync,writeFileSync,renameSync} from 'node:fs';
+import {copyFileSync,cpSync,existsSync,mkdirSync,mkdtempSync,rmSync,symlinkSync,readFileSync,writeFileSync,renameSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-import {join} from 'node:path';
+import {dirname,join} from 'node:path';
 
 const HDIUTIL='/usr/bin/hdiutil';
 
@@ -64,20 +64,17 @@ function waitMountReleased(mount){
   for(let attempt=0;attempt<20&&existsSync(mount);attempt++)execFileSync('sleep',['0.5'],{stdio:'ignore'});
 }
 
-// A detached image may still be busy while macOS completes teardown. Retry only
-// that transient response and preserve all other conversion failures.
+// DiskImages helpers may retain a POSIX lock on the backing file after detach
+// removes its mount point. Convert a private, never-attached copy so teardown
+// cannot block conversion. Copy the complete image to preserve Finder metadata.
 export function convertDmg(source, destination, run = execFileSync) {
-  const args = ['convert', source, '-format', 'UDZO', '-o', destination];
-  const destinationExisted = existsSync(destination);
-  for (let attempt = 1; ; attempt++) {
-    try {
-      run(HDIUTIL, args, {stdio: ['ignore', 'inherit', 'pipe']});
-      return;
-    } catch (error) {
-      if (attempt === 3 || destinationExisted || !String(error.stderr ?? '').includes('Resource temporarily unavailable')) throw error;
-      rmSync(destination, {force: true});
-      run('/bin/sleep', [String(attempt)], {stdio: 'ignore'});
-    }
+  const work = mkdtempSync(join(dirname(source), '.dmg-convert-'));
+  try {
+    const snapshot = join(work, 'source.dmg');
+    copyFileSync(source, snapshot);
+    run(HDIUTIL, ['convert', snapshot, '-format', 'UDZO', '-o', destination], {stdio: ['ignore', 'inherit', 'pipe']});
+  } finally {
+    rmSync(work, {recursive: true, force: true});
   }
 }
 

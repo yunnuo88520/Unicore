@@ -41,7 +41,7 @@ Disable the notes demo at build time with `FEATURE_NOTES=false`; see [feature tr
 
 ## Create your application
 
-Install Go 1.26.11+, Node.js 22.22.2+ (see [package.json](package.json) for other supported versions), pnpm 11.25.0, Git, Make, and ripgrep. Desktop development also requires the [Wails native dependencies](https://wails.io/docs/gettingstarted/installation).
+Install Go 1.26.11+, Node.js 22.22.2+ (see [package.json](package.json) for other supported versions), pnpm 11.25.0, Git, Make, and ripgrep. Desktop development also requires the [Wails native dependencies](https://wails.io/docs/gettingstarted/installation); native DMG regression tests on macOS also require Python 3 (standard library only).
 
 Run this from a clean framework checkout. The destination must be outside the repository and must not already exist:
 

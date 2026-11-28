@@ -9,11 +9,13 @@ All notable changes to Unicore are documented here. 本文件只记录面向使�
 
 - 修复派生 CLI 的出站 HTTP 客户端被依赖检查误拒绝；保留领域、用例和服务端装配边界，并说明标准库服务端调用需要额外审查。
 - 修复个人中心弹窗状态变化时抢走正在编辑的输入焦点，避免未提交的昵称被恢复。
+- 修复 macOS 桌面 DMG 打包时源镜像残留文件锁导致的转换失败；使用独立镜像副本保留安装器布局并完成压缩校验。
 
 ### English
 
 - Allow derived CLI adapters to use outbound HTTP clients while retaining domain, use case, and server assembly boundaries; document the separate review needed for standard-library server calls.
 - Keep focus in an active account settings field when the modal state changes, so a nickname being edited is not restored prematurely.
+- Fix macOS desktop DMG conversion failures caused by lingering source-image locks; compress an independent image copy while preserving the installer layout and integrity checks.
 
 ## 0.2.1 — 2026-11-26
 
